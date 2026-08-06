@@ -9,14 +9,14 @@
 - [x] 2.1 实现 STF REST 客户端，封装设备列表、单设备查询、占用、释放和远程连接请求
 - [x] 2.2 实现统一设备模型和 `present`、`ready`、`using`、`owner` 到 `ready`、`busy`、`offline`、`unavailable`、`unknown` 的状态映射
 - [x] 2.3 为 STF 响应、超时、非 2xx 和无效 JSON 建立可测试的适配器错误类型，并保留安全诊断上下文
-- [ ] 2.4 实现 `GET /api/v1/devices` 与 `GET /api/v1/devices/:serial`；验证设备状态来自 STF 而非陈旧本地缓存
+- [x] 2.4 实现 `GET /api/v1/devices` 与 `GET /api/v1/devices/:serial`；验证设备状态来自 STF 而非陈旧本地缓存
 
 ## 3. 单设备操作 API
 
-- [ ] 3.1 实现 `POST /api/v1/devices/:serial/lease`，处理可用、离线、未就绪、忙和 STF 鉴权失败场景
-- [ ] 3.2 实现 `DELETE /api/v1/devices/:serial/lease`，校验当前客户端所有权并保持释放幂等
-- [ ] 3.3 实现 `POST /api/v1/devices/:serial/remote-connect`，返回当前会话临时地址并禁止持久化敏感值
-- [ ] 3.4 为单设备接口补充输入校验、稳定错误码和不泄露 Token/ADB key/完整连接地址的响应与日志规则
+- [x] 3.1 实现 `POST /api/v1/devices/:serial/lease`，处理可用、离线、未就绪、忙和 STF 鉴权失败场景
+- [x] 3.2 实现 `DELETE /api/v1/devices/:serial/lease`，校验当前客户端所有权并保持释放幂等
+- [x] 3.3 实现 `POST /api/v1/devices/:serial/remote-connect`，返回当前会话临时地址并禁止持久化敏感值
+- [x] 3.4 为单设备接口补充输入校验、稳定错误码和不泄露 Token/ADB key/完整连接地址的响应与日志规则
 
 ## 4. 批量操作
 
@@ -28,7 +28,7 @@
 
 ## 5. 健康检查与诊断
 
-- [ ] 5.1 实现 `GET /health`，分别报告控制面、STF API、Provider/ADB 和鉴权配置状态
+- [x] 5.1 实现 `GET /health`，分别报告控制面、STF API、Provider/ADB 和鉴权配置状态
 - [ ] 5.2 固定并验证 `stf_unreachable`、`provider_unavailable`、`device_offline`、`device_not_ready`、`device_busy`、`auth_failed`、`operation_timeout`、`partial_failure`
 - [ ] 5.3 实现统一日志脱敏和错误序列化；确认 Token、ADB key、凭据和不必要的完整远程地址不出现在日志或错误正文
 - [ ] 5.4 增加服务自身的单元/契约检查，覆盖正常 STF 响应、认证失败、依赖不可达和部分批量失败

@@ -4,12 +4,15 @@ export interface AppConfig {
   operationTimeoutMs: number
   batchConcurrency: number
   environment: string
+  port: number
 }
 
 const DEFAULT_OPERATION_TIMEOUT_MS = 10_000
 const DEFAULT_BATCH_CONCURRENCY = 4
 const MAX_OPERATION_TIMEOUT_MS = 60_000
 const MAX_BATCH_CONCURRENCY = 32
+const DEFAULT_PORT = 7120
+const MAX_PORT = 65_535
 
 function requiredString(env: NodeJS.ProcessEnv, name: string): string {
   const value = env[name]?.trim()
@@ -69,5 +72,17 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
       MAX_BATCH_CONCURRENCY,
     ),
     environment: env.MOBILE_MATRIX_ENVIRONMENT?.trim() || 'local',
+    port: parsePort(env.MOBILE_MATRIX_PORT),
   }
+}
+
+function parsePort(raw: string | undefined): number {
+  if (!raw?.trim()) {
+    return DEFAULT_PORT
+  }
+  const value = Number(raw)
+  if (!Number.isInteger(value) || value < 1 || value > MAX_PORT) {
+    throw new Error(`MOBILE_MATRIX_PORT must be an integer between 1 and ${MAX_PORT}`)
+  }
+  return value
 }

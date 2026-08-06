@@ -12,7 +12,7 @@ Mobile Matrix SHALL obtain device presence, readiness, lease ownership and remot
 - **THEN** the response marks the device state as `unknown` or returns a dependency error classified as `stf_unreachable`, and does not reuse an old `ready` assertion
 
 ### Requirement: Mobile Matrix SHALL expose a normalized device API
-The service SHALL expose `GET /api/v1/devices` and `GET /api/v1/devices/:serial`, including stable identity fields, Android platform, provider information when available, normalized status, and diagnostic STF fields needed to explain that status.
+The service SHALL expose `GET /api/v1/devices` and `GET /api/v1/devices/:serial`, including stable identity fields, Android platform, provider information when available, normalized status, and diagnostic STF fields needed to explain that status. In the first trusted-local profile, the caller is the single configured STF service identity; Mobile Matrix user authentication is not implied.
 
 #### Scenario: Client lists devices
 - **WHEN** an authenticated client requests `GET /api/v1/devices`
@@ -27,7 +27,7 @@ The service SHALL expose `GET /api/v1/devices` and `GET /api/v1/devices/:serial`
 - **THEN** the service returns status `unavailable` and preserves the raw readiness information
 
 ### Requirement: Clients SHALL be able to lease and release one device
-The service SHALL expose `POST /api/v1/devices/:serial/lease` and `DELETE /api/v1/devices/:serial/lease` as guarded operations backed by the corresponding STF user-device operations.
+The service SHALL expose `POST /api/v1/devices/:serial/lease` and `DELETE /api/v1/devices/:serial/lease` as guarded operations backed by the corresponding STF user-device operations. In the first profile, “current client” means the configured STF service identity.
 
 #### Scenario: Lease an available device
 - **WHEN** the target is present, ready, available and the STF request succeeds
@@ -46,7 +46,7 @@ The service SHALL expose `POST /api/v1/devices/:serial/lease` and `DELETE /api/v
 - **THEN** the service returns a deterministic ownership or `device_busy` error and leaves the STF lease unchanged
 
 ### Requirement: Remote connection SHALL be explicit and temporary
-The service SHALL expose `POST /api/v1/devices/:serial/remote-connect`, return the STF-provided temporary ADB connection address only after verifying that the client owns or can use the device, and SHALL NOT persist that address in ordinary application storage or logs.
+The service SHALL expose `POST /api/v1/devices/:serial/remote-connect`, return the STF-provided temporary ADB connection address only after verifying that the configured STF service identity owns or can use the device, and SHALL NOT persist that address in ordinary application storage or logs.
 
 #### Scenario: Remote-connect an owned device
 - **WHEN** the client owns an available STF device and requests remote connection

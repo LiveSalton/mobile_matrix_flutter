@@ -12,6 +12,7 @@ Mobile Matrix 需要先具备管理多台真实 Android 手机的基础能力，
 - 新增 Mac 原生验证路径：宿主机 ADB 直接访问 USB，STF 原生运行或使用非 USB 的辅助容器；Docker Desktop 不承担 USB 直通。
 - 固定 STF `3.7.9` 作为第一阶段依赖，记录运行配置、Token/ADB key 注入边界和可信内网限制。
 - 将设备状态以 STF 作为唯一事实来源，第一阶段不建立第二套底层设备状态数据库。
+- 第一阶段采用单一服务身份：Mobile Matrix API 运行在本机/可信内网，所有租约所有权由配置的 STF Token 代表；多用户登录与权限隔离另立 change。
 
 非目标：
 
@@ -41,4 +42,5 @@ Mobile Matrix 需要先具备管理多台真实 Android 手机的基础能力，
 - 新增 STF `3.7.9`、Node.js 20 LTS、ADB 和 RethinkDB 的开发/运行配置说明。
 - 新增 OpenSpec 规格、设计、任务和 Mac/多设备验收证据记录。
 - 第一阶段不要求修改 STF 源码，不要求 Android 手机端安装 Mobile Matrix Agent。
+- 第一阶段不提供 Mobile Matrix 自有用户认证；API 访问控制依赖本机/可信内网边界和服务端 STF Token。
 - 运行证据至少覆盖当前 Mac 上一台设备、第二台设备接入、单设备租约、批量租约、拔线和依赖故障。

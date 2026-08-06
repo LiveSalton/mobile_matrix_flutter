@@ -55,6 +55,14 @@ export class StfHttpClient implements StfPort {
     return this.parseDevice(body.device)
   }
 
+  async getUserDevices(): Promise<StfDevice[]> {
+    const body = await this.request<StfDevicesResponse>('/api/v1/user/devices')
+    if (!Array.isArray(body.devices)) {
+      throw new MobileMatrixError('invalid_stf_response', 'STF user device list is malformed')
+    }
+    return body.devices.map((device) => this.parseDevice(device))
+  }
+
   async leaseDevice(serial: string): Promise<void> {
     const body = await this.request<StfMutationResponse>('/api/v1/user/devices', {
       method: 'POST',

@@ -51,3 +51,14 @@ The diagnostics and operation logs SHALL omit STF tokens, ADB keys, complete rem
 #### Scenario: A diagnostic snapshot is requested
 - **WHEN** a client requests a health or device diagnostic snapshot
 - **THEN** the snapshot includes dependency and device status but no STF token, ADB key or credential
+
+### Requirement: The first profile SHALL remain a trusted single-identity service
+The first Mobile Matrix profile SHALL rely on local or trusted-network access and the configured STF Token as its single service identity; it SHALL NOT claim per-user authorization or multi-tenant isolation.
+
+#### Scenario: A request arrives in the trusted-local profile
+- **WHEN** a caller uses a Mobile Matrix endpoint
+- **THEN** the service applies the configured STF identity and does not present a separate per-user lease boundary
+
+#### Scenario: The service is placed on an untrusted network
+- **WHEN** deployment configuration would expose the first profile beyond the trusted boundary
+- **THEN** the runbook and health diagnostics report that the deployment is unsupported rather than implying secure multi-user access
