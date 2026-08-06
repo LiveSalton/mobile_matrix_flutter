@@ -36,3 +36,25 @@
 ## 未完成边界
 
 没有第二台真实 Android 设备时，只能报告单设备静态/API结果；不能完成多设备、批量、拔线和恢复验收。没有可用 STF Token 时，不能声称租约或远程连接已验证。
+
+## 当前真实验证快照（2026-08-06）
+
+- 当前 arm64 Mac 使用宿主机 ADB 识别 1 台已授权真机；STF `3.7.9`、RethinkDB `2.4.2` 已启动，STFService 已安装并进入 `Fully operational`。
+- Mobile Matrix 单设备闭环已通过：健康检查、设备列表、租用、临时远程连接、释放和释放后重新查询均已取得 API 证据。
+- 已验证 STF 不可达、错误 Token、第二身份占用设备和 Docker 容器无 `/dev/bus/usb` 时的稳定错误/降级；未把缺少 USB 的容器报告为 ready。
+- 由于当前只有 1 台真实 Android 设备，第二台设备、两台批量操作、拔线隔离与恢复仍保持未完成。
+- 具体脱敏证据位于本 change 的 `evidence/m0-mac-adb-stf.md`、`evidence/m1-single-device-api.md` 和 `evidence/m3-failure-and-unplug.md`；证据文件被 `.gitignore` 忽略，避免本机运行凭据误提交。
+
+## Requirement-by-requirement 审计
+
+| 范围 | 结果 | 依据或阻塞 |
+| --- | --- | --- |
+| 1.x 项目、配置与运行边界 | 通过 | 实现、Node 20 约束、Mac 运行手册与严格校验 |
+| 2.x STF 适配与设备模型 | 通过 | STF API/适配器测试与单设备真机列表 |
+| 3.x 单设备查询、租用、释放、远程连接 | 通过 | `m1-single-device-api.md` |
+| 4.x 批量选择器、并发、超时与部分失败 | 通过 | 25 个自动化测试与批量契约测试；双真机运行证据仍未声称通过 |
+| 5.x 健康检查、稳定错误码与脱敏 | 通过 | `m3-failure-and-unplug.md`、红测与健康检查测试 |
+| 6.1–6.2 Mac 单设备 STF 闭环 | 通过 | `m0-mac-adb-stf.md`、`m1-single-device-api.md` |
+| 6.3–6.5 双设备、批量真机、拔线恢复 | 未完成 | 当前只有 1 台真实 Android 设备，不能用模拟状态替代 |
+| 6.6 依赖故障与 Docker USB 边界 | 通过 | `m3-failure-and-unplug.md` |
+| 7.1–7.3 记录、校验与审计 | 通过 | OpenSpec strict、TypeScript check/build、25/25 测试、`git diff --check` |

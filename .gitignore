@@ -3,4 +3,5 @@ dist/
 .env
 .env.*.local
 .DS_Store
+.runtime/
 openspec/changes/mobile-matrix-stf-foundation/evidence/*.md
