@@ -2,7 +2,7 @@
 
 - [x] 1.1 建立 Mobile Matrix 控制面最小目录、Node.js 20 LTS 运行约束和 TypeScript 编译/检查入口；验证不覆盖系统 Node.js 22
 - [x] 1.2 定义 STF `3.7.9`、STF_BASE_URL、STF_TOKEN、超时、并发和日志脱敏配置契约；确认 secret 不进入版本库
-- [ ] 1.3 编写 Mac 原生 ADB/STF 验证运行说明；明确宿主机 ADB、RethinkDB、STF Provider 和 Docker Desktop 无 USB 直通的边界
+- [x] 1.3 编写 Mac 原生 ADB/STF 验证运行说明；明确宿主机 ADB、RethinkDB、STF Provider 和 Docker Desktop 无 USB 直通的边界
 
 ## 2. STF 适配与设备模型
 

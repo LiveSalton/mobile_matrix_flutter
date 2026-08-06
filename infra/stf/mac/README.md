@@ -1,0 +1,73 @@
+# Mac 原生 STF 验证运行手册
+
+本目录只描述开发验证路径，不代表 STF 已经在本机启动，也不替代真实设备证据。
+
+## 运行边界
+
+- 目标环境：当前 arm64 Mac、本机或可信内网。
+- 设备接入：宿主机 ADB 直接访问 USB Android 手机。
+- STF：固定 `@devicefarmer/stf@3.7.9`，Provider 使用宿主机 ADB。
+- RethinkDB：原生运行或单独 Docker 容器，不能让 Docker Desktop USB 直通成为前置条件。
+- Mobile Matrix：读取 `STF_BASE_URL` 和服务端 `STF_TOKEN`，默认只监听 `127.0.0.1`。
+- 长期生产：迁移到连接实体 USB 设备的 Linux 设备主机；Mac 结果只作为开发/验证证据。
+
+## 前置检查
+
+建议使用隔离的 Node.js 20 LTS，不覆盖系统 Node.js 22：
+
+```bash
+node --version
+npm --version
+uname -m
+adb version
+adb start-server
+adb devices -l
+```
+
+设备必须显示为 `device`，`unauthorized`、`offline` 或空列表都不能进入 STF 设备验收。
+
+DeviceFarmer README 列出的 Mac 原生依赖包括 RethinkDB、GraphicsMagick、ZeroMQ、Protocol Buffers、yasm、pkg-config 和 CMake。按本机包管理器安装，并在证据中记录实际版本；不要把包管理器缓存或本机路径提交到仓库。
+
+## 启动 STF
+
+以下命令用于本地验证，执行前确认目录和端口属于当前工作区：
+
+```bash
+npm install -g @devicefarmer/stf@3.7.9
+rethinkdb --bind all
+stf local --public-ip 127.0.0.1
+```
+
+STF 启动后，先通过浏览器确认本地页面和设备列表，再取得仅用于本机服务的 STF access token。Token 不写入命令历史、文档、截图或版本库。
+
+若不希望原生安装 RethinkDB，可只将 RethinkDB 作为非 USB Docker 容器运行，并让宿主机 STF 通过 `127.0.0.1:28015` 连接；不得使用 `devicefarmer/adb` 容器假设 Mac 能直接透传 USB。
+
+## 启动 Mobile Matrix
+
+在仓库根目录准备未提交的本地环境文件：
+
+```bash
+cp .env.example .env
+```
+
+填入本机 STF 地址和 token 后，用 Node 20 执行：
+
+```bash
+npm run check
+npm test
+npm run build
+npm run start
+```
+
+如果 `start` 尚未提供，使用等价的 `tsx src/main.ts` 临时启动；只允许监听本机。启动后检查：
+
+```bash
+curl http://127.0.0.1:7120/health
+curl http://127.0.0.1:7120/api/v1/devices
+```
+
+响应中的设备状态必须来自当前 STF 请求；STF 不可达时不得使用旧缓存冒充 `ready`。
+
+## Mac 限制与回退
+
+Docker Desktop 在 macOS 上不提供直接 USB 设备透传。USB/IP 是额外实验路径，不作为首轮验收依赖。如果宿主机 STF/ADB 在多设备或 USB Hub 下不稳定，保留 Mobile Matrix 的 API、设备模型和错误契约，把 STF Provider 迁移到 Linux 设备主机；不得用模拟设备或模拟画面替代运行证据。
