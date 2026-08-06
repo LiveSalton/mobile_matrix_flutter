@@ -82,4 +82,14 @@ describe('BatchService', () => {
     assert.equal(result.result, 'success')
     assert.deepEqual(result.succeeded, ['a'])
   })
+
+  it('keeps an unresolved timeout classified when the recheck cannot prove success', async () => {
+    const stf = portFor({ a: ready('a') })
+    stf.leaseDevice = async () => {
+      throw new MobileMatrixError('operation_timeout', 'uncertain')
+    }
+    const result = await new BatchService(new DeviceService(stf), 1, 100).lease(['a'])
+    assert.equal(result.result, 'partial_failure')
+    assert.equal(result.failed[0]?.code, 'operation_timeout')
+  })
 })

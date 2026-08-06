@@ -61,4 +61,23 @@ describe('device routes', () => {
     assert.doesNotMatch(response.body, /test-token|127\.0\.0\.1:1234/)
     await app.close()
   })
+
+  it('returns stable device failure codes', async () => {
+    const statuses: Array<[boolean, boolean, string]> = [
+      [false, false, 'device_offline'],
+      [true, false, 'device_not_ready'],
+      [true, true, 'device_busy'],
+    ]
+    for (const [present, ready, code] of statuses) {
+      const stf = fakeStf()
+      stf.getDevice = async () => ({
+        serial: 'abc', present, ready, using: code === 'device_busy', owner: code === 'device_busy' ? 'other' : null,
+      })
+      const app = buildApp({ stf, config })
+      const response = await app.inject({ method: 'POST', url: '/api/v1/devices/abc/lease' })
+      assert.equal(response.statusCode, code === 'device_busy' ? 409 : 422)
+      assert.equal(response.json().error.code, code)
+      await app.close()
+    }
+  })
 })

@@ -25,11 +25,13 @@ export class MobileMatrixError extends Error {
       cause?: unknown
     } = {},
   ) {
-    super(message, { cause: options.cause })
+    super(redactSensitiveText(message), { cause: options.cause })
     this.name = 'MobileMatrixError'
     this.code = code
     this.statusCode = options.statusCode ?? defaultStatusCode(code)
     this.details = options.details
+      ? redactSensitiveValue(options.details) as Record<string, unknown>
+      : undefined
   }
 }
 
@@ -69,3 +71,4 @@ export function asMobileMatrixError(error: unknown): MobileMatrixError {
     cause: error,
   })
 }
+import { redactSensitiveText, redactSensitiveValue } from '../observability/redaction.js'

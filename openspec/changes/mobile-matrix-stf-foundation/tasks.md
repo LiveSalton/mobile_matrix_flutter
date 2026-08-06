@@ -29,9 +29,9 @@
 ## 5. 健康检查与诊断
 
 - [x] 5.1 实现 `GET /health`，分别报告控制面、STF API、Provider/ADB 和鉴权配置状态
-- [ ] 5.2 固定并验证 `stf_unreachable`、`provider_unavailable`、`device_offline`、`device_not_ready`、`device_busy`、`auth_failed`、`operation_timeout`、`partial_failure`
-- [ ] 5.3 实现统一日志脱敏和错误序列化；确认 Token、ADB key、凭据和不必要的完整远程地址不出现在日志或错误正文
-- [ ] 5.4 增加服务自身的单元/契约检查，覆盖正常 STF 响应、认证失败、依赖不可达和部分批量失败
+- [x] 5.2 固定并验证 `stf_unreachable`、`provider_unavailable`、`device_offline`、`device_not_ready`、`device_busy`、`auth_failed`、`operation_timeout`、`partial_failure`
+- [x] 5.3 实现统一日志脱敏和错误序列化；确认 Token、ADB key、凭据和不必要的完整远程地址不出现在日志或错误正文
+- [x] 5.4 增加服务自身的单元/契约检查，覆盖正常 STF 响应、认证失败、依赖不可达和部分批量失败
 
 ## 6. Mac 真机与多设备验收
 
