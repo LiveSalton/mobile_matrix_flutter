@@ -6,9 +6,9 @@
 
 ## 2. STF 适配与设备模型
 
-- [ ] 2.1 实现 STF REST 客户端，封装设备列表、单设备查询、占用、释放和远程连接请求
-- [ ] 2.2 实现统一设备模型和 `present`、`ready`、`using`、`owner` 到 `ready`、`busy`、`offline`、`unavailable`、`unknown` 的状态映射
-- [ ] 2.3 为 STF 响应、超时、非 2xx 和无效 JSON 建立可测试的适配器错误类型，并保留安全诊断上下文
+- [x] 2.1 实现 STF REST 客户端，封装设备列表、单设备查询、占用、释放和远程连接请求
+- [x] 2.2 实现统一设备模型和 `present`、`ready`、`using`、`owner` 到 `ready`、`busy`、`offline`、`unavailable`、`unknown` 的状态映射
+- [x] 2.3 为 STF 响应、超时、非 2xx 和无效 JSON 建立可测试的适配器错误类型，并保留安全诊断上下文
 - [ ] 2.4 实现 `GET /api/v1/devices` 与 `GET /api/v1/devices/:serial`；验证设备状态来自 STF 而非陈旧本地缓存
 
 ## 3. 单设备操作 API
