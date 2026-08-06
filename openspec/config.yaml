@@ -1,0 +1,40 @@
+schema: spec-driven
+
+context: |
+  项目名称：Mobile Matrix
+  项目定位：面向多台真实移动设备的集中管理、群控与自动化编排平台。
+  当前阶段：基于 DeviceFarmer STF 建立 Android 多设备管理基础闭环。
+  设计来源：承接 ChatGPT 对话 6a746c22-9208-83ea-8302-ee46499f7b3e 中确定的 Mobile Matrix 命名与产品定位，并复用 Codex 任务 019fd509-b1c0-7db3-9bd8-d4c8c9289c48 已验证的 Android Airtest 经验；Airtest 暂不进入当前 STF 基础设施 change。
+
+  当前第一阶段范围：
+    - Mobile Matrix 作为独立控制面，DeviceFarmer STF 作为外部设备基础设施。
+    - 先管理 Android 真机：设备列表、状态、占用、释放、远程连接和批量操作。
+    - 当前没有 Linux 主机，先在当前 arm64 Mac 上原生 ADB/STF 验证；Docker Desktop 不承担 USB 直通。
+    - 第一阶段不实现 Airtest、抖音业务、AI Agent、iOS/WDA、自定义 Web 控制台或公网多租户安全。
+    - 设备状态以 STF 为唯一事实来源；Mobile Matrix 不复制底层设备状态。
+
+  工程约束：
+    - 所有需求、方案、任务和进度必须同步到当前 OpenSpec change。
+    - 未完成真实设备、STF API 或运行证据的能力不得写成已经可用。
+    - 首版优先使用 Node.js 20 LTS 隔离环境；不得为了验证覆盖系统 Node.js 22。
+    - STF 版本固定为 3.7.9，不直接依赖 latest；Token、ADB key、内部地址和设备连接地址不得进入版本库或普通日志。
+    - 第一阶段只面向本机或可信内网；不得默认暴露公网。
+    - 变更保持最小范围，禁止顺手引入无关 UI、任务编排或平台重构。
+    - 每个任务必须有静态检查、API/运行验证或真实设备证据中的明确验收边界。
+    - 不得把模拟设备、模拟画面或按钮点击计时器当作真实设备能力证据。
+
+rules:
+  proposal:
+    - 必须用中文说明变更原因、范围、非目标、平台边界、回退方式和外部 STF 依赖。
+    - 必须明确 STF 与 Mobile Matrix 的职责边界，不得把未来 Airtest/AI/iOS 能力混入当前 change。
+  design:
+    - 必须用中文编写，并说明部署拓扑、Mac 验证例外、API 边界、数据事实来源和安全边界。
+    - 必须说明单设备和批量操作的状态、幂等性、错误分类和重试策略。
+  tasks:
+    - 必须用中文拆分为可验证的原子步骤。
+    - 必须区分文档/静态检查、STF/API 验证和真实多设备运行证据。
+    - 每个任务完成前同步更新任务状态和必要的设计/规格工件。
+  specs:
+    - 必须用中文和可验证语言编写。
+    - 每条 Requirement 至少包含一个 Scenario。
+    - 设备不可达、设备离线、设备忙、Token 错误、部分批量失败和 Mac 无 USB 直通降级必须覆盖。
