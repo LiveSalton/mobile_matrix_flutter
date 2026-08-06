@@ -27,6 +27,10 @@ export class DeviceService {
     return { serial, success: true }
   }
 
+  async isOwned(serial: string): Promise<boolean> {
+    return (await this.stf.getUserDevices()).some((device) => device.serial === serial)
+  }
+
   async remoteConnect(serial: string): Promise<{ serial: string; remoteConnectUrl: string }> {
     const device = await this.get(serial)
     assertPresentAndReady(device)
@@ -36,8 +40,7 @@ export class DeviceService {
   }
 
   private async assertOwned(serial: string): Promise<void> {
-    const devices = await this.stf.getUserDevices()
-    if (!devices.some((device) => device.serial === serial)) {
+    if (!(await this.isOwned(serial))) {
       throw new MobileMatrixError('device_busy', `The configured STF identity does not own ${serial}`)
     }
   }

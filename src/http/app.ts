@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance } from 'fastify'
 import { DeviceService } from '../application/device-service.js'
 import { HealthService } from '../application/health-service.js'
+import { BatchService } from '../application/batch-service.js'
 import type { StfPort } from '../application/stf-port.js'
 import type { AppConfig } from '../config.js'
 import { MobileMatrixError } from '../domain/errors.js'
@@ -13,6 +14,11 @@ export interface AppDependencies {
 export function buildApp(dependencies: AppDependencies): FastifyInstance {
   const app = Fastify({ logger: false })
   const devices = new DeviceService(dependencies.stf)
+  const batch = new BatchService(
+    devices,
+    dependencies.config.batchConcurrency,
+    dependencies.config.operationTimeoutMs,
+  )
   const health = new HealthService(dependencies.stf, dependencies.config.stfToken.length > 0)
 
   app.get('/health', async (_request, reply) => {
@@ -40,6 +46,16 @@ export function buildApp(dependencies: AppDependencies): FastifyInstance {
     '/api/v1/devices/:serial/remote-connect',
     async (request, reply) => reply.send(await devices.remoteConnect(request.params.serial)),
   )
+
+  app.post<{ Body: { serials?: unknown } }>('/api/v1/batch/lease', async (request, reply) => {
+    const result = await batch.lease(request.body?.serials)
+    return reply.code(result.result === 'partial_failure' ? 207 : 200).send(result)
+  })
+
+  app.post<{ Body: { serials?: unknown } }>('/api/v1/batch/release', async (request, reply) => {
+    const result = await batch.release(request.body?.serials)
+    return reply.code(result.result === 'partial_failure' ? 207 : 200).send(result)
+  })
 
   app.setErrorHandler((error, _request, reply) => {
     const failure = error instanceof MobileMatrixError

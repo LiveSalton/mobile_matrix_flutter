@@ -20,11 +20,11 @@
 
 ## 4. 批量操作
 
-- [ ] 4.1 实现 serial 列表校验，拒绝空列表、重复 serial 和无效输入，不在校验失败时调用 STF
-- [ ] 4.2 实现 `POST /api/v1/batch/lease`，逐台执行并返回 `accepted`、`succeeded`、`failed` 与每台错误原因
-- [ ] 4.3 实现 `POST /api/v1/batch/release`，只释放当前客户端持有的租约并保留其他目标结果
-- [ ] 4.4 增加有上限的并发、超时和查询重试；对不确定的租约操作先重查 STF，禁止盲目重复变更
-- [ ] 4.5 为一台忙/离线/超时而其他设备成功的场景生成 `partial_failure`，并完成适配器级测试
+- [x] 4.1 实现 serial 列表校验，拒绝空列表、重复 serial 和无效输入，不在校验失败时调用 STF
+- [x] 4.2 实现 `POST /api/v1/batch/lease`，逐台执行并返回 `accepted`、`succeeded`、`failed` 与每台错误原因
+- [x] 4.3 实现 `POST /api/v1/batch/release`，只释放当前客户端持有的租约并保留其他目标结果
+- [x] 4.4 增加有上限的并发、超时和查询重试；对不确定的租约操作先重查 STF，禁止盲目重复变更
+- [x] 4.5 为一台忙/离线/超时而其他设备成功的场景生成 `partial_failure`，并完成适配器级测试
 
 ## 5. 健康检查与诊断
 
