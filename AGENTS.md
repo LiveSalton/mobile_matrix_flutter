@@ -26,6 +26,7 @@ Mobile Matrix 是移动设备群控项目，基于 DeviceFarmer STF 接入真实
 - 必须先阅读 `AGENTS.md` 与 `doc/` 目录中的约束文档，再改任何代码或文档。
 - 必须先读 `design-system/mobile-matrix/MASTER.md`，再修改任何与 UI 外观相关内容。
 - 必须在 `doc/project-theme.md` 范围内调整主题，不允许新增硬编码界面色值。
+- `design-system/mobile-matrix/theme.css` 是主题 token 落地文件，UI 相关改动必须保持与 `doc/project-theme.md` 与本文件一致。
 - 禁止无用户确认进行大范围重构和无关文件修改。
 - 禁止默认主动构建、发布、部署；默认禁止新增测试，除非任务要求。
 - 任何引入新能力、架构调整、流程变更时，先按 OpenSpec 的现行流程补齐变更文档。

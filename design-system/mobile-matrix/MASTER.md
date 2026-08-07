@@ -1,194 +1,68 @@
-# Design System Master File
+# Mobile Matrix Design System Master
 
-> **LOGIC:** When building a specific page, first check `design-system/pages/[page-name].md`.
-> If that file exists, its rules **override** this Master file.
-> If not, strictly follow the rules below.
+> 运行规则：先读取主题变量，再实现组件。`pages/` 下文件如果存在，优先级高于本文件。
 
----
+## 适用范围
 
-**Project:** Mobile Matrix
-**Generated:** 2026-08-07 10:39:49
-**Category:** General
+- 主题语义、字重和间距采用本文档定义，未说明部分从项目约定提取，不允许直接散落硬编码色值。
+- 主题切换仅允许两个值：`default` 与 `roseGlow`。
 
----
+## 主题语义色（仅定义语义）
 
-## Global Rules
+说明：以下语义色中，`danger` / `warning` / `success` / `disabled` 为全局共享，不受主题切换影响。
 
-### Color Palette
+### 默认（`default`）
 
-| Role | Hex | CSS Variable |
-|------|-----|--------------|
-| Primary | `#2563EB` | `--color-primary` |
-| Secondary | `#3B82F6` | `--color-secondary` |
-| Accent/CTA | `#F97316` | `--color-accent` |
-| Background | `#F8FAFC` | `--color-background` |
-| Foreground | `#1E293B` | `--color-foreground` |
+| Token | Hex |
+| --- | --- |
+| `--mm-bg` | `#0B1014` |
+| `--mm-bg-secondary` | `#212329` |
+| `--mm-surface` | `#10182780` |
+| `--mm-surface-elevated` | `#101827A0` |
+| `--mm-outline` | `#1286D94D` |
+| `--mm-primary` | `#1286D9` |
+| `--mm-accent` | `#1286D9` |
+| `--mm-highlight` | `#B8DFFF33` |
+| `--mm-metal-edge` | `#1286D966` |
+| `--mm-text-primary` | `#FFFFFF` |
+| `--mm-text-secondary` | `#B4B8C5` |
+| `--mm-danger` | `#EF4444` |
+| `--mm-warning` | `#FF9124` |
+| `--mm-success` | `#00D591` |
+| `--mm-disabled` | `#64748B` |
 
-### Typography
+### 玫瑰流光（`roseGlow`）
 
-- **Heading Font:** Inter
-- **Body Font:** Inter
-- **Mood:** Professional + Hierarchy
+| Token | Hex |
+| --- | --- |
+| `--mm-bg` | `#140F16` |
+| `--mm-bg-secondary` | `#2A2029` |
+| `--mm-surface` | `#1E142280` |
+| `--mm-surface-elevated` | `#28192DA0` |
+| `--mm-outline` | `#59E56A9A` |
+| `--mm-primary` | `#E56A9A` |
+| `--mm-accent` | `#E56A9A` |
+| `--mm-highlight` | `#33FFD5E4` |
+| `--mm-metal-edge` | `#E56A9A66` |
+| `--mm-text-primary` | `#FFF8FB` |
+| `--mm-text-secondary` | `#D1BEC9` |
+| `--mm-danger` | `#EF4444` |
+| `--mm-warning` | `#FF9124` |
+| `--mm-success` | `#00D591` |
+| `--mm-disabled` | `#64748B` |
 
-### Spacing Variables
+## 文案与字体
 
-| Token | Value | Usage |
-|-------|-------|-------|
-| `--space-xs` | `4px` / `0.25rem` | Tight gaps |
-| `--space-sm` | `8px` / `0.5rem` | Icon gaps, inline spacing |
-| `--space-md` | `16px` / `1rem` | Standard padding |
-| `--space-lg` | `24px` / `1.5rem` | Section padding |
-| `--space-xl` | `32px` / `2rem` | Large gaps |
-| `--space-2xl` | `48px` / `3rem` | Section margins |
-| `--space-3xl` | `64px` / `4rem` | Hero padding |
+- 字体：`Inter` 体系（标题 + 正文）。
+- 字重与字号采用语义分层，不允许页面级随意定义。
 
-### Shadow Depths
+## 间距与圆角
 
-| Level | Value | Usage |
-|-------|-------|-------|
-| `--shadow-sm` | `0 1px 2px rgba(0,0,0,0.05)` | Subtle lift |
-| `--shadow-md` | `0 4px 6px rgba(0,0,0,0.1)` | Cards, buttons |
-| `--shadow-lg` | `0 10px 15px rgba(0,0,0,0.1)` | Modals, dropdowns |
-| `--shadow-xl` | `0 20px 25px rgba(0,0,0,0.15)` | Hero images, featured cards |
+- 基础间距：`4 / 8 / 16 / 24 / 32 / 48`。
+- 圆角：`8 / 12 / 16 / 28` 规范化使用。
 
----
+## 交互约束
 
-## Component Specs
-
-### Buttons
-
-```css
-/* Primary Button */
-.btn-primary {
-  background: #F97316;
-  color: white;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: all 200ms ease;
-  cursor: pointer;
-}
-
-.btn-primary:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-
-/* Secondary Button */
-.btn-secondary {
-  background: transparent;
-  color: #2563EB;
-  border: 2px solid #2563EB;
-  padding: 12px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: all 200ms ease;
-  cursor: pointer;
-}
-```
-
-### Cards
-
-```css
-.card {
-  background: #F8FAFC;
-  border-radius: 12px;
-  padding: 24px;
-  box-shadow: var(--shadow-md);
-  transition: all 200ms ease;
-  cursor: pointer;
-}
-
-.card:hover {
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
-}
-```
-
-### Inputs
-
-```css
-.input {
-  padding: 12px 16px;
-  border: 1px solid #E2E8F0;
-  border-radius: 8px;
-  font-size: 16px;
-  transition: border-color 200ms ease;
-}
-
-.input:focus {
-  border-color: #2563EB;
-  outline: none;
-  box-shadow: 0 0 0 3px #2563EB20;
-}
-```
-
-### Modals
-
-```css
-.modal-overlay {
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-}
-
-.modal {
-  background: white;
-  border-radius: 16px;
-  padding: 32px;
-  box-shadow: var(--shadow-xl);
-  max-width: 500px;
-  width: 90%;
-}
-```
-
----
-
-## Style Guidelines
-
-**Style:** Glassmorphism
-
-**Keywords:** Frosted glass, transparent, blurred background, layered, vibrant background, light source, depth, multi-layer
-
-**Best For:** Modern SaaS, financial dashboards, high-end corporate, lifestyle apps, modal overlays, navigation
-
-**Key Effects:** Backdrop blur (10-20px), subtle border (1px solid rgba white 0.2), light reflection, Z-depth
-
-### Page Pattern
-
-**Pattern Name:** Hero + Features + CTA
-
-- **CTA Placement:** Above fold
-- **Section Order:** Hero > Features > CTA
-
----
-
-## Anti-Patterns (Do NOT Use)
-
-- ❌ Excessive animation
-- ❌ Dark mode by default
-
-### Additional Forbidden Patterns
-
-- ❌ **Emojis as icons** — Use SVG icons (Heroicons, Lucide, Simple Icons)
-- ❌ **Missing cursor:pointer** — All clickable elements must have cursor:pointer
-- ❌ **Layout-shifting hovers** — Avoid scale transforms that shift layout
-- ❌ **Low contrast text** — Maintain 4.5:1 minimum contrast ratio
-- ❌ **Instant state changes** — Always use transitions (150-300ms)
-- ❌ **Invisible focus states** — Focus states must be visible for a11y
-
----
-
-## Pre-Delivery Checklist
-
-Before delivering any UI code, verify:
-
-- [ ] No emojis used as icons (use SVG instead)
-- [ ] All icons from consistent icon set (Heroicons/Lucide)
-- [ ] `cursor-pointer` on all clickable elements
-- [ ] Hover states with smooth transitions (150-300ms)
-- [ ] Light mode: text contrast 4.5:1 minimum
-- [ ] Focus states visible for keyboard navigation
-- [ ] `prefers-reduced-motion` respected
-- [ ] Responsive: 375px, 768px, 1024px, 1440px
-- [ ] No content hidden behind fixed navbars
-- [ ] No horizontal scroll on mobile
+- 点击反馈：200ms 以内。
+- 禁止表情符号作为功能图标。
+- 禁止只靠颜色表达状态，不允许无文本提示。

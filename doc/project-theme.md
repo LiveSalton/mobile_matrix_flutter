@@ -2,8 +2,8 @@
 
 ### 唯一事实源
 
-- 本项目主题规范的唯一事实源为 `doc/project-theme.md`，其可视化实现必须与本文件保持一致。
-- `ui-ux-pro-max` 作为设计规则来源；但颜色语义与运行时主题切换以本文件定义的两套主题为准。
+- 本项目主题规范的唯一事实源为 `doc/project-theme.md`，并由 `design-system/mobile-matrix/theme.css` 落地实现。
+- `ui-ux-pro-max` 仅提供设计方法与规则；颜色语义与运行时主题切换以本文件定义的两套主题为准。
 - 本项目 UI 采用语义化 token，不允许散落长期硬编码颜色与字体。
 - 项目主题组织方式可参考 `AppUninstaller/doc/project-theme.md` 的“唯一事实源 + Token 语义映射”范式，但不得直接复用其具体色值。
 
@@ -45,6 +45,15 @@
 | 主文字 `theme_text_primary` | `#FFF8FB` |
 | 次文字 `theme_text_secondary` | `#D1BEC9` |
 
+### 跨主题共享状态色（两套都一致）
+
+| 语义 | 值 |
+|---|---|
+| 成功 `theme_success` | `#00D591` |
+| 警告 `theme_warning` | `#FF9124` |
+| 错误 `theme_danger` | `#EF4444` |
+| 禁用 `theme_disabled` | `#64748B` |
+
 ### 主题约束
 
 - 主题键只允许两种：`default`、`roseGlow`。
@@ -66,6 +75,16 @@
 | `--mm-primary` | 主要按钮、链接、强强调 |
 | `--mm-text-primary` | 标题、正文主色 |
 | `--mm-text-secondary` | 辅助文案 |
+| `--mm-accent` | 强调色（与 `--mm-primary` 对齐） |
+| `--mm-danger` | 错误信息、失败状态 |
+| `--mm-warning` | 警告/待确认状态 |
+| `--mm-success` | 成功状态 |
+| `--mm-disabled` | 禁用态 |
+
+### 实现落地
+
+- 必须在页面层统一通过 `data-mm-theme` 进行主题切换，当前仅允许 `default` 与 `roseGlow`。
+- 主题变量必须从 `design-system/mobile-matrix/theme.css` 加载，不允许新建第三套主题变量文件。
 
 ### 字体与字重
 
