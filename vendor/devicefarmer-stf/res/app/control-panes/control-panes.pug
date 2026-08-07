@@ -1,4 +1,4 @@
-div(ng-controller='ControlPanesHotKeysCtrl').fill-height
+div(ng-controller='ControlPanesHotKeysCtrl').fill-height.mm-control-workspace
   div(ng-if='$root.basicMode || $root.standalone').fill-height
     div.fill-height.basic-remote-control
       .remote-control
@@ -10,9 +10,31 @@ div(ng-controller='ControlPanesHotKeysCtrl').fill-height
       .remote-control
         div(ng-include='"control-panes/device-control/device-control.pug"').fill-height
 
-    div(fa-pane, pane-id='control-bottom-tabs', pane-anchor='south', pane-size='30% + 2px', pane-handle='4').pane-bottom-p
-      .widget-container.fluid-height
-        nice-tabs(key='ControlBottomTabs', direction='below', tabs='belowTabs', filter='$root.platform')
     div(fa-pane, pane-id='control-top-tabs', pane-anchor='')
-      .widget-container.fluid-height
-        nice-tabs(key='ControlBottomTabs', tabs='topTabs', filter='$root.platform')
+      .widget-container.fluid-height.mm-tool-workspace
+        .mm-workspace-header
+          .mm-workspace-title
+            i.material-icons-round(aria-hidden='true') workspaces
+            span Workbench
+          .mm-workspace-mode-switch(role='tablist', aria-label='Workspace mode')
+            button.mm-workspace-mode(
+              type='button'
+              role='tab'
+              ng-class='{active: workspaceMode === "execution"}'
+              ng-attr-aria-selected='{{workspaceMode === "execution"}}'
+              ng-click='selectWorkspaceMode("execution")')
+              i.material-icons-round(aria-hidden='true') account_tree
+              span Group Execution
+            button.mm-workspace-mode(
+              type='button'
+              role='tab'
+              ng-class='{active: workspaceMode === "tools"}'
+              ng-attr-aria-selected='{{workspaceMode === "tools"}}'
+              ng-click='selectWorkspaceMode("tools")')
+              i.material-icons-round(aria-hidden='true') construction
+              span Device Tools
+        .mm-workspace-content(ng-switch='workspaceMode')
+          div(ng-switch-when='execution')
+            div(ng-include='"control-panes/workspace-execution.pug"')
+          div(ng-switch-when='tools')
+            div(ng-include='"control-panes/workspace-tools.pug"')

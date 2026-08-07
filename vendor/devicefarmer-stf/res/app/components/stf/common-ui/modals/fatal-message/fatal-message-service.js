@@ -59,6 +59,8 @@ module.exports =
       var modalInstance = $uibModal.open({
         template: require('./fatal-message.pug'),
         controller: ModalInstanceCtrl,
+        windowClass: 'mm-device-disconnect-modal',
+        backdropClass: 'mm-device-disconnect-backdrop',
         resolve: {
           device: function() {
             return device

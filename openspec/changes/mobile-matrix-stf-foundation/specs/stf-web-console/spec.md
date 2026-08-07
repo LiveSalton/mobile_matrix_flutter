@@ -31,7 +31,11 @@ Mobile Matrix 默认启动 SHALL 使用 `vendor/devicefarmer-stf` 中固定的 S
 
 #### Scenario: STF 报告可用设备
 - **WHEN** WebSocket 设备跟踪器收到可用设备
-- **THEN** 首页展示该设备的机型、状态与控制入口，且状态来源为 STF 实时数据
+- **THEN** 首页展示该设备的机型、连接状态与控制入口；卡片状态按钮显示“已连接 · 可控制”，且状态来源为 STF 实时数据
+
+#### Scenario: 设备连接状态变化
+- **WHEN** STF 实时设备状态在可用、使用中、忙碌、断开、未授权或自动化执行中之间变化
+- **THEN** 首页卡片的状态按钮 SHALL 同步更新中文状态文案、图标、颜色与可点击性，不显示 STF 遗留的 `Use` 文案
 
 #### Scenario: 没有设备
 - **WHEN** STF 当前没有可展示设备
@@ -49,13 +53,17 @@ Mobile Matrix 默认启动 SHALL 使用 `vendor/devicefarmer-stf` 中固定的 S
 - **WHEN** 首页首次收到设备，或用户点击标题栏“刷新截图”
 - **THEN** 控制台通过 STF `screen.capture` 获取该设备当前屏幕的一张静态图片并展示，不建立动态屏幕流或定时轮询
 
+#### Scenario: 手机预览保持统一比例
+- **WHEN** 首页渲染任意设备的当前屏幕截图
+- **THEN** 设备卡片按真机 9:20 纵向圆角比例显示，当前屏幕截图与卡片边界和圆角完全重合并铺满背景；设备名称、serial 与连接状态按钮全部位于屏幕内底部的完全不透明控制浮层，异步更新不得引起网格跳动
+
 #### Scenario: 顶层导航保持单一
 - **WHEN** 用户打开 Mobile Matrix 首页
 - **THEN** 不显示 STF 原生顶部导航栏，只显示 Mobile Matrix 标题栏及其刷新、主题和状态摘要
 
 #### Scenario: 部分设备截图失败
 - **WHEN** 某台设备截图失败而其他设备截图成功
-- **THEN** 成功设备更新封面，失败设备保留 STF 默认封面并显示失败数量，不阻塞设备矩阵和其他截图结果
+- **THEN** 成功设备更新封面，失败设备显示中性空白封面和状态文字，不渲染 STF 默认手机展位图，不阻塞设备矩阵和其他截图结果
 
 #### Scenario: Mac 本地截图资源可返回
 - **WHEN** STF 运行在 macOS，用户刷新可用设备截图
@@ -64,6 +72,41 @@ Mobile Matrix 默认启动 SHALL 使用 `vendor/devicefarmer-stf` 中固定的 S
 #### Scenario: 精简统计不阻断设备事件
 - **WHEN** 首页只渲染总数、可用和忙碌统计，旧 STF 指令仍收到设备新增事件
 - **THEN** 缺少“使用中”统计节点时跳过该节点更新，设备卡片和截图流程仍正常执行
+
+### Requirement: 单设备控制页 SHALL 使用统一工作台布局
+控制页 SHALL 保留 STF 既有单设备控制能力，并 SHALL 以设备主舞台和单一双模式工作区组织页面；右侧默认提供群控执行布局，现有 STF 工具通过分类入口访问，不重复渲染同一组工具标签。
+
+#### Scenario: 打开可控制设备
+- **WHEN** 用户进入 `/control/:serial` 且 STF 已建立该设备的控制会话
+- **THEN** 左侧显示设备名称、旋转、屏幕显隐、释放、实时屏幕与 Android 导航控制，右侧默认显示“选择设备 / 配置操作 / 确认执行”三步群控布局，并把当前控制设备自动显示为目标设备
+
+#### Scenario: Airtest 执行引擎尚未接入
+- **WHEN** 用户查看群控执行布局且当前 change 未提供 Airtest 执行能力
+- **THEN** 只有选择设备步骤可用，配置操作和确认执行明确禁用并显示未接入说明，页面不提供可产生模拟结果的执行按钮、进度或虚构参数
+
+#### Scenario: 查看现有设备工具
+- **WHEN** 用户从群控执行切换到设备工具
+- **THEN** 页面按常用操作、记录诊断和设备管理分类显示 Dashboard、Logs、Screenshots、Automation、File Explorer、Advanced 与 Info，且每次只挂载当前选择的工具内容
+
+#### Scenario: 切换右侧工作模式
+- **WHEN** 用户在群控执行和设备工具之间切换
+- **THEN** 左侧设备屏幕、控制会话和租约保持不变，右侧模式状态不写入持久化存储
+
+#### Scenario: 宽桌面视口
+- **WHEN** 控制页视口宽度大于 1200px
+- **THEN** 设备主舞台宽度限制在 480px 以内，右侧工作区使用剩余空间；设备工具内容使用最大 1180px 的响应式卡片网格，不因百分比窗格产生过宽手机区或长期空白底栏
+
+#### Scenario: 紧凑控制页视口
+- **WHEN** 右侧工作区不足以同时容纳分类侧栏和工具内容
+- **THEN** 设备工具分类折叠为顶部可滚动导航，群控步骤和内容保持单列可读且不横向溢出
+
+#### Scenario: 控制页图标渲染
+- **WHEN** 控制页显示设备工具栏、导航键、标签、卡片标题或操作按钮
+- **THEN** 功能性 UI 图标使用本地 Material Design Icons Round，且不依赖运行时外网字体；浏览器 favicon、App 图标和真机画面内容保持原始资产
+
+#### Scenario: 控制平台尚未初始化
+- **WHEN** 用户首次进入控制页且 `$root.platform` 不是 `native` 或 `web`
+- **THEN** 页面初始化为 `native` 并显示可用工具标签，不因设备平台值 `Android` 导致标签导航隐藏
 
 ### Requirement: 控制台 SHALL 支持两套项目主题
 页面 SHALL 只允许 `default` 液态玻璃蓝和 `roseGlow` 玫瑰流光主题，并 SHALL 通过 `doc/project-theme.md` 定义的语义 token 渲染同一份页面。
@@ -79,3 +122,7 @@ Mobile Matrix 默认启动 SHALL 使用 `vendor/devicefarmer-stf` 中固定的 S
 #### Scenario: 用户偏好减少动画
 - **WHEN** 浏览器启用 `prefers-reduced-motion: reduce`
 - **THEN** 控制台关闭非必要过渡而不影响状态反馈和操作完成提示
+
+#### Scenario: 控制中的设备离线
+- **WHEN** STF 设备状态变化触发 `FatalMessage` 设备离线弹窗
+- **THEN** 弹窗使用当前 Mobile Matrix 主题、Material 图标和紧凑设备状态卡，不显示默认手机展位图；“返回设备列表”和“重新连接”保持原有行为且触达高度不少于 44px

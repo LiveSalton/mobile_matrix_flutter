@@ -1,0 +1,64 @@
+<style>
+  .boundary-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px;margin-top:24px}
+  .boundary-card{overflow:hidden;border:1px solid var(--border);border-radius:18px;background:var(--surface);cursor:pointer;transition:160ms ease}
+  .boundary-card:hover,.boundary-card.selected{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 20%,transparent);transform:translateY(-2px)}
+  .preview{height:320px;padding:16px;background:var(--surface-2);color:var(--text)}
+  .shell{height:100%;border:1px solid var(--border);border-radius:14px;background:var(--surface);overflow:hidden;display:flex;flex-direction:column}
+  .top{min-height:48px;padding:8px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+  .title{width:82px;height:9px;border-radius:5px;background:var(--text)}
+  .spacer{flex:1}
+  .switch{display:flex;padding:3px;gap:3px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2)}
+  .switch span{min-width:74px;padding:7px 9px;border-radius:7px;color:var(--text-muted);font-size:10px;font-weight:700;text-align:center}
+  .switch .active{color:var(--text);background:color-mix(in srgb,var(--accent) 28%,var(--surface));border:1px solid var(--accent)}
+  .body{flex:1;padding:12px;display:flex;flex-direction:column;gap:10px}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .step{height:30px;border:1px solid var(--border);border-radius:9px;background:var(--surface-2);display:flex;align-items:center;padding:0 8px;gap:6px}
+  .step.active{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 22%,var(--surface))}
+  .step.disabled{opacity:.42}
+  .dot{width:13px;height:13px;border-radius:50%;border:1px solid currentColor}
+  .step.active .dot{background:var(--accent)}
+  .line{height:6px;flex:1;border-radius:4px;background:currentColor;opacity:.55}
+  .target{height:44px;border:1px solid var(--border);border-radius:10px;background:var(--surface-2);display:flex;align-items:center;padding:8px;gap:7px}
+  .device{width:58px;height:25px;border-radius:13px;border:1px solid var(--accent);background:color-mix(in srgb,var(--accent) 25%,var(--surface))}
+  .empty{flex:1;border:1px dashed var(--border);border-radius:12px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}
+  .empty-icon{width:38px;height:38px;border-radius:12px;background:color-mix(in srgb,var(--accent) 22%,var(--surface));border:1px solid var(--accent);margin:0 auto 12px}
+  .empty-title{height:9px;width:116px;border-radius:5px;background:var(--text);margin:0 auto 9px}
+  .empty-copy{height:6px;width:160px;border-radius:4px;background:var(--text-muted);margin:0 auto 7px;opacity:.7}
+  .disabled-button{height:32px;width:94px;border-radius:9px;background:var(--surface);border:1px solid var(--border);margin:14px auto 0;opacity:.48}
+  .form{flex:1;display:grid;grid-template-columns:1.25fr .75fr;gap:8px}
+  .pane{border:1px solid var(--border);border-radius:10px;background:var(--surface-2);padding:9px}
+  .pane-title{height:7px;width:62px;border-radius:4px;background:var(--text-muted);margin-bottom:9px}
+  .field{height:30px;border:1px solid var(--border);border-radius:8px;background:var(--surface);margin-bottom:7px}
+  .fake-run{height:32px;width:94px;border-radius:9px;background:var(--accent);margin-left:auto}
+  .copy{padding:17px}.choice{display:flex;align-items:center;gap:10px}.letter{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:var(--surface-2);color:var(--accent);font-weight:800}.tag{font-size:11px;font-weight:700;color:var(--accent);border:1px solid var(--accent);padding:2px 7px;border-radius:99px}.copy h3{margin:0}.copy p{color:var(--text-muted);line-height:1.55}
+  @media(max-width:900px){.boundary-options{grid-template-columns:1fr}.preview{height:310px}}
+</style>
+
+<h2>Airtest 尚未接入时，群控执行页如何呈现？</h2>
+<p class="subtitle">目标是让布局可见，同时不能让人误以为群控引擎已经可用。</p>
+
+<div class="boundary-options">
+  <div class="boundary-card" data-choice="honest-empty" onclick="toggleSelect(this)">
+    <div class="preview"><div class="shell">
+      <div class="top"><div class="title"></div><div class="spacer"></div><div class="switch"><span class="active">群控执行</span><span>设备工具</span></div></div>
+      <div class="body">
+        <div class="steps"><div class="step active"><i class="dot"></i><i class="line"></i></div><div class="step disabled"><i class="dot"></i><i class="line"></i></div><div class="step disabled"><i class="dot"></i><i class="line"></i></div></div>
+        <div class="target"><div class="device"></div><div class="spacer"></div></div>
+        <div class="empty"><div><div class="empty-icon"></div><div class="empty-title"></div><div class="empty-copy"></div><div class="empty-copy" style="width:132px"></div><div class="disabled-button"></div></div></div>
+      </div>
+    </div></div>
+    <div class="copy"><div class="choice"><span class="letter">A</span><h3>真实边界空状态</h3><span class="tag">推荐</span></div><p>显示三步结构与当前目标设备，但“配置操作”和“确认执行”明确禁用，并说明 Airtest 执行引擎尚未接入。</p></div>
+  </div>
+
+  <div class="boundary-card" data-choice="interactive-preview" onclick="toggleSelect(this)">
+    <div class="preview"><div class="shell">
+      <div class="top"><div class="title"></div><div class="spacer"></div><div class="switch"><span class="active">群控执行</span><span>设备工具</span></div></div>
+      <div class="body">
+        <div class="steps"><div class="step"><i class="dot"></i><i class="line"></i></div><div class="step active"><i class="dot"></i><i class="line"></i></div><div class="step"><i class="dot"></i><i class="line"></i></div></div>
+        <div class="form"><div class="pane"><div class="pane-title"></div><div class="field"></div><div class="field"></div><div class="field"></div></div><div class="pane"><div class="pane-title"></div><div class="field"></div><div class="field"></div></div></div>
+        <div class="fake-run"></div>
+      </div>
+    </div></div>
+    <div class="copy"><div class="choice"><span class="letter">B</span><h3>可点击功能预览</h3></div><p>三步都可切换并展示表单，但不能真正运行。视觉完整，然而容易让使用者把占位界面误认为已实现功能。</p></div>
+  </div>
+</div>

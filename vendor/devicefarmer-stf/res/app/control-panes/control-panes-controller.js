@@ -7,56 +7,84 @@ module.exports =
     $timeout, $location, DeviceService, GroupService, ControlService,
     StorageService, FatalMessageService, SettingsService) {
 
-    var sharedTabs = [
+    $scope.workspaceMode = 'execution'
+    $scope.deviceToolGroups = [
       {
-        title: gettext('Screenshots'),
-        icon: 'fa-camera color-skyblue',
-        templateUrl: 'control-panes/screenshots/screenshots.pug',
-        filters: ['native', 'web']
+        title: gettext('Quick Actions'),
+        tools: [
+          {
+            title: gettext('Dashboard'),
+            materialIcon: 'dashboard',
+            templateUrl: 'control-panes/dashboard/dashboard.pug',
+            filters: ['native', 'web']
+          }
+        ]
       },
       {
-        title: gettext('Automation'),
-        icon: 'fa-road color-lila',
-        templateUrl: 'control-panes/automation/automation.pug',
-        filters: ['native', 'web']
+        title: gettext('Records & Diagnostics'),
+        tools: [
+          {
+            title: gettext('Logs'),
+            materialIcon: 'receipt_long',
+            templateUrl: 'control-panes/logs/logs.pug',
+            filters: ['native', 'web']
+          },
+          {
+            title: gettext('Screenshots'),
+            materialIcon: 'photo_camera',
+            templateUrl: 'control-panes/screenshots/screenshots.pug',
+            filters: ['native', 'web']
+          }
+        ]
       },
       {
-        title: gettext('Advanced'),
-        icon: 'fa-bolt color-brown',
-        templateUrl: 'control-panes/advanced/advanced.pug',
-        filters: ['native', 'web']
-      },
-      {
-        title: gettext('File Explorer'),
-        icon: 'fa-folder-open color-blue',
-        templateUrl: 'control-panes/explorer/explorer.pug',
-        filters: ['native', 'web']
-      },
-      {
-        title: gettext('Info'),
-        icon: 'fa-info color-orange',
-        templateUrl: 'control-panes/info/info.pug',
-        filters: ['native', 'web']
+        title: gettext('Device Management'),
+        tools: [
+          {
+            title: gettext('Automation'),
+            materialIcon: 'route',
+            templateUrl: 'control-panes/automation/automation.pug',
+            filters: ['native', 'web']
+          },
+          {
+            title: gettext('File Explorer'),
+            materialIcon: 'folder_open',
+            templateUrl: 'control-panes/explorer/explorer.pug',
+            filters: ['native', 'web']
+          },
+          {
+            title: gettext('Advanced'),
+            materialIcon: 'tune',
+            templateUrl: 'control-panes/advanced/advanced.pug',
+            filters: ['native', 'web']
+          },
+          {
+            title: gettext('Info'),
+            materialIcon: 'info',
+            templateUrl: 'control-panes/info/info.pug',
+            filters: ['native', 'web']
+          }
+        ]
       }
     ]
 
-    $scope.topTabs = [
-      {
-        title: gettext('Dashboard'),
-        icon: 'fa-dashboard fa-fw color-pink',
-        templateUrl: 'control-panes/dashboard/dashboard.pug',
-        filters: ['native', 'web']
-      }
-    ].concat(angular.copy(sharedTabs))
+    $scope.activeDeviceTool = $scope.deviceToolGroups[0].tools[0]
 
-    $scope.belowTabs = [
-      {
-        title: gettext('Logs'),
-        icon: 'fa-list-alt color-red',
-        templateUrl: 'control-panes/logs/logs.pug',
-        filters: ['native', 'web']
+    $scope.selectWorkspaceMode = function(mode) {
+      if (mode === 'execution' || mode === 'tools') {
+        $scope.workspaceMode = mode
       }
-    ].concat(angular.copy(sharedTabs))
+    }
+
+    $scope.selectDeviceTool = function(tool) {
+      if (tool && $scope.deviceToolVisible(tool)) {
+        $scope.activeDeviceTool = tool
+      }
+    }
+
+    $scope.deviceToolVisible = function(tool) {
+      return !tool.filters || tool.filters.indexOf($scope.$root.platform) !== -1
+    }
 
     $scope.device = null
     $scope.control = null
@@ -70,6 +98,10 @@ module.exports =
         .then(function(device) {
           $scope.device = device
           $scope.control = ControlService.create(device, device.channel)
+          if ($scope.$root.platform !== 'native' &&
+              $scope.$root.platform !== 'web') {
+            $scope.$root.platform = 'native'
+          }
 
           // TODO: Change title, flickers too much on Chrome
           // $rootScope.pageTitle = device.name

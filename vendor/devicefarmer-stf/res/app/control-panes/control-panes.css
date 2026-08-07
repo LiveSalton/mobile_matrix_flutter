@@ -1,0 +1,1070 @@
+.mm-control-workspace {
+  background:
+    radial-gradient(circle at 84% 0%, var(--mm-highlight), transparent 32%),
+    var(--mm-bg);
+  color: var(--mm-text-primary);
+  font-family: var(--mm-font-family);
+  overflow: hidden;
+}
+
+.mm-control-workspace,
+.mm-control-workspace * {
+  box-sizing: border-box;
+}
+
+.mm-control-workspace .fa-pane,
+.mm-control-workspace .fa-pane-scroller {
+  background: transparent;
+}
+
+.mm-control-workspace .fa-pane-handle {
+  background: transparent;
+  transition: background-color 160ms ease;
+}
+
+.mm-control-workspace .fa-pane-handle:hover,
+.mm-control-workspace .fa-pane-resizing > .fa-pane-handle {
+  background: var(--mm-primary);
+}
+
+.mm-control-workspace .remote-control {
+  background: var(--mm-bg-secondary);
+  border: 1px solid var(--mm-outline);
+  border-radius: 18px;
+  box-shadow: 0 18px 48px var(--mm-shadow);
+  height: calc(100% - 24px);
+  margin: 12px 8px 12px 12px;
+  overflow: hidden;
+}
+
+.mm-control-workspace .stf-device-control,
+.mm-control-workspace .stf-device-control > .as-cell,
+.mm-control-workspace .stf-device-control > .as-cell > .as-table {
+  background: var(--mm-bg-secondary);
+  width: 100%;
+}
+
+.mm-control-workspace .stf-device-control > .as-cell > .as-table {
+  table-layout: fixed;
+}
+
+.mm-control-workspace .stf-vnc-navbar {
+  background: var(--mm-bg-secondary);
+  border-bottom: 1px solid var(--mm-outline);
+  height: 58px;
+  margin: 0;
+}
+
+.mm-control-workspace .stf-vnc-control-header {
+  padding: 0 10px;
+  vertical-align: middle;
+}
+
+.mm-control-workspace .device-name-container {
+  align-items: center;
+  display: flex;
+  height: 56px;
+  max-width: calc(100% - 164px);
+}
+
+.mm-control-workspace .stf-vnc-device-name {
+  align-items: center;
+  color: var(--mm-text-primary);
+  display: inline-flex;
+  font-size: 15px;
+  font-weight: 700;
+  gap: 6px;
+  line-height: 1;
+  min-width: 0;
+}
+
+.mm-control-workspace .stf-vnc-device-name p {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  margin: 0;
+  min-width: 0;
+}
+
+.mm-control-workspace .device-name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mm-control-workspace .mm-device-symbol {
+  color: var(--mm-primary);
+  font-size: 20px;
+}
+
+.mm-control-workspace .caret {
+  border-top-color: var(--mm-text-secondary);
+}
+
+.mm-control-workspace .stf-vnc-right-buttons {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.mm-control-workspace .stf-vnc-right-buttons .btn-group {
+  display: flex;
+  gap: 4px;
+}
+
+.mm-control-workspace .stf-vnc-right-buttons .button-spacer {
+  display: none;
+}
+
+.mm-control-workspace .stf-vnc-right-buttons .btn,
+.mm-control-workspace .stf-vnc-right-buttons label {
+  align-items: center;
+  background: var(--mm-bg);
+  border: 1px solid var(--mm-outline);
+  border-radius: 10px !important;
+  color: var(--mm-text-secondary);
+  display: inline-flex;
+  height: 36px;
+  justify-content: center;
+  margin: 0;
+  min-width: 36px;
+  padding: 0 8px;
+}
+
+.mm-control-workspace .stf-vnc-right-buttons .active,
+.mm-control-workspace .stf-vnc-right-buttons .btn:hover,
+.mm-control-workspace .stf-vnc-right-buttons label:hover {
+  background: var(--mm-highlight);
+  border-color: var(--mm-metal-edge);
+  color: var(--mm-primary);
+}
+
+.mm-control-workspace .stf-vnc-right-buttons .btn-danger-outline:hover {
+  background: var(--mm-danger-surface);
+  border-color: var(--mm-danger);
+  color: var(--mm-danger);
+}
+
+.mm-control-workspace .mm-device-screen-stage {
+  background:
+    radial-gradient(circle at 50% 34%, var(--mm-highlight), transparent 46%),
+    var(--mm-bg);
+}
+
+.mm-control-workspace .mm-device-screen-stage > .as-cell {
+  padding: 12px;
+}
+
+.mm-control-workspace device-screen {
+  background: transparent;
+  border-radius: 16px;
+}
+
+.mm-control-workspace device-screen canvas.screen {
+  border-radius: 14px;
+  box-shadow: 0 18px 48px var(--mm-shadow), 0 0 0 1px var(--mm-outline);
+}
+
+.mm-control-workspace .stf-vnc-bottom {
+  background: var(--mm-bg-secondary);
+  border-top: 1px solid var(--mm-outline);
+  height: 58px;
+}
+
+.mm-control-workspace .stf-vnc-bottom .btn-group {
+  display: flex;
+  gap: 8px;
+  padding: 8px 10px;
+}
+
+.mm-control-workspace .stf-vnc-bottom .btn {
+  align-items: center;
+  background: var(--mm-bg);
+  border: 1px solid var(--mm-outline);
+  border-radius: 10px !important;
+  color: var(--mm-text-secondary);
+  display: flex;
+  flex: 1 1 0;
+  height: 40px;
+  justify-content: center;
+  padding: 0;
+}
+
+.mm-control-workspace .stf-vnc-bottom .btn:hover,
+.mm-control-workspace .stf-vnc-bottom .btn:focus,
+.mm-control-workspace .stf-vnc-bottom .btn:active {
+  background: var(--mm-highlight);
+  border-color: var(--mm-metal-edge);
+  color: var(--mm-primary);
+}
+
+.mm-control-workspace .dropdown-menu,
+.mm-control-workspace .context-menu .dropdown-menu {
+  background: var(--mm-bg-secondary);
+  border: 1px solid var(--mm-outline);
+  border-radius: 12px;
+  box-shadow: 0 18px 48px var(--mm-shadow);
+  color: var(--mm-text-primary);
+  overflow: hidden;
+  padding: 6px;
+}
+
+.mm-control-workspace .dropdown-menu > li > a,
+.mm-control-workspace .context-menu .dropdown-menu > li > a {
+  border-radius: 8px;
+  color: var(--mm-text-primary);
+  padding: 9px 10px;
+}
+
+.mm-control-workspace .dropdown-menu > li > a:hover,
+.mm-control-workspace .context-menu .dropdown-menu > li > a:hover {
+  background: var(--mm-highlight);
+  color: var(--mm-text-primary);
+}
+
+.mm-control-workspace .heading-for-tabs {
+  background: transparent;
+  height: 100%;
+  overflow: auto;
+  padding: 12px 12px 20px 8px;
+}
+
+.mm-control-workspace .heading-for-tabs > .ng-isolate-scope {
+  min-height: 100%;
+}
+
+.mm-control-workspace .heading-for-tabs .nav-tabs {
+  align-items: center;
+  background: var(--mm-bg-secondary);
+  border: 1px solid var(--mm-outline);
+  border-radius: 14px;
+  display: flex;
+  gap: 4px;
+  margin: 0 0 12px;
+  overflow-x: auto;
+  padding: 5px;
+  position: sticky;
+  scrollbar-width: none;
+  top: 0;
+  z-index: 20;
+}
+
+.mm-control-workspace .heading-for-tabs .nav-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.mm-control-workspace .heading-for-tabs .nav-tabs > li {
+  float: none;
+  margin: 0;
+}
+
+.mm-control-workspace .heading-for-tabs .nav-tabs > li > a {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: var(--mm-text-secondary);
+  display: flex;
+  font-size: 12px;
+  font-weight: 650;
+  gap: 6px;
+  margin: 0;
+  min-height: 40px;
+  padding: 8px 11px;
+  white-space: nowrap;
+}
+
+.mm-control-workspace .heading-for-tabs .nav-tabs > li > a:hover {
+  background: var(--mm-highlight);
+  border-color: transparent;
+  color: var(--mm-text-primary);
+}
+
+.mm-control-workspace .heading-for-tabs .nav-tabs > li.active > a,
+.mm-control-workspace .heading-for-tabs .nav-tabs > li.active > a:hover,
+.mm-control-workspace .heading-for-tabs .nav-tabs > li.active > a:focus {
+  background: var(--mm-highlight);
+  border-color: var(--mm-metal-edge);
+  color: var(--mm-text-primary);
+}
+
+.mm-control-workspace .heading-for-tabs .nav-tabs .material-icons-round {
+  color: var(--mm-primary);
+  font-size: 18px;
+}
+
+.mm-control-workspace .tab-content,
+.mm-control-workspace .tab-pane {
+  background: transparent;
+  border: 0;
+  color: var(--mm-text-primary);
+}
+
+.mm-control-workspace .mm-dashboard-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0 auto;
+  max-width: 1180px;
+}
+
+.mm-control-workspace .mm-dashboard-card {
+  min-width: 0;
+}
+
+.mm-control-workspace .mm-dashboard-card > div,
+.mm-control-workspace .mm-dashboard-card .ng-scope {
+  height: 100%;
+}
+
+.mm-control-workspace .widget-container {
+  background: var(--mm-bg-secondary);
+  border: 1px solid var(--mm-outline);
+  border-radius: 16px;
+  box-shadow: 0 12px 32px var(--mm-shadow);
+  color: var(--mm-text-primary);
+  margin: 0;
+  overflow: hidden;
+}
+
+.mm-control-workspace .mm-tool-workspace {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.mm-control-workspace .mm-workspace-header {
+  align-items: center;
+  background: var(--mm-bg-secondary);
+  border-bottom: 1px solid var(--mm-outline);
+  display: flex;
+  gap: 16px;
+  min-height: 64px;
+  padding: 8px 16px;
+}
+
+.mm-control-workspace .mm-workspace-title,
+.mm-control-workspace .mm-workspace-mode-switch,
+.mm-control-workspace .mm-workspace-mode {
+  align-items: center;
+  display: flex;
+}
+
+.mm-control-workspace .mm-workspace-title {
+  color: var(--mm-text-primary);
+  font-size: 16px;
+  font-weight: 700;
+  gap: 8px;
+}
+
+.mm-control-workspace .mm-workspace-mode-switch {
+  background: var(--mm-bg);
+  border: 1px solid var(--mm-outline);
+  border-radius: 12px;
+  gap: 4px;
+  margin-left: auto;
+  padding: 4px;
+}
+
+.mm-control-workspace .mm-workspace-mode {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--mm-text-secondary);
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 12px;
+}
+
+.mm-control-workspace .mm-workspace-mode:hover,
+.mm-control-workspace .mm-workspace-mode.active {
+  background: var(--mm-highlight);
+  border-color: var(--mm-metal-edge);
+  color: var(--mm-text-primary);
+}
+
+.mm-control-workspace .mm-workspace-mode:focus-visible,
+.mm-control-workspace .mm-device-tool:focus-visible {
+  outline: 2px solid var(--mm-primary);
+  outline-offset: 2px;
+}
+
+.mm-control-workspace .mm-workspace-content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px;
+}
+
+.mm-control-workspace .mm-execution-workspace {
+  margin: 0 auto;
+  max-width: 1180px;
+}
+
+.mm-control-workspace .mm-execution-heading,
+.mm-control-workspace .mm-execution-target-heading,
+.mm-control-workspace .mm-target-device {
+  align-items: center;
+  display: flex;
+}
+
+.mm-control-workspace .mm-execution-heading {
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.mm-control-workspace .mm-execution-heading h2,
+.mm-control-workspace .mm-execution-heading p {
+  margin: 0;
+}
+
+.mm-control-workspace .mm-execution-heading p,
+.mm-control-workspace .mm-target-device small,
+.mm-control-workspace .mm-execution-empty p {
+  color: var(--mm-text-secondary);
+}
+
+.mm-control-workspace .mm-capability-badge {
+  border: 1px solid var(--mm-outline);
+  border-radius: 8px;
+  color: var(--mm-text-secondary);
+  padding: 6px 8px;
+}
+
+.mm-control-workspace .mm-execution-steps {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  list-style: none;
+  margin: 0 0 16px;
+  padding: 0;
+}
+
+.mm-control-workspace .mm-execution-step {
+  align-items: center;
+  background: var(--mm-bg);
+  border: 1px solid var(--mm-outline);
+  border-radius: 12px;
+  color: var(--mm-text-secondary);
+  display: flex;
+  gap: 8px;
+  min-height: 64px;
+  padding: 12px;
+}
+
+.mm-control-workspace .mm-execution-step.active {
+  background: var(--mm-highlight);
+  border-color: var(--mm-metal-edge);
+  color: var(--mm-text-primary);
+}
+
+.mm-control-workspace .mm-execution-step.disabled {
+  color: var(--mm-disabled);
+}
+
+.mm-control-workspace .mm-step-index {
+  align-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  display: inline-flex;
+  flex: 0 0 28px;
+  height: 28px;
+  justify-content: center;
+}
+
+.mm-control-workspace .mm-execution-step span:last-child,
+.mm-control-workspace .mm-target-device-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mm-control-workspace .mm-execution-target,
+.mm-control-workspace .mm-execution-empty {
+  background: var(--mm-bg);
+  border: 1px solid var(--mm-outline);
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.mm-control-workspace .mm-execution-target {
+  margin-bottom: 16px;
+}
+
+.mm-control-workspace .mm-execution-target-heading {
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.mm-control-workspace .mm-target-device {
+  background: var(--mm-highlight);
+  border: 1px solid var(--mm-metal-edge);
+  border-radius: 12px;
+  gap: 10px;
+  min-height: 56px;
+  padding: 10px 12px;
+}
+
+.mm-control-workspace .mm-target-device-state {
+  align-items: center;
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.mm-control-workspace .mm-target-device-state .material-icons-round {
+  color: var(--mm-text-secondary);
+  font-size: 12px;
+}
+
+.mm-control-workspace .mm-execution-empty {
+  border-style: dashed;
+  min-height: 280px;
+  text-align: center;
+}
+
+.mm-control-workspace .mm-execution-empty-icon {
+  color: var(--mm-primary);
+  font-size: 40px;
+  margin-top: 48px;
+}
+
+.mm-control-workspace .mm-disabled-action {
+  background: var(--mm-bg-secondary);
+  border: 1px solid var(--mm-outline);
+  border-radius: 8px;
+  color: var(--mm-disabled);
+  min-height: 44px;
+  padding: 8px 12px;
+}
+
+.mm-control-workspace .mm-device-tools {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 200px minmax(0, 1fr);
+  margin: 0 auto;
+  max-width: 1180px;
+  min-height: 100%;
+}
+
+.mm-control-workspace .mm-device-tool-nav,
+.mm-control-workspace .mm-device-tool-content {
+  background: var(--mm-bg-secondary);
+  border: 1px solid var(--mm-outline);
+  border-radius: 16px;
+}
+
+.mm-control-workspace .mm-device-tool-nav {
+  padding: 8px;
+}
+
+.mm-control-workspace .mm-device-tool-group-title {
+  color: var(--mm-text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  margin: 16px 8px 6px;
+  text-transform: uppercase;
+}
+
+.mm-control-workspace .mm-device-tool {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--mm-text-secondary);
+  display: flex;
+  gap: 8px;
+  min-height: 44px;
+  padding: 8px 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.mm-control-workspace .mm-device-tool.active,
+.mm-control-workspace .mm-device-tool:hover {
+  background: var(--mm-highlight);
+  border-color: var(--mm-metal-edge);
+  color: var(--mm-text-primary);
+}
+
+.mm-control-workspace .mm-device-tool-content {
+  min-width: 0;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+}
+
+.mm-control-workspace .mm-device-tool-content .stf-logcat-table {
+  background: var(--mm-bg);
+  border-top: 1px solid var(--mm-outline);
+  box-shadow: none;
+  color: var(--mm-text-primary);
+  left: 0;
+  right: 0;
+  top: 42px;
+}
+
+/* Shared icon/text alignment for the tool navigation and legacy STF actions. */
+.mm-control-workspace .mm-device-tool,
+.mm-control-workspace .mm-device-tool-content .btn,
+.mm-control-workspace .mm-device-tool-content label.btn,
+.mm-control-workspace .mm-device-tool-content .icon-app {
+  align-items: center;
+  line-height: 24px;
+}
+
+.mm-control-workspace .mm-device-tool .material-icons-round,
+.mm-control-workspace .mm-device-tool-content .btn > .fa,
+.mm-control-workspace .mm-device-tool-content label.btn > .fa,
+.mm-control-workspace .mm-device-tool-content .icon-app > .fa {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 24px;
+  height: 24px;
+  justify-content: center;
+  line-height: 24px;
+  margin: 0 8px 0 0;
+  text-align: center;
+  width: 24px;
+}
+
+.mm-control-workspace .mm-device-tool .material-icons-round {
+  font-size: 24px;
+}
+
+.mm-control-workspace .mm-device-tool > span,
+.mm-control-workspace .mm-device-tool-content .btn > span,
+.mm-control-workspace .mm-device-tool-content label.btn > span,
+.mm-control-workspace .mm-device-tool-content .icon-app > span {
+  align-items: center;
+  display: inline-flex;
+  line-height: 24px;
+  min-height: 24px;
+}
+
+.mm-control-workspace .mm-device-tool > .material-icons-round:only-child,
+.mm-control-workspace .mm-device-tool-content .btn > .fa:only-child,
+.mm-control-workspace .mm-device-tool-content label.btn > .fa:only-child,
+.mm-control-workspace .mm-device-tool-content .icon-app > .fa:only-child {
+  margin-right: 0;
+}
+
+.mm-control-workspace .mm-device-tool-content .btn,
+.mm-control-workspace .mm-device-tool-content label.btn {
+  display: inline-flex;
+  justify-content: center;
+  min-height: 36px;
+  vertical-align: middle;
+}
+
+.mm-control-workspace .mm-device-tool-content .form-control,
+.mm-control-workspace .mm-device-tool-content input,
+.mm-control-workspace .mm-device-tool-content select,
+.mm-control-workspace .mm-device-tool-content textarea {
+  line-height: 24px;
+  min-height: 36px;
+  vertical-align: middle;
+}
+
+.mm-control-workspace .mm-device-tool-content .logcat-filters-table td {
+  height: 44px;
+  padding: 4px 6px;
+  vertical-align: middle;
+}
+
+.mm-control-workspace .mm-device-tool-content .widget-container .heading {
+  line-height: 24px;
+}
+
+.mm-control-workspace .mm-device-tool-content .heading > .fa,
+.mm-control-workspace .mm-device-tool-content .heading > .material-icons-round,
+.mm-control-workspace .mm-device-tool-content .heading .stf-stacked-icon {
+  align-items: center;
+  display: inline-flex;
+  flex: 0 0 28px;
+  height: 28px !important;
+  justify-content: center;
+  line-height: 28px !important;
+  margin: 0 8px 0 0;
+  text-align: center;
+  width: 28px !important;
+}
+
+.mm-control-workspace .mm-device-tool-content .heading .stf-stacked-icon .fa-stack-1x {
+  align-items: center;
+  display: inline-flex;
+  height: 24px !important;
+  justify-content: center;
+  line-height: 24px !important;
+  margin: 0;
+  width: 24px !important;
+}
+
+.mm-control-workspace .mm-device-tool-content .btn-group {
+  align-items: center;
+  vertical-align: middle;
+}
+
+.mm-control-workspace .widget-container .heading {
+  align-items: center;
+  background: transparent;
+  border-bottom: 1px solid var(--mm-outline);
+  color: var(--mm-text-primary);
+  display: flex;
+  font-size: 14px;
+  font-weight: 700;
+  min-height: 50px;
+  padding: 10px 14px;
+}
+
+.mm-control-workspace .widget-container .heading > span:not(.stf-stacked-icon) {
+  min-width: 0;
+}
+
+.mm-control-workspace .widget-container .heading .pull-right {
+  margin-left: auto;
+}
+
+.mm-control-workspace .widget-container .widget-content {
+  background: transparent;
+  color: var(--mm-text-primary);
+}
+
+.mm-control-workspace .widget-container .widget-content.padded {
+  padding: 14px;
+}
+
+.mm-control-workspace .stf-stacked-icon {
+  align-items: center;
+  color: var(--mm-primary);
+  display: inline-flex;
+  height: 28px !important;
+  justify-content: center;
+  margin-right: 8px;
+  width: 28px !important;
+}
+
+.mm-control-workspace .stf-stacked-icon .fa-square {
+  display: none;
+}
+
+.mm-control-workspace .stf-stacked-icon .fa-stack-1x {
+  color: var(--mm-primary) !important;
+  font-size: 20px;
+  line-height: 28px !important;
+  position: static;
+}
+
+.mm-control-workspace .form-control,
+.mm-control-workspace input,
+.mm-control-workspace textarea,
+.mm-control-workspace select,
+.mm-control-workspace pre {
+  background: var(--mm-bg);
+  border: 1px solid var(--mm-outline);
+  border-radius: 10px;
+  box-shadow: none;
+  color: var(--mm-text-primary);
+}
+
+.mm-control-workspace .form-control:focus,
+.mm-control-workspace input:focus,
+.mm-control-workspace textarea:focus,
+.mm-control-workspace select:focus {
+  border-color: var(--mm-primary);
+  box-shadow: 0 0 0 3px var(--mm-highlight);
+}
+
+.mm-control-workspace .input-group .form-control:first-child,
+.mm-control-workspace .input-group-addon:first-child,
+.mm-control-workspace .input-group-btn:first-child > .btn {
+  border-radius: 10px 0 0 10px;
+}
+
+.mm-control-workspace .input-group .form-control:last-child,
+.mm-control-workspace .input-group-btn:last-child > .btn {
+  border-radius: 0 10px 10px 0;
+}
+
+.mm-control-workspace .btn {
+  border-radius: 10px;
+  font-weight: 650;
+}
+
+.mm-control-workspace .btn-primary,
+.mm-control-workspace .btn-primary-outline,
+.mm-control-workspace .btn-default-outline,
+.mm-control-workspace .btn-info {
+  background: var(--mm-bg);
+  border: 1px solid var(--mm-outline);
+  color: var(--mm-text-primary);
+}
+
+.mm-control-workspace .btn-primary:hover,
+.mm-control-workspace .btn-primary-outline:hover,
+.mm-control-workspace .btn-default-outline:hover,
+.mm-control-workspace .btn-info:hover {
+  background: var(--mm-highlight);
+  border-color: var(--mm-metal-edge);
+  color: var(--mm-text-primary);
+}
+
+.mm-control-workspace .btn-danger-outline {
+  background: transparent;
+  border-color: transparent;
+  color: var(--mm-danger);
+}
+
+.mm-control-workspace .drop-area {
+  align-items: center;
+  background: var(--mm-bg);
+  border: 1px dashed var(--mm-metal-edge);
+  border-radius: 12px;
+  color: var(--mm-text-secondary);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 112px;
+}
+
+.mm-control-workspace .drop-area:hover,
+.mm-control-workspace .dragover .drop-area {
+  background: var(--mm-highlight);
+  border-color: var(--mm-primary);
+}
+
+.mm-control-workspace .drop-area-icon {
+  color: var(--mm-primary);
+}
+
+.mm-control-workspace .alert {
+  border-radius: 12px;
+}
+
+.mm-control-workspace .alert-danger {
+  background: var(--mm-danger-surface);
+  border-color: var(--mm-danger);
+  color: var(--mm-text-primary);
+}
+
+.mm-control-workspace .stf-apps .heading,
+.mm-control-workspace .stf-apps .widget-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.mm-control-workspace .stf-apps .heading {
+  height: auto;
+}
+
+.mm-control-workspace .stf-apps .heading > .icon-app {
+  margin-top: 0;
+}
+
+.mm-control-workspace .stf-apps .heading > .icon-app:first-of-type {
+  margin-left: auto;
+}
+
+.mm-control-workspace .stf-apps .icon-app {
+  align-items: center;
+  display: inline-flex;
+  float: none !important;
+  gap: 6px;
+  min-height: 40px;
+  padding: 8px 10px;
+}
+
+.mm-control-workspace .stf-apps .icon-title {
+  color: inherit;
+  font-size: 11px;
+}
+
+.mm-control-workspace .stf-navigation .browser-icon {
+  border-radius: 8px;
+}
+
+.mm-control-workspace .stf-remote-debug textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.mm-control-workspace .logs,
+.mm-control-workspace .stf-logs {
+  background: var(--mm-bg-secondary);
+  color: var(--mm-text-primary);
+}
+
+/* Material Design compatibility layer for legacy STF icon class names. */
+.mm-control-workspace .fa {
+  color: currentColor !important;
+  font-family: "Material Icons Round" !important;
+  font-feature-settings: "liga";
+  font-size: 20px;
+  font-style: normal;
+  font-weight: normal;
+  letter-spacing: normal;
+  line-height: 1;
+  text-rendering: optimizeLegibility;
+  text-transform: none;
+  white-space: nowrap;
+  -webkit-font-smoothing: antialiased;
+}
+
+.mm-control-workspace .fa::before { content: "radio_button_unchecked" !important; }
+.mm-control-workspace .fa-arrow-right::before { content: "arrow_forward" !important; }
+.mm-control-workspace .fa-bars::before { content: "menu" !important; }
+.mm-control-workspace .fa-bluetooth-b::before { content: "bluetooth" !important; }
+.mm-control-workspace .fa-bolt::before { content: "bolt" !important; }
+.mm-control-workspace .fa-bug::before { content: "bug_report" !important; }
+.mm-control-workspace .fa-camera::before,
+.mm-control-workspace .fa-camera-retro::before { content: "photo_camera" !important; }
+.mm-control-workspace .fa-certificate::before { content: "verified" !important; }
+.mm-control-workspace .fa-check::before { content: "check" !important; }
+.mm-control-workspace .fa-chevron-circle-down::before,
+.mm-control-workspace .fa-chevron-down::before { content: "expand_more" !important; }
+.mm-control-workspace .fa-chevron-circle-up::before,
+.mm-control-workspace .fa-chevron-up::before { content: "expand_less" !important; }
+.mm-control-workspace .fa-chevron-left::before { content: "chevron_left" !important; }
+.mm-control-workspace .fa-chevron-right::before { content: "chevron_right" !important; }
+.mm-control-workspace .fa-circle-o::before { content: "radio_button_unchecked" !important; }
+.mm-control-workspace .fa-cloud::before { content: "cloud" !important; }
+.mm-control-workspace .fa-code::before { content: "code" !important; }
+.mm-control-workspace .fa-copy::before { content: "content_copy" !important; }
+.mm-control-workspace .fa-credit-card::before { content: "credit_card" !important; }
+.mm-control-workspace .fa-dashboard::before { content: "dashboard" !important; }
+.mm-control-workspace .fa-database::before { content: "storage" !important; }
+.mm-control-workspace .fa-download::before { content: "file_download" !important; }
+.mm-control-workspace .fa-exclamation-circle::before { content: "error_outline" !important; }
+.mm-control-workspace .fa-eye::before { content: "visibility" !important; }
+.mm-control-workspace .fa-eye-slash::before { content: "visibility_off" !important; }
+.mm-control-workspace .fa-fast-backward::before { content: "fast_rewind" !important; }
+.mm-control-workspace .fa-fast-forward::before { content: "fast_forward" !important; }
+.mm-control-workspace .fa-file-o::before { content: "insert_drive_file" !important; }
+.mm-control-workspace .fa-folder-open::before { content: "folder_open" !important; }
+.mm-control-workspace .fa-gear::before,
+.mm-control-workspace .fa-gears::before { content: "settings" !important; }
+.mm-control-workspace .fa-globe::before { content: "language" !important; }
+.mm-control-workspace .fa-home::before { content: "home" !important; }
+.mm-control-workspace .fa-info::before { content: "info" !important; }
+.mm-control-workspace .fa-question-circle::before { content: "help_outline" !important; }
+.mm-control-workspace .fa-laptop::before { content: "laptop" !important; }
+.mm-control-workspace .fa-level-up::before { content: "drive_folder_upload" !important; }
+.mm-control-workspace .fa-list::before,
+.mm-control-workspace .fa-list-alt::before { content: "format_list_bulleted" !important; }
+.mm-control-workspace .fa-location-arrow::before { content: "near_me" !important; }
+.mm-control-workspace .fa-lock::before { content: "lock" !important; }
+.mm-control-workspace .fa-mail-reply::before { content: "arrow_back" !important; }
+.mm-control-workspace .fa-minus::before { content: "remove" !important; }
+.mm-control-workspace .fa-mobile::before,
+.mm-control-workspace .fa-phone::before { content: "phone_android" !important; }
+.mm-control-workspace .fa-picture-o::before { content: "image" !important; }
+.mm-control-workspace .fa-play::before,
+.mm-control-workspace .fa-youtube-play::before { content: "play_arrow" !important; }
+.mm-control-workspace .fa-plus::before,
+.mm-control-workspace .fa-plus-circle::before { content: "add" !important; }
+.mm-control-workspace .fa-power-off::before { content: "power_settings_new" !important; }
+.mm-control-workspace .fa-random::before { content: "shuffle" !important; }
+.mm-control-workspace .fa-refresh::before { content: "refresh" !important; }
+.mm-control-workspace .fa-repeat::before { content: "screen_rotation" !important; }
+.mm-control-workspace .fa-save::before { content: "save" !important; }
+.mm-control-workspace .fa-search::before { content: "search" !important; }
+.mm-control-workspace .fa-search-plus::before { content: "zoom_in" !important; }
+.mm-control-workspace .fa-shopping-cart::before { content: "shopping_cart" !important; }
+.mm-control-workspace .fa-sign-in::before { content: "login" !important; }
+.mm-control-workspace .fa-sign-out::before { content: "logout" !important; }
+.mm-control-workspace .fa-signal::before { content: "signal_cellular_alt" !important; }
+.mm-control-workspace .fa-slack::before { content: "tag" !important; }
+.mm-control-workspace .fa-sliders::before { content: "tune" !important; }
+.mm-control-workspace .fa-spinner::before { content: "sync" !important; }
+.mm-control-workspace .fa-square-o::before { content: "view_carousel" !important; }
+.mm-control-workspace .fa-step-backward::before { content: "skip_previous" !important; }
+.mm-control-workspace .fa-step-forward::before { content: "skip_next" !important; }
+.mm-control-workspace .fa-stop::before { content: "stop" !important; }
+.mm-control-workspace .fa-tablet::before { content: "tablet_android" !important; }
+.mm-control-workspace .fa-terminal::before { content: "terminal" !important; }
+.mm-control-workspace .fa-th-large::before { content: "apps" !important; }
+.mm-control-workspace .fa-times::before,
+.mm-control-workspace .fa-times-circle::before { content: "close" !important; }
+.mm-control-workspace .fa-trash::before,
+.mm-control-workspace .fa-trash-o::before { content: "delete" !important; }
+.mm-control-workspace .fa-upload::before { content: "file_upload" !important; }
+.mm-control-workspace .fa-user::before { content: "person" !important; }
+.mm-control-workspace .fa-volume-down::before { content: "volume_down" !important; }
+.mm-control-workspace .fa-volume-off::before { content: "volume_off" !important; }
+.mm-control-workspace .fa-volume-up::before { content: "volume_up" !important; }
+.mm-control-workspace .fa-wifi::before { content: "wifi" !important; }
+
+@media (max-width: 1100px) {
+  .mm-control-workspace .mm-workspace-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .mm-control-workspace .mm-workspace-mode-switch {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .mm-control-workspace .mm-workspace-mode {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+
+  .mm-control-workspace .mm-execution-steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mm-control-workspace .mm-device-tools {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mm-control-workspace .mm-device-tool-nav {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+  }
+
+  .mm-control-workspace .mm-device-tool-group {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 4px;
+  }
+
+  .mm-control-workspace .mm-device-tool-group-title {
+    position: absolute;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    overflow: hidden;
+    white-space: nowrap;
+    width: 1px;
+  }
+
+  .mm-control-workspace .mm-device-tool {
+    white-space: nowrap;
+    width: auto;
+  }
+
+  .mm-control-workspace .mm-dashboard-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mm-control-workspace .heading-for-tabs .nav-tabs > li > a {
+    padding-inline: 9px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mm-control-workspace *,
+  .mm-control-workspace *::before,
+  .mm-control-workspace *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

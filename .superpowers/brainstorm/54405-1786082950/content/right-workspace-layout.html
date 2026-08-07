@@ -1,0 +1,149 @@
+<style>
+  .layout-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 24px;
+  }
+  .layout-card {
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--surface);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+  }
+  .layout-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+  }
+  .layout-card.selected {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  }
+  .layout-preview {
+    height: 320px;
+    padding: 12px;
+    background: #120f17;
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr);
+    gap: 8px;
+  }
+  .phone-rail {
+    border: 1px solid #493849;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #28202c, #17131b);
+    padding: 7px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .phone-top { height: 10px; border-radius: 8px; background: #5a4a5c; }
+  .phone-screen { flex: 1; border-radius: 8px; background: linear-gradient(160deg, #605367, #221d27); }
+  .phone-nav { height: 16px; border-radius: 7px; background: #302735; }
+  .workspace-shell {
+    min-width: 0;
+    border: 1px solid #443648;
+    border-radius: 12px;
+    background: #1d1821;
+    padding: 9px;
+    color: #f8f2fa;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .ws-header, .ws-row { display: flex; align-items: center; gap: 6px; }
+  .ws-title { height: 8px; width: 74px; border-radius: 5px; background: #f3eaf4; }
+  .ws-subtle { height: 6px; width: 46px; border-radius: 4px; background: #766779; }
+  .ws-spacer { flex: 1; }
+  .tool-pill { height: 19px; min-width: 38px; border-radius: 7px; background: #2d2532; border: 1px solid #4f4054; }
+  .tool-pill.primary { background: #d8639b; border-color: #e77aaf; }
+  .target-strip { padding: 7px; border-radius: 9px; background: #28212d; border: 1px solid #493a4e; }
+  .chip { height: 17px; width: 45px; border-radius: 9px; background: #3d3142; border: 1px solid #5c4863; }
+  .chip.active { background: #62344f; border-color: #dc6ba1; }
+  .body-split { min-height: 0; flex: 1; display: grid; gap: 7px; }
+  .pane { min-height: 0; border-radius: 9px; border: 1px solid #443649; background: #241d29; padding: 8px; }
+  .pane-label { height: 7px; width: 58px; border-radius: 4px; background: #9b8b9e; margin-bottom: 8px; }
+  .action-row { height: 27px; border-radius: 7px; background: #302737; border: 1px solid #4a3b50; margin-bottom: 6px; }
+  .action-row.highlight { border-color: #b85987; background: #382534; }
+  .run-row { height: 24px; border-radius: 7px; background: #2d2532; margin-bottom: 6px; display: flex; align-items: center; padding: 0 7px; }
+  .run-dot { width: 7px; height: 7px; border-radius: 50%; background: #60b98a; }
+  .run-line { height: 5px; flex: 1; border-radius: 4px; background: #706174; margin-left: 6px; }
+  .card-copy { padding: 16px; }
+  .choice-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .choice-letter { width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; background: var(--surface-2); color: var(--accent); font-weight: 800; }
+  .recommended { font-size: 11px; font-weight: 700; color: var(--accent); border: 1px solid var(--accent); border-radius: 999px; padding: 2px 7px; }
+  .card-copy h3 { margin: 0; }
+  .card-copy p { margin: 8px 0 0; color: var(--text-muted); line-height: 1.5; }
+  .wizard-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .step { height: 21px; border-radius: 7px; background: #302737; border: 1px solid #4a3b50; }
+  .step.active { background: #62344f; border-color: #dc6ba1; }
+  .device-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; flex: 1; }
+  .device-tile { border-radius: 8px; background: linear-gradient(160deg, #4b3e50, #29222f); border: 1px solid #59475e; }
+  .console-body { flex: 1; display: grid; grid-template-columns: 64px 1fr; gap: 7px; min-height: 0; }
+  .scene-list { display: flex; flex-direction: column; gap: 5px; }
+  .scene-item { height: 25px; border-radius: 7px; background: #302737; }
+  .scene-item.active { background: #563148; border: 1px solid #c45f91; }
+  @media (max-width: 1050px) {
+    .layout-grid { grid-template-columns: 1fr; }
+    .layout-preview { height: 300px; }
+  }
+</style>
+
+<h2>右侧“群控执行工作台”采用哪种布局？</h2>
+<p class="subtitle">左侧手机主舞台保持不变；这里仅比较右侧空间的组织方式。本轮只搭布局，不接入真实 Airtest。</p>
+
+<div class="layout-grid">
+  <div class="layout-card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="layout-preview">
+      <div class="phone-rail"><div class="phone-top"></div><div class="phone-screen"></div><div class="phone-nav"></div></div>
+      <div class="workspace-shell">
+        <div class="ws-header"><div class="ws-title"></div><div class="ws-subtle"></div><div class="ws-spacer"></div><div class="tool-pill"></div></div>
+        <div class="target-strip"><div class="ws-row"><div class="chip active"></div><div class="chip active"></div><div class="chip"></div><div class="ws-spacer"></div><div class="tool-pill"></div></div></div>
+        <div class="body-split" style="grid-template-columns:minmax(0,1.35fr) minmax(92px,.65fr)">
+          <div class="pane"><div class="pane-label"></div><div class="action-row highlight"></div><div class="action-row"></div><div class="action-row"></div><div class="action-row" style="border-style:dashed"></div></div>
+          <div class="pane"><div class="pane-label"></div><div class="run-row"><span class="run-dot"></span><span class="run-line"></span></div><div class="run-row"><span class="run-dot"></span><span class="run-line"></span></div><div class="run-row"><span class="run-dot" style="background:#8d7e92"></span><span class="run-line"></span></div></div>
+        </div>
+        <div class="ws-row"><div class="ws-subtle"></div><div class="ws-spacer"></div><div class="tool-pill"></div><div class="tool-pill primary"></div></div>
+      </div>
+    </div>
+    <div class="card-copy">
+      <div class="choice-head"><span class="choice-letter">A</span><h3>编排 + 运行面板</h3><span class="recommended">推荐</span></div>
+      <p>目标设备始终可见，左侧编排操作，右侧查看每台设备的执行状态。信息完整，最适合未来渐进接入 Airtest。</p>
+    </div>
+  </div>
+
+  <div class="layout-card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="layout-preview">
+      <div class="phone-rail"><div class="phone-top"></div><div class="phone-screen"></div><div class="phone-nav"></div></div>
+      <div class="workspace-shell">
+        <div class="ws-header"><div class="ws-title"></div><div class="ws-spacer"></div><div class="tool-pill"></div></div>
+        <div class="wizard-steps"><div class="step active"></div><div class="step"></div><div class="step"></div></div>
+        <div class="pane" style="display:flex;flex-direction:column;flex:1"><div class="pane-label"></div><div class="device-grid"><div class="device-tile"></div><div class="device-tile"></div><div class="device-tile"></div><div class="device-tile"></div></div></div>
+        <div class="ws-row"><div class="tool-pill"></div><div class="ws-spacer"></div><div class="tool-pill primary"></div></div>
+      </div>
+    </div>
+    <div class="card-copy">
+      <div class="choice-head"><span class="choice-letter">B</span><h3>分步向导</h3></div>
+      <p>按“选设备 → 配操作 → 确认执行”逐步完成。上手简单，但频繁执行时切换步骤较慢，也不利于同时观察运行状态。</p>
+    </div>
+  </div>
+
+  <div class="layout-card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="layout-preview">
+      <div class="phone-rail"><div class="phone-top"></div><div class="phone-screen"></div><div class="phone-nav"></div></div>
+      <div class="workspace-shell">
+        <div class="ws-header"><div class="ws-title"></div><div class="ws-spacer"></div><div class="tool-pill"></div><div class="tool-pill primary"></div></div>
+        <div class="target-strip"><div class="ws-row"><div class="chip active"></div><div class="chip"></div><div class="ws-spacer"></div><div class="ws-subtle"></div></div></div>
+        <div class="console-body">
+          <div class="scene-list"><div class="scene-item active"></div><div class="scene-item"></div><div class="scene-item"></div><div class="scene-item"></div></div>
+          <div style="display:grid;grid-template-rows:1fr 70px;gap:7px;min-height:0"><div class="pane"><div class="pane-label"></div><div class="action-row highlight"></div><div class="action-row"></div><div class="action-row"></div></div><div class="pane"><div class="run-row"><span class="run-dot"></span><span class="run-line"></span></div><div class="run-row"><span class="run-dot"></span><span class="run-line"></span></div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-copy">
+      <div class="choice-head"><span class="choice-letter">C</span><h3>专业控制台</h3></div>
+      <p>场景库、编排区与日志区同时显示，扩展能力最强；但首版密度过高，容易重新变成“所有工具都铺开”的问题。</p>
+    </div>
+  </div>
+</div>

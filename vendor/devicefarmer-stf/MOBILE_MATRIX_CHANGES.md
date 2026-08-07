@@ -26,6 +26,13 @@ The upstream Git metadata and dependency cache are intentionally excluded. Sourc
 - Use STF `screen.capture` for one static current-screen cover per device, refreshed only by the Mobile Matrix title-bar action; avoid a live screen stream on the device grid.
 - Route local provider, WebSocket and storage-plugin URLs through the configured loopback `--public-ip` instead of hard-coded `localhost`, so Mac screenshot resources do not stall on IPv6 resolution.
 - Point the image and APK processors directly at the local 7102 storage service, and pass through untransformed JPEG screenshots to avoid a hanging ImageMagick stream on macOS.
+- Style the device matrix as a responsive card grid where each card follows the current 9:20 portrait screenshot ratio with the image flush to its rounded boundary; remove the default phone stand-in and blur, use a compact neutral grayscale bottom gradient, visible focus treatment, 44px selection targets and descriptive screenshot alt text.
+- Rebuild the single-device control route as a bounded device stage plus one responsive tool workspace, removing the duplicated bottom tab pane while preserving the upstream control services and actions.
+- Bundle Material Design Icons Round locally and scope a compatibility mapping to the control workspace so functional STF icons use one Material icon language without a runtime web-font dependency.
+- Restyle the device-offline fatal modal with Mobile Matrix theme tokens and Material icons, replacing the upstream default phone placeholder with a compact live-state summary while preserving reconnect and device-list actions.
+- Organize the single-device control page's right side into a default Group Execution three-step layout and a categorized Device Tools workspace; show the current device directly from STF, disable the Airtest-dependent steps honestly, and preserve existing STF templates, events, and the left-side control session.
+- Scope the legacy absolute logcat table to the Device Tools content pane and apply Mobile Matrix surface tokens, preventing Logs from covering the workspace with a white overlay.
+- Normalize Device Tools icon/text baselines, button and form-control heights, and legacy heading actions; allow the Apps heading to wrap without overlapping its content card.
 - Keep single-device control, Provider, ADB, STFService, minicap and minitouch behavior upstream-compatible.
 
 ## Security boundary

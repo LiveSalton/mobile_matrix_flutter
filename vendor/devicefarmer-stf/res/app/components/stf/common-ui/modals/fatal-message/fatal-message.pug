@@ -1,24 +1,23 @@
-.stf-fatal-message.stf-modal
-  .modal-header.dialog-header-errorX
-    button(type='button', ng-click='cancel()').close &times;
-    h4.modal-title.text-danger
-      i.fa.fa-warning
-      .button-spacer
+.stf-fatal-message.stf-modal.mm-device-disconnect-dialog
+  .modal-header
+    h4.modal-title
+      i.material-icons-round(aria-hidden='true') phone_disabled
       span(translate) Device was disconnected
+    button(type='button', ng-click='cancel()', aria-label='Close').close
+      i.material-icons-round(aria-hidden='true') close
   .modal-body
-    h4(translate, ng-bind='device.likelyLeaveReason | likelyLeaveReason')
-    br
-    .big-thumbnail
-      .device-photo-small
-        img(ng-src='/static/app/devices/icon/x120/{{ device.image || "E30HT.jpg" }}')
-      .device-name(ng-bind='device.enhancedName')
-      h3.device-status(ng-class='stateColor')
-        span(ng-bind='device.enhancedStatePassive | translate')
+    p.mm-device-disconnect-reason(translate, ng-bind='device.likelyLeaveReason | likelyLeaveReason')
+    .mm-device-disconnect-state
+      .mm-device-disconnect-symbol(aria-hidden='true')
+        i.material-icons-round phone_android
+      .mm-device-disconnect-identity
+        strong.device-name(ng-bind='device.enhancedName')
+        span.device-status(ng-class='stateColor', ng-bind='device.enhancedStatePassive | translate')
 
   .modal-footer
-    button.btn.btn-primary-outline.pull-left(type='button', ng-click='ok()')
-      i.fa.fa-refresh
-      span(translate) Try to reconnect
-    button.btn.btn-success-outline(ng-click='second()')
-      i.fa.fa-sitemap
+    button.btn.mm-device-list-action(type='button', ng-click='second()')
+      i.material-icons-round(aria-hidden='true') grid_view
       span(translate) Go to Device List
+    button.btn.mm-reconnect-action(type='button', ng-click='ok()')
+      i.material-icons-round(aria-hidden='true') refresh
+      span(translate) Try to reconnect

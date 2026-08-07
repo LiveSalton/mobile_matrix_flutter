@@ -53,6 +53,8 @@
 | 警告 `theme_warning` | `#FF9124` |
 | 错误 `theme_danger` | `#EF4444` |
 | 禁用 `theme_disabled` | `#64748B` |
+| 弱灰阶遮罩 `theme_scrim_soft` | `rgba(0, 0, 0, 0.28)` |
+| 强灰阶遮罩 `theme_scrim_strong` | `rgba(0, 0, 0, 0.72)` |
 
 ### 主题约束
 
@@ -81,6 +83,8 @@
 | `--mm-warning` | 警告/待确认状态 |
 | `--mm-success` | 成功状态 |
 | `--mm-disabled` | 禁用态 |
+| `--mm-scrim-soft` | 图片底部信息区的弱灰阶遮罩 |
+| `--mm-scrim-strong` | 图片底部信息区的强灰阶遮罩 |
 
 ### 实现落地
 

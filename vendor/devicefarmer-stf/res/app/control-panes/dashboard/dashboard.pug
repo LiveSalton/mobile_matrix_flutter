@@ -1,16 +1,13 @@
-.row
-  .col-md-6
+.mm-dashboard-grid
+  .mm-dashboard-card.mm-dashboard-card-navigation
     div(ng-include='"control-panes/dashboard/navigation/navigation.pug"')
-  .col-md-6
+  .mm-dashboard-card.mm-dashboard-card-clipboard
     div(ng-include='"control-panes/dashboard/clipboard/clipboard.pug"')
-
-.row
-  .col-md-6
+  .mm-dashboard-card.mm-dashboard-card-upload
     div(ng-include='"control-panes/dashboard/install/install.pug"')
-  .col-md-6(ng-if='$root.platform == "native"')
+  .mm-dashboard-card.mm-dashboard-card-shell(ng-if='$root.platform == "native"')
     div(ng-include='"control-panes/dashboard/shell/shell.pug"')
-.row
-  .col-md-6
+  .mm-dashboard-card.mm-dashboard-card-apps
     div(ng-include='"control-panes/dashboard/apps/apps.pug"')
-  .col-md-6
+  .mm-dashboard-card.mm-dashboard-card-debug
     div(ng-include='"control-panes/advanced/remote-debug/remote-debug.pug"')

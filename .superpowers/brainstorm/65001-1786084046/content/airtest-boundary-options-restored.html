@@ -1,0 +1,46 @@
+<h2>Airtest 尚未接入时，群控执行页如何呈现？</h2>
+<p class="subtitle">预览服务已恢复。目标是让布局可见，同时不让人误以为群控引擎已经可用。</p>
+
+<div class="cards">
+  <div class="card" data-choice="honest-empty" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">群控执行　　设备工具</div>
+        <div class="mockup-body">
+          <div class="mock-nav">① 选择设备　　② 配置操作（禁用）　　③ 确认执行（禁用）</div>
+          <div class="section">
+            <span class="label">目标设备</span>
+            <button class="mock-button">当前设备 · 已自动选中</button>
+          </div>
+          <div class="placeholder" style="min-height:150px;display:flex;align-items:center;justify-content:center;text-align:center">
+            Airtest 执行引擎尚未接入<br>配置与执行功能将在后续阶段开放
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A　真实边界空状态（推荐）</h3>
+      <p>保留三步结构和真实目标设备；后两步明确禁用，不制造已经能够执行群控的错觉。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="interactive-preview" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">群控执行　　设备工具</div>
+        <div class="mockup-body">
+          <div class="mock-nav">① 选择设备　　② 配置操作　　③ 确认执行</div>
+          <div class="split">
+            <div class="mockup"><div class="mockup-header">操作配置</div><div class="mockup-body"><input class="mock-input" placeholder="选择脚本"><input class="mock-input" placeholder="执行参数"></div></div>
+            <div class="mockup"><div class="mockup-header">执行摘要</div><div class="mockup-body"><div class="placeholder">2 台设备</div></div></div>
+          </div>
+          <button class="mock-button">开始执行（实际不可用）</button>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B　可点击功能预览</h3>
+      <p>三步都可以浏览，但实际无法运行，容易让使用者误认为 Airtest 已接入。</p>
+    </div>
+  </div>
+</div>

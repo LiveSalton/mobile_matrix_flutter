@@ -2,7 +2,8 @@
   uib-tabset
     uib-tab(ng-repeat='tab in tabs', active='tab.active', ng-hide='!tabFound(tab)')
       uib-tab-heading
-        i.fa(ng-class='tab.icon')
+        i.material-icons-round(ng-if='tab.materialIcon') {{tab.materialIcon}}
+        i.fa(ng-if='!tab.materialIcon', ng-class='tab.icon')
         span {{tab.title | translate }}
       div(ng-if='tab.active')
         div(ng-include='tab.templateUrl')

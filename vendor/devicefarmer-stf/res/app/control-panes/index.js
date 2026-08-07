@@ -1,3 +1,6 @@
+require('@material-design-icons/font/round.css')
+require('./control-panes.css')
+
 module.exports = angular.module('control-panes', [
   require('stf/common-ui/nice-tabs').name,
   require('stf/device').name,
@@ -33,10 +36,20 @@ module.exports = angular.module('control-panes', [
         //}
       })
       // TODO: add standalone
-      .when('/c/:serial', {
+  .when('/c/:serial', {
         template: require('./control-panes.pug'),
         controller: 'ControlPanesCtrl'
       })
+  }])
+  .run(['$templateCache', function($templateCache) {
+    $templateCache.put(
+      'control-panes/workspace-execution.pug',
+      require('./workspace-execution.pug')
+    )
+    $templateCache.put(
+      'control-panes/workspace-tools.pug',
+      require('./workspace-tools.pug')
+    )
   }])
   .factory('ControlPanesService', require('./control-panes-service'))
   .controller('ControlPanesCtrl', require('./control-panes-controller'))

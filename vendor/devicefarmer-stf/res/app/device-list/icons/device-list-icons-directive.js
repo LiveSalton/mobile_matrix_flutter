@@ -26,21 +26,29 @@ module.exports = function DeviceListIconsDirective(
         photo.appendChild(img)
         a.appendChild(photo)
 
+        var info = document.createElement('div')
+        info.className = 'mm-device-info'
+        a.appendChild(info)
+
         // .device-name
         var name = document.createElement('div')
         name.className = 'device-name'
         name.appendChild(document.createTextNode(''))
-        a.appendChild(name)
+        info.appendChild(name)
 
         var serial = document.createElement('div')
         serial.className = 'mm-device-serial selectable'
         serial.appendChild(document.createTextNode(''))
-        a.appendChild(serial)
+        info.appendChild(serial)
 
         // button
         var button = document.createElement('button')
+        button.type = 'button'
+        var statusIcon = document.createElement('i')
+        statusIcon.setAttribute('aria-hidden', 'true')
+        button.appendChild(statusIcon)
         button.appendChild(document.createTextNode(''))
-        a.appendChild(button)
+        info.appendChild(button)
 
         var selector = document.createElement('button')
         selector.type = 'button'
@@ -57,28 +65,58 @@ module.exports = function DeviceListIconsDirective(
     , update: function(li, device, selectionMode, selectedSerials, screenshots) {
         var a = li.firstChild
         var img = a.firstChild.firstChild
-        var name = a.firstChild.nextSibling
+        var info = a.firstChild.nextSibling
+        var name = info.firstChild
         var nt = name.firstChild
         var serial = name.nextSibling
         var st = serial.firstChild
         var button = serial.nextSibling
-        var at = button.firstChild
+        var statusIcon = button.firstChild
+        var at = statusIcon.nextSibling
         var selector = li.lastChild
         var selected = Boolean(selectedSerials && selectedSerials[device.serial])
         var classes = 'btn btn-xs device-status '
 
         // .device-photo-small
-        var image = screenshots && screenshots[device.serial] || device.enhancedImage120
-        if (img.getAttribute('src') !== image) {
-          img.setAttribute('src', image)
+        var image = screenshots && screenshots[device.serial]
+        if (image) {
+          if (img.getAttribute('src') !== image) {
+            img.setAttribute('src', image)
+          }
+          img.alt = device.enhancedName + ' 当前屏幕截图'
+          img.removeAttribute('aria-hidden')
+          img.parentNode.classList.remove('is-empty')
         }
+        else {
+          img.removeAttribute('src')
+          img.alt = ''
+          img.setAttribute('aria-hidden', 'true')
+          img.parentNode.classList.add('is-empty')
+        }
+        img.loading = 'lazy'
 
         // .device-name
         nt.nodeValue = device.enhancedName
         st.nodeValue = device.serial
 
-        // button
-        at.nodeValue = $filter('translate')(device.enhancedStateAction)
+        // The matrix card treats this control as a connection-status button.
+        // Keep the copy tied to STF's real-time device state instead of exposing
+        // its legacy "Use" lease action as the primary label.
+        at.nodeValue = getConnectionStatusLabel(device.state)
+        button.disabled = !device.usable
+        button.setAttribute('aria-label', at.nodeValue)
+        statusIcon.className = 'fa ' + ({
+          available: 'fa-play'
+        , ready: 'fa-play'
+        , present: 'fa-play'
+        , using: 'fa-stop'
+        , busy: 'fa-clock-o'
+        , offline: 'fa-plug'
+        , unauthorized: 'fa-ban'
+        , preparing: 'fa-refresh'
+        , automation: 'fa-cogs'
+        , absent: 'fa-plug'
+        }[device.state] || 'fa-circle-o')
 
         function getStateClasses(state) {
           var stateClasses = {
@@ -91,6 +129,7 @@ module.exports = function DeviceListIconsDirective(
             unauthorized: 'state-unauthorized btn-danger-outline',
             offline: 'state-offline btn-warning-outline',
             automation: 'state-automation btn-info'
+          , absent: 'state-offline btn-warning-outline'
           }[state]
           if (typeof stateClasses === 'undefined') {
             stateClasses = 'btn-default-outline'
@@ -136,6 +175,21 @@ module.exports = function DeviceListIconsDirective(
         return li
       }
     }
+  }
+
+  function getConnectionStatusLabel(state) {
+    return {
+      available: '已连接 · 可控制'
+    , ready: '连接已就绪'
+    , present: '已连接 · 等待就绪'
+    , using: '正在控制'
+    , busy: '设备正被使用'
+    , offline: '连接已断开'
+    , absent: '连接已断开'
+    , unauthorized: '等待设备授权'
+    , preparing: '正在建立连接'
+    , automation: '自动化执行中'
+    }[state] || '状态未知'
   }
 
   return {
@@ -184,17 +238,19 @@ module.exports = function DeviceListIconsDirective(
         for (var i = 0, l = items.length; i < l; ++i) {
           var device = mapping[items[i].id]
           if (device) {
-            builder.update(items[i], device, scope.selectionMode, scope.selectedSerials, scope.screenshots)
+            builder.update(
+              items[i], device, scope.selectionMode, scope.selectedSerials, scope.screenshots)
           }
         }
       }
 
       function findItem(target) {
-        while (target && target !== element[0]) {
-          if (target.tagName === 'LI' && mapping[target.id]) {
-            return target
+        var node = target
+        while (node && node !== element[0]) {
+          if (node.tagName === 'LI' && mapping[node.id]) {
+            return node
           }
-          target = target.parentNode
+          node = node.parentNode
         }
         return null
       }

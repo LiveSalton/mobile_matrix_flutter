@@ -1,0 +1,43 @@
+section.mm-execution-workspace(aria-labelledby='mm-execution-title')
+  .mm-execution-heading
+    div
+      h2#mm-execution-title Group Execution
+      p Prepare multiple devices for a shared automation task.
+    span.mm-capability-badge Layout only
+
+  ol.mm-execution-steps(aria-label='Execution steps')
+    li.mm-execution-step.active(aria-current='step')
+      span.mm-step-index 1
+      span
+        strong Select devices
+        small Current device selected
+    li.mm-execution-step.disabled(aria-disabled='true')
+      span.mm-step-index 2
+      span
+        strong Configure action
+        small Requires Airtest
+    li.mm-execution-step.disabled(aria-disabled='true')
+      span.mm-step-index 3
+      span
+        strong Review & run
+        small Not available yet
+
+  .mm-execution-target
+    .mm-execution-target-heading
+      span Target device
+      span 1 selected
+    .mm-target-device
+      i.material-icons-round(aria-hidden='true') phone_android
+      span.mm-target-device-copy
+        strong {{device.name || device.model || 'Android device'}}
+        small {{device.serial}}
+      span.mm-target-device-state
+        i.material-icons-round(aria-hidden='true') fiber_manual_record
+        span {{device.state | translate}}
+
+  .mm-execution-empty
+    i.material-icons-round.mm-execution-empty-icon(aria-hidden='true') route
+    h3 Airtest execution engine is not connected
+    p The current device is ready as the first target. Action configuration and execution will be enabled in a dedicated Airtest change.
+    button.mm-disabled-action(type='button', disabled='disabled', aria-disabled='true')
+      span Next step unavailable

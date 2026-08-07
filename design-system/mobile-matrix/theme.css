@@ -19,6 +19,8 @@
   --mm-warning: #FF9124;
   --mm-success: #00D591;
   --mm-disabled: #64748B;
+  --mm-scrim-soft: rgba(0, 0, 0, 0.28);
+  --mm-scrim-strong: rgba(0, 0, 0, 0.72);
 }
 
 :root[data-mm-theme='roseGlow'] {
@@ -37,4 +39,6 @@
   --mm-warning: #FF9124;
   --mm-success: #00D591;
   --mm-disabled: #64748B;
+  --mm-scrim-soft: rgba(0, 0, 0, 0.28);
+  --mm-scrim-strong: rgba(0, 0, 0, 0.72);
 }

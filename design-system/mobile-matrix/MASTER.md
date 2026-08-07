@@ -30,6 +30,8 @@
 | `--mm-warning` | `#FF9124` |
 | `--mm-success` | `#00D591` |
 | `--mm-disabled` | `#64748B` |
+| `--mm-scrim-soft` | `rgba(0, 0, 0, 0.28)` |
+| `--mm-scrim-strong` | `rgba(0, 0, 0, 0.72)` |
 
 ### 玫瑰流光（`roseGlow`）
 
@@ -50,6 +52,8 @@
 | `--mm-warning` | `#FF9124` |
 | `--mm-success` | `#00D591` |
 | `--mm-disabled` | `#64748B` |
+| `--mm-scrim-soft` | `rgba(0, 0, 0, 0.28)` |
+| `--mm-scrim-strong` | `rgba(0, 0, 0, 0.72)` |
 
 ## 文案与字体
 
