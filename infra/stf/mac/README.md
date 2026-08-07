@@ -2,6 +2,18 @@
 
 本目录只描述开发验证路径，不代表 STF 已经在本机启动，也不替代真实设备证据。
 
+## 一键后台启动
+
+完成下方依赖安装后，可在仓库根目录直接运行：
+
+```bash
+./mobile-matrix.sh
+```
+
+脚本每次执行都会重启本项目的 RethinkDB 和 STF/API 用户服务，并使用 macOS `launchctl` 在后台托管；关闭终端不会停止服务。日志与 PID 位于被忽略的 `.runtime/`。STF 控制台固定为 `http://127.0.0.1:7100/`；只有 `.env` 中存在有效 `STF_TOKEN` 时才会启动实验性 API，端口默认为 `7121`。
+
+当前脚本仅支持 macOS。Windows 原生和 WSL2 启动方式尚未验证，不能标记为已支持。
+
 ## 运行边界
 
 - 目标环境：当前 arm64 Mac、本机或可信内网。
@@ -62,8 +74,8 @@ npm run start
 如果 `start` 尚未提供，使用等价的 `tsx src/main.ts` 临时启动；只允许监听本机。启动后检查：
 
 ```bash
-curl http://127.0.0.1:7120/health
-curl http://127.0.0.1:7120/api/v1/devices
+curl http://127.0.0.1:7121/health
+curl http://127.0.0.1:7121/api/v1/devices
 ```
 
 响应中的设备状态必须来自当前 STF 请求；STF 不可达时不得使用旧缓存冒充 `ready`。

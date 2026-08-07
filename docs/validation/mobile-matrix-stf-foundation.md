@@ -45,6 +45,13 @@
 - 由于当前只有 1 台真实 Android 设备，第二台设备、两台批量操作、拔线隔离与恢复仍保持未完成。
 - 具体脱敏证据位于本 change 的 `evidence/m0-mac-adb-stf.md`、`evidence/m1-single-device-api.md` 和 `evidence/m3-failure-and-unplug.md`；证据文件被 `.gitignore` 忽略，避免本机运行凭据误提交。
 
+## Mac 一键启动验证（2026-08-07）
+
+- 根目录 `mobile-matrix.sh` 已在当前 arm64 Mac 上连续执行两次；第二次执行停止旧 STF 服务并重新启动，后台 PID 从 `41797` 变为 `42095`。
+- 两次启动均等待 STF 控制台就绪；启动脚本退出后，STF 仍由 `launchctl` 托管，访问 `http://127.0.0.1:7100/` 返回 HTTP `302` 登录跳转。
+- 当前 ADB 识别 1 台已授权 Android 真机。由于 `.env` 未配置有效 `STF_TOKEN`，脚本按设计跳过实验性 Mobile Matrix API，没有把未启动的 API 记录为通过。
+- 该脚本当前仅支持 macOS；Windows 原生 PowerShell、WSL2、ADB/USB 与后台服务托管均尚未实现和验证。
+
 ## Requirement-by-requirement 审计
 
 | 范围 | 结果 | 依据或阻塞 |
