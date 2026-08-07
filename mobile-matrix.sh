@@ -7,15 +7,13 @@ RUNTIME_DIR="$PROJECT_DIR/.runtime"
 LOG_DIR="$RUNTIME_DIR/logs"
 PID_DIR="$RUNTIME_DIR/pids"
 STF_PID_FILE="$PID_DIR/stf.pid"
-API_PID_FILE="$PID_DIR/api.pid"
 STF_LOG_FILE="$LOG_DIR/stf.log"
-API_LOG_FILE="$LOG_DIR/api.log"
 RETHINKDB_DIR="$RUNTIME_DIR/rethinkdb"
 RETHINKDB_CONTAINER="mobile-matrix-rethinkdb"
 STF_LAUNCH_LABEL="com.mobile-matrix.stf"
-API_LAUNCH_LABEL="com.mobile-matrix.api"
 STF_PORT=7100
-DEFAULT_API_PORT=7121
+STF_DIR="$PROJECT_DIR/vendor/devicefarmer-stf"
+STF_BIN="$STF_DIR/bin/stf"
 NODE20_BIN="${MOBILE_MATRIX_NODE20_BIN:-/Users/salton/.nvm/versions/node/v20.19.6/bin}"
 
 mkdir -p "$LOG_DIR" "$PID_DIR" "$RETHINKDB_DIR"
@@ -90,6 +88,23 @@ assert_port_available() {
   fail "$service_name port $port is already used by PID $pid: $command_line"
 }
 
+stop_vendored_stf_process() {
+  local pid
+  local command_line
+
+  pid="$(port_listener_pid "$STF_PORT")"
+  [ -z "$pid" ] && return 0
+
+  command_line="$(ps -p "$pid" -o command= 2>/dev/null || true)"
+  case "$command_line" in
+    *"$STF_DIR/lib/cli poorxy"*)
+      log "Stopping previous vendored STF process PID $pid"
+      kill "$pid" >/dev/null 2>&1 || true
+      sleep 1
+      ;;
+  esac
+}
+
 wait_for_http() {
   local name="$1"
   local url="$2"
@@ -150,11 +165,9 @@ check_adb() {
 }
 
 start_stf() {
-  local stf_bin
-
-  require_command stf
-  stf_bin="$(command -v stf)"
+  [ -x "$STF_BIN" ] || fail "Vendored STF is missing: $STF_BIN"
   stop_launch_service "$STF_LAUNCH_LABEL" "STF"
+  stop_vendored_stf_process
   assert_port_available "$STF_PORT" "STF"
 
   : >"$STF_LOG_FILE"
@@ -163,62 +176,31 @@ start_stf() {
     -l "$STF_LAUNCH_LABEL" \
     -o "$STF_LOG_FILE" \
     -e "$STF_LOG_FILE" \
-    -- /usr/bin/env PATH="$PATH" "$stf_bin" local --public-ip 127.0.0.1
+    -- /usr/bin/env PATH="$PATH" "$STF_BIN" local \
+      --public-ip 127.0.0.1 \
+      --trusted-local \
+      --local-user-name administrator \
+      --local-user-email administrator@fakedomain.com
   record_launch_pid "$STF_LAUNCH_LABEL" "$STF_PID_FILE"
 
   wait_for_http "STF" "http://127.0.0.1:$STF_PORT/" "$STF_LOG_FILE"
 }
 
-load_api_environment() {
-  [ -f "$PROJECT_DIR/.env" ] || return 1
+prepare_stf() {
+  [ -d "$STF_DIR/node_modules" ] || {
+    log "Installing vendored STF dependencies"
+    (cd "$STF_DIR" && npm install)
+  }
 
-  set -a
-  # shellcheck disable=SC1091
-  . "$PROJECT_DIR/.env"
-  set +a
+  [ -d "$STF_DIR/res/bower_components" ] || {
+    log "Installing vendored STF web dependencies"
+    (cd "$STF_DIR" && ./node_modules/.bin/bower install)
+  }
 
-  [ -n "${STF_TOKEN:-}" ] || return 1
-  [ "${STF_TOKEN:-}" != "replace-with-local-token" ] || return 1
-
-  STF_BASE_URL="${STF_BASE_URL:-http://127.0.0.1:7100}"
-  MOBILE_MATRIX_PORT="${MOBILE_MATRIX_PORT:-$DEFAULT_API_PORT}"
-  if [ "$MOBILE_MATRIX_PORT" = "7120" ]; then
-    MOBILE_MATRIX_PORT="$DEFAULT_API_PORT"
-  fi
-  export STF_BASE_URL MOBILE_MATRIX_PORT
-  return 0
-}
-
-start_api_if_configured() {
-  if ! load_api_environment; then
-    log "Skipping the experimental API: .env has no valid STF_TOKEN"
-    return 0
-  fi
-
-  stop_launch_service "$API_LAUNCH_LABEL" "Mobile Matrix API"
-  assert_port_available "$MOBILE_MATRIX_PORT" "Mobile Matrix API"
-
-  log "Building Mobile Matrix API"
-  npm run build >/dev/null
-
-  : >"$API_LOG_FILE"
-  log "Starting Mobile Matrix API with launchctl"
-  launchctl submit \
-    -l "$API_LAUNCH_LABEL" \
-    -o "$API_LOG_FILE" \
-    -e "$API_LOG_FILE" \
-    -- /usr/bin/env \
-      PATH="$PATH" \
-      STF_BASE_URL="$STF_BASE_URL" \
-      STF_TOKEN="$STF_TOKEN" \
-      MOBILE_MATRIX_PORT="$MOBILE_MATRIX_PORT" \
-      node "$PROJECT_DIR/dist/src/main.js"
-  record_launch_pid "$API_LAUNCH_LABEL" "$API_PID_FILE"
-
-  wait_for_http \
-    "Mobile Matrix API" \
-    "http://127.0.0.1:$MOBILE_MATRIX_PORT/health" \
-    "$API_LOG_FILE"
+  [ -f "$STF_DIR/res/build/entry/app.entry.js" ] || {
+    log "Building vendored STF web console"
+    (cd "$STF_DIR" && ./node_modules/.bin/gulp build)
+  }
 }
 
 main() {
@@ -227,14 +209,12 @@ main() {
   start_colima
   restart_rethinkdb
   check_adb
+  prepare_stf
+  stop_launch_service "com.mobile-matrix.api" "legacy Mobile Matrix API"
   start_stf
-  start_api_if_configured
 
   log "Startup complete"
   log "STF console: http://127.0.0.1:$STF_PORT/"
-  if [ -f "$API_PID_FILE" ]; then
-    log "Mobile Matrix API: http://127.0.0.1:$MOBILE_MATRIX_PORT/health"
-  fi
   log "Logs: $LOG_DIR"
 }
 

@@ -1,0 +1,16 @@
+.mm-status-summary {
+  color: var(--mm-text-secondary);
+  font-size: 12px;
+  gap: 5px;
+}
+
+.mm-status-summary strong {
+  color: var(--mm-text-primary);
+  font-size: 14px;
+}
+
+.mm-status-summary .fa-circle {
+  color: var(--mm-outline);
+  font-size: 5px;
+  margin: 0 2px;
+}

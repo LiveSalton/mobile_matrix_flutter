@@ -38,9 +38,9 @@
 | 二级背景 `theme_bg_secondary` | `#2A2029` |
 | 表面 `theme_surface` | `#1E142280` |
 | 浮层表面 `theme_surface_elevated` | `#28192DA0` |
-| 边框 `theme_outline` | `#59E56A9A` |
+| 边框 `theme_outline` | `#E56A9A59` |
 | 主色 `theme_primary` | `#E56A9A` |
-| 高亮 `theme_highlight` | `#33FFD5E4` |
+| 高亮 `theme_highlight` | `#FFD5E433` |
 | 液态金属边缘 `theme_metal_edge` | `#E56A9A66` |
 | 主文字 `theme_text_primary` | `#FFF8FB` |
 | 次文字 `theme_text_secondary` | `#D1BEC9` |
@@ -60,6 +60,7 @@
 - 必须实现运行时安全回退：未知主题值统一回退到 `default`。
 - 两套主题共享 `成功/警告/错误/禁用` 语义色值，不得随主题单独变体。
 - 严禁再新增第三套主题或静态复制页面。
+- 品牌图标以两张 1024px 透明 PNG 作为不可覆盖母版，等比导出 512px 与 128px 运行资源；标题栏不叠加额外边框，`default` / `roseGlow` 直接切换对应主题资源，不使用滤镜近似变色。
 
 ### 组件语义映射（必须）
 

@@ -10,7 +10,7 @@
 ./mobile-matrix.sh
 ```
 
-脚本每次执行都会重启本项目的 RethinkDB 和 STF/API 用户服务，并使用 macOS `launchctl` 在后台托管；关闭终端不会停止服务。日志与 PID 位于被忽略的 `.runtime/`。STF 控制台固定为 `http://127.0.0.1:7100/`；只有 `.env` 中存在有效 `STF_TOKEN` 时才会启动实验性 API，端口默认为 `7121`。
+脚本每次执行都会重启本项目的 RethinkDB 和内置 STF，并使用 macOS `launchctl` 在后台托管；关闭终端不会停止服务。日志与 PID 位于被忽略的 `.runtime/`。STF Web 控制台固定为 `http://127.0.0.1:7100/`，首页直接进入 Mobile Matrix 设备矩阵，不再额外启动 7121 API 服务。
 
 当前脚本仅支持 macOS。Windows 原生和 WSL2 启动方式尚未验证，不能标记为已支持。
 
@@ -20,7 +20,7 @@
 - 设备接入：宿主机 ADB 直接访问 USB Android 手机。
 - STF：固定 `@devicefarmer/stf@3.7.9`，Provider 使用宿主机 ADB。
 - RethinkDB：原生运行或单独 Docker 容器，不能让 Docker Desktop USB 直通成为前置条件。
-- Mobile Matrix：读取 `STF_BASE_URL` 和服务端 `STF_TOKEN`，默认只监听 `127.0.0.1`。
+- Mobile Matrix：直接改造内置 STF Web 控制台，通过受信任本地身份进入，默认只监听 `127.0.0.1`。
 - 长期生产：迁移到连接实体 USB 设备的 Linux 设备主机；Mac 结果只作为开发/验证证据。
 
 ## 前置检查
@@ -40,45 +40,17 @@ adb devices -l
 
 DeviceFarmer README 列出的 Mac 原生依赖包括 RethinkDB、GraphicsMagick、ZeroMQ、Protocol Buffers、yasm、pkg-config 和 CMake。按本机包管理器安装，并在证据中记录实际版本；不要把包管理器缓存或本机路径提交到仓库。
 
-## 启动 STF
+## 内置 STF
 
-以下命令用于本地验证，执行前确认目录和端口属于当前工作区：
+源码固定放在 `vendor/devicefarmer-stf`，启动脚本会自动安装依赖、构建 Web 控制台，并以受信任本地身份启动：
 
 ```bash
-npm install -g @devicefarmer/stf@3.7.9
-rethinkdb --bind all
-stf local --public-ip 127.0.0.1
+./mobile-matrix.sh
 ```
 
-STF 启动后，先通过浏览器确认本地页面和设备列表，再取得仅用于本机服务的 STF access token。Token 不写入命令历史、文档、截图或版本库。
+STF 启动后，浏览器直接打开设备矩阵。受信任本地身份只允许回环地址使用，不产生浏览器登录页，也不代表远程部署可以匿名访问。
 
 若不希望原生安装 RethinkDB，可只将 RethinkDB 作为非 USB Docker 容器运行，并让宿主机 STF 通过 `127.0.0.1:28015` 连接；不得使用 `devicefarmer/adb` 容器假设 Mac 能直接透传 USB。
-
-## 启动 Mobile Matrix
-
-在仓库根目录准备未提交的本地环境文件：
-
-```bash
-cp .env.example .env
-```
-
-填入本机 STF 地址和 token 后，用 Node 20 执行：
-
-```bash
-npm run check
-npm test
-npm run build
-npm run start
-```
-
-如果 `start` 尚未提供，使用等价的 `tsx src/main.ts` 临时启动；只允许监听本机。启动后检查：
-
-```bash
-curl http://127.0.0.1:7121/health
-curl http://127.0.0.1:7121/api/v1/devices
-```
-
-响应中的设备状态必须来自当前 STF 请求；STF 不可达时不得使用旧缓存冒充 `ready`。
 
 ## Mac 限制与回退
 

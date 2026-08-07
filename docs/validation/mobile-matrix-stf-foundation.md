@@ -18,8 +18,8 @@
 
 1. 记录 Mac 架构、Node 20、ADB 和 STF 版本。
 2. 记录 `adb devices -l`，确认第一台设备为 authorized/`device`。
-3. 启动固定版本 STF，确认 STF UI 与 `/api/v1/devices` 列表。
-4. 启动 Mobile Matrix，确认 `/health` 和 `/api/v1/devices`。
+3. 运行根目录 `mobile-matrix.sh`，确认内置 STF Web 控制台与 `/api/v1/devices` 列表。
+4. 访问 `http://127.0.0.1:7100/`，确认首次访问直接进入设备矩阵，不再经过浏览器登录页。
 5. 对第一台设备执行查询、占用、远程连接和释放。
 6. 接入第二台 Android 设备，重复列表并执行批量占用/释放。
 7. 拔出一台设备，确认其离线/不可用且另一台仍可操作。
@@ -35,7 +35,7 @@
 
 ## 未完成边界
 
-没有第二台真实 Android 设备时，只能报告单设备静态/API结果；不能完成多设备、批量、拔线和恢复验收。没有可用 STF Token 时，不能声称租约或远程连接已验证。
+没有第二台真实 Android 设备时，只能报告单设备静态/API结果；不能完成多设备、批量、拔线和恢复验收。可信本地身份只用于回环地址，不能作为远程匿名部署方案。
 
 ## 当前真实验证快照（2026-08-06）
 
@@ -47,9 +47,10 @@
 
 ## Mac 一键启动验证（2026-08-07）
 
-- 根目录 `mobile-matrix.sh` 已在当前 arm64 Mac 上连续执行两次；第二次执行停止旧 STF 服务并重新启动，后台 PID 从 `41797` 变为 `42095`。
-- 两次启动均等待 STF 控制台就绪；启动脚本退出后，STF 仍由 `launchctl` 托管，访问 `http://127.0.0.1:7100/` 返回 HTTP `302` 登录跳转。
-- 当前 ADB 识别 1 台已授权 Android 真机。由于 `.env` 未配置有效 `STF_TOKEN`，脚本按设计跳过实验性 Mobile Matrix API，没有把未启动的 API 记录为通过。
+- 根目录 `mobile-matrix.sh` 已在当前 arm64 Mac 上连续执行两次；第二次执行停止旧 STF 服务并重新启动，启动脚本退出后 STF 仍由 `launchctl` 托管。
+- 当前内置 STF 控制台 `http://127.0.0.1:7100/` 返回 HTTP `200`，首页 HTML 标题为 `Mobile Matrix`，页面直接加载设备矩阵；7121 无监听。
+- 当前真机截图链路已验证：通过 `screen.capture` 生成的 `/s/image/*` 资源经 `http://127.0.0.1:7100/` 返回 `200 image/jpeg`，本次样本为 `1080x2400`，截图处理器直连 7102 存储端口。
+- 当前 ADB 识别 1 台已授权 Android 真机；双设备、批量真机、拔线隔离与恢复仍保持未完成。
 - 该脚本当前仅支持 macOS；Windows 原生 PowerShell、WSL2、ADB/USB 与后台服务托管均尚未实现和验证。
 
 ## Requirement-by-requirement 审计
@@ -64,4 +65,4 @@
 | 6.1–6.2 Mac 单设备 STF 闭环 | 通过 | `m0-mac-adb-stf.md`、`m1-single-device-api.md` |
 | 6.3–6.5 双设备、批量真机、拔线恢复 | 未完成 | 当前只有 1 台真实 Android 设备，不能用模拟状态替代 |
 | 6.6 依赖故障与 Docker USB 边界 | 通过 | `m3-failure-and-unplug.md` |
-| 7.1–7.3 记录、校验与审计 | 通过 | OpenSpec strict、TypeScript check/build、25/25 测试、`git diff --check` |
+| 7.1–7.3 记录、校验与审计 | 通过 | OpenSpec strict、根项目 25/25 测试、vendor 定向 8/8 测试、Web 构建、`git diff --check` |

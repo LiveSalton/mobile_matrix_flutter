@@ -1,68 +1,64 @@
 ## ADDED Requirements
 
-### Requirement: STF is the device state source of truth
-Mobile Matrix SHALL obtain device presence, readiness, lease ownership and remote connection information from the configured STF instance, and SHALL NOT claim a device is ready from a stale local cache.
+### Requirement: STF SHALL remain the device state source of truth
+Mobile Matrix SHALL obtain device presence, readiness, ownership and remote-control information from the vendored STF runtime and SHALL NOT claim a device is ready from a stale browser or service cache.
 
-#### Scenario: STF returns an available device
+#### Scenario: STF reports an available device
 - **WHEN** STF reports a device as present, ready and not in use
-- **THEN** `GET /api/v1/devices` exposes that device with Mobile Matrix status `ready` and retains the relevant STF lease fields
+- **THEN** the device matrix exposes that device as available and retains the STF fields needed to explain the state
 
-#### Scenario: STF is unreachable during a device query
-- **WHEN** the adapter cannot reach STF while serving a device query
-- **THEN** the response marks the device state as `unknown` or returns a dependency error classified as `stf_unreachable`, and does not reuse an old `ready` assertion
+#### Scenario: STF becomes unreachable
+- **WHEN** the App or WebSocket cannot obtain current STF device state
+- **THEN** the console shows a disconnected or unknown dependency state and does not reuse an old ready assertion
 
-### Requirement: Mobile Matrix SHALL expose a normalized device API
-The service SHALL expose `GET /api/v1/devices` and `GET /api/v1/devices/:serial`, including stable identity fields, Android platform, provider information when available, normalized status, and diagnostic STF fields needed to explain that status. In the first trusted-local profile, the caller is the single configured STF service identity; Mobile Matrix user authentication is not implied.
+### Requirement: The device matrix SHALL expose current device details
+The STF-integrated console SHALL expose stable identity, Android platform, provider information when available, current state, owner information and diagnostic fields needed to explain that state. The trusted-local profile uses one fixed STF identity and SHALL NOT imply per-browser authorization.
 
-#### Scenario: Client lists devices
-- **WHEN** an authenticated client requests `GET /api/v1/devices`
-- **THEN** the service returns the current STF device set using the versioned Mobile Matrix model
+#### Scenario: Browser lists devices
+- **WHEN** the transparent local session connects to the device tracker
+- **THEN** the console renders the current STF device set using the Mobile Matrix device matrix
 
 #### Scenario: A device is absent
 - **WHEN** STF reports `present=false` for a known device
-- **THEN** the service returns status `offline` and does not present the device as ready for a new lease
+- **THEN** the console presents it as offline and does not enable a new lease action
 
 #### Scenario: A device is present but not ready
 - **WHEN** STF reports a present device whose provider is not ready
-- **THEN** the service returns status `unavailable` and preserves the raw readiness information
+- **THEN** the console presents an unavailable state and keeps the raw readiness explanation
 
-### Requirement: Clients SHALL be able to lease and release one device
-The service SHALL expose `POST /api/v1/devices/:serial/lease` and `DELETE /api/v1/devices/:serial/lease` as guarded operations backed by the corresponding STF user-device operations. In the first profile, “current client” means the configured STF service identity.
+### Requirement: Users SHALL be able to lease and release one device
+The console SHALL retain STF's existing single-device occupy and release operations. In the trusted-local profile, the current user is the fixed local STF administrator identity.
 
 #### Scenario: Lease an available device
-- **WHEN** the target is present, ready, available and the STF request succeeds
-- **THEN** the service returns a successful lease result tied to that device and does not create a second local lease record
+- **WHEN** the target is present, ready and available and STF accepts the group invite
+- **THEN** the console enters the existing single-device control flow without creating a second local lease record
 
 #### Scenario: Lease a busy device
-- **WHEN** the target is already in use by another owner
-- **THEN** the service returns `device_busy` without attempting an unsafe second lease
+- **WHEN** the target is already in use
+- **THEN** the console shows a deterministic busy state and does not attempt an unsafe second lease
 
 #### Scenario: Release the current lease
-- **WHEN** the current client releases a device it owns
-- **THEN** the service requests release from STF and returns a successful release result
+- **WHEN** the fixed local identity releases a device it owns
+- **THEN** the console invokes STF group kick and reflects the resulting current state
 
-#### Scenario: Release a device owned by someone else
-- **WHEN** a client attempts to release a device it does not own
-- **THEN** the service returns a deterministic ownership or `device_busy` error and leaves the STF lease unchanged
+### Requirement: Remote control SHALL remain explicit and single-device
+The console SHALL enter the existing STF `/control/:serial` route only after the user explicitly chooses one usable device. Batch remote connection is outside this change.
 
-### Requirement: Remote connection SHALL be explicit and temporary
-The service SHALL expose `POST /api/v1/devices/:serial/remote-connect`, return the STF-provided temporary ADB connection address only after verifying that the configured STF service identity owns or can use the device, and SHALL NOT persist that address in ordinary application storage or logs.
+#### Scenario: Open an available device
+- **WHEN** the user activates an available device card outside multi-select interaction
+- **THEN** the console navigates to the existing single-device control route
 
-#### Scenario: Remote-connect an owned device
-- **WHEN** the client owns an available STF device and requests remote connection
-- **THEN** the service returns the STF remote connection address for the current session
+#### Scenario: Open an unavailable device
+- **WHEN** a device is absent, not ready or owned incompatibly
+- **THEN** the card does not present a false usable control target
 
-#### Scenario: Remote-connect an unavailable device
-- **WHEN** the device is absent, not ready or not owned by the client
-- **THEN** the service returns a classified failure and does not expose a remote connection address
+### Requirement: Credentials SHALL remain server-side
+The integrated console SHALL NOT send an STF Bearer Token, ADB key, cookie secret or complete remote connection address into ordinary browser storage or logs.
 
-### Requirement: STF credentials SHALL remain server-side
-Mobile Matrix SHALL inject STF authentication through server configuration and SHALL NOT send the STF Bearer Token to browser clients, device scripts or ordinary operation logs.
+#### Scenario: Browser performs a device operation
+- **WHEN** the console invokes an STF WebSocket group operation
+- **THEN** it uses the server-established cookie session and the response contains no server credential
 
-#### Scenario: Client calls a device API
-- **WHEN** a client invokes any Mobile Matrix device endpoint
-- **THEN** the control plane adds the server-side STF credential internally and the response contains no token
-
-#### Scenario: STF rejects the credential
-- **WHEN** STF returns an authentication failure
-- **THEN** Mobile Matrix returns `auth_failed` without including the token or authorization header in the error body
+#### Scenario: An operation fails
+- **WHEN** STF rejects or times out an operation
+- **THEN** the console shows a stable safe error without including a Token, authorization header, ADB key or cookie secret

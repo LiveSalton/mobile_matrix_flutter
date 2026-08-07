@@ -1,5 +1,7 @@
 # Mobile Matrix 内置 STF 控制台与批量租约设计
 
+> 状态：已由 `openspec/changes/mobile-matrix-stf-foundation/design.md` 的 2026-08-07 单运行时设计取代。当前实现不再使用 Mock 登录或独立 Fastify 默认入口；本文件只保留此前决策演进记录。
+
 ## 背景
 
 当前 Mobile Matrix 已通过外部安装的 DeviceFarmer STF `3.7.9` 在 arm64 Mac 上完成单设备发现、占用、释放和远程连接验证。用户决定将 STF 源码直接复制到本工程，并以 STF 自带 Web 控制台作为 Mobile Matrix 的默认控制台，在其基础上实现多设备批量租约能力。
@@ -19,7 +21,7 @@
 - 不实现 Airtest、AI Agent、任务编排、批量安装应用或批量远程连接。
 - 不重写 STF Provider、ADB、minicap、minitouch 或 STFService。
 - 不建立第二套设备数据库、租约数据库或 Mobile Matrix 用户体系。
-- 不实现公网多租户安全方案；开发环境继续使用本地 Mock 登录。
+- 不实现公网多租户安全方案；当前开发环境使用仅绑定本机的透明固定身份，不显示 Mock 登录页。
 - 不建立上游自动同步机制；本期采用直接复制源码。
 
 ## 源码与目录
@@ -47,7 +49,7 @@ mobile-matrix/
 浏览器
   │
   ▼
-STF Web Console :7100  ── 登录用户 / 多选批量操作
+STF Web Console :7100  ── 透明本地身份 / 多选批量操作
   │
   ▼
 STF API + Batch Extension
@@ -59,7 +61,7 @@ STF Provider（Mac 宿主机 ADB） ── Android 真机
 ```
 
 - `vendor/devicefarmer-stf/` 运行 STF；`7100` 是 Mobile Matrix 的默认控制台入口。
-- STF 的已登录用户即批量操作身份，批量后端沿用 STF 现有访问控制与租约所有者语义。
+- STF 的透明固定本地用户即批量操作身份，控制台沿用 STF 现有访问控制与租约所有者语义。
 - 既有 `src/` Fastify 控制面保留为实验基线，不作为默认启动项、不提供首页控制台，也不与 STF 争夺租约真相。
 - 根目录提供面向开发的统一脚本，委托 vendor STF 完成安装、启动和定向测试；本机端口、Token、ADB key 均只来自未提交环境配置。
 
@@ -99,7 +101,7 @@ DELETE /api/v1/user/devices/batch/release
 - 保留 Token、ADB key、完整远程连接地址和用户凭据的脱敏规则。
 - STF 不可达、Provider/ADB 不可用、错误 Token、设备忙、部分失败必须可区分。
 - Docker 在 Mac 上仅承载 RethinkDB 等辅助服务；没有 USB 时继续使用宿主机 ADB，或明确报告 setup blocker，绝不报告虚假的设备 ready。
-- 本期 Mock 登录只用于本机开发。进入可信内网或生产前必须另立 change 设计真实认证和权限模型。
+- 本期免登录固定身份只用于绑定 `127.0.0.1` 的本机开发。进入可信内网或生产前必须另立 change 设计真实认证和权限模型。
 
 ## 验证
 
