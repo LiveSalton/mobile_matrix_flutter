@@ -15,8 +15,13 @@ STF_PORT=7100
 STF_DIR="$PROJECT_DIR/vendor/devicefarmer-stf"
 STF_BIN="$STF_DIR/bin/stf"
 NODE20_BIN="${MOBILE_MATRIX_NODE20_BIN:-/Users/salton/.nvm/versions/node/v20.19.6/bin}"
+AIRTEST_VENV_DIR="$RUNTIME_DIR/airtest-venv"
+AIRTEST_PYTHON="${MOBILE_MATRIX_AIRTEST_PYTHON:-$AIRTEST_VENV_DIR/bin/python}"
+AIRTEST_EVIDENCE_DIR="$RUNTIME_DIR/airtest-evidence"
+AIRTEST_BOOTSTRAP_PYTHON="${MOBILE_MATRIX_AIRTEST_BOOTSTRAP_PYTHON:-/Users/salton/.local/bin/python3.12}"
+UV_BIN="${MOBILE_MATRIX_UV_BIN:-/Users/salton/.local/bin/uv}"
 
-mkdir -p "$LOG_DIR" "$PID_DIR" "$RETHINKDB_DIR"
+mkdir -p "$LOG_DIR" "$PID_DIR" "$RETHINKDB_DIR" "$AIRTEST_EVIDENCE_DIR"
 cd "$PROJECT_DIR"
 
 log() {
@@ -164,6 +169,23 @@ check_adb() {
   fi
 }
 
+prepare_airtest() {
+  if [ -x "$AIRTEST_PYTHON" ] && "$AIRTEST_PYTHON" -c 'import airtest' >/dev/null 2>&1; then
+    log "Airtest runtime is ready: $AIRTEST_PYTHON"
+    return 0
+  fi
+
+  [ "$AIRTEST_PYTHON" = "$AIRTEST_VENV_DIR/bin/python" ] || fail \
+    "Configured Airtest runtime cannot import airtest: $AIRTEST_PYTHON"
+  [ -x "$UV_BIN" ] || fail "uv is required to prepare Airtest. Set MOBILE_MATRIX_UV_BIN."
+  [ -x "$AIRTEST_BOOTSTRAP_PYTHON" ] || fail \
+    "Python 3.12 is required to prepare Airtest. Set MOBILE_MATRIX_AIRTEST_BOOTSTRAP_PYTHON."
+
+  log "Preparing isolated Airtest runtime"
+  "$UV_BIN" venv --python "$AIRTEST_BOOTSTRAP_PYTHON" "$AIRTEST_VENV_DIR" >/dev/null
+  "$UV_BIN" pip install --python "$AIRTEST_PYTHON" 'airtest==1.3.6' >/dev/null
+}
+
 start_stf() {
   [ -x "$STF_BIN" ] || fail "Vendored STF is missing: $STF_BIN"
   stop_launch_service "$STF_LAUNCH_LABEL" "STF"
@@ -176,7 +198,8 @@ start_stf() {
     -l "$STF_LAUNCH_LABEL" \
     -o "$STF_LOG_FILE" \
     -e "$STF_LOG_FILE" \
-    -- /usr/bin/env PATH="$PATH" "$STF_BIN" local \
+    -- /usr/bin/env PATH="$PATH" AIRTEST_PYTHON="$AIRTEST_PYTHON" \
+      AIRTEST_EVIDENCE_DIR="$AIRTEST_EVIDENCE_DIR" "$STF_BIN" local \
       --public-ip 127.0.0.1 \
       --trusted-local \
       --local-user-name administrator \
@@ -209,6 +232,7 @@ main() {
   start_colima
   restart_rethinkdb
   check_adb
+  prepare_airtest
   prepare_stf
   stop_launch_service "com.mobile-matrix.api" "legacy Mobile Matrix API"
   start_stf

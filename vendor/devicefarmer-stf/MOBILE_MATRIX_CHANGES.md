@@ -33,6 +33,7 @@ The upstream Git metadata and dependency cache are intentionally excluded. Sourc
 - Organize the single-device control page's right side into a default Group Execution three-step layout and a categorized Device Tools workspace; show the current device directly from STF, disable the Airtest-dependent steps honestly, and preserve existing STF templates, events, and the left-side control session.
 - Scope the legacy absolute logcat table to the Device Tools content pane and apply Mobile Matrix surface tokens, preventing Logs from covering the workspace with a white overlay.
 - Normalize Device Tools icon/text baselines, button and form-control heights, and legacy heading actions; allow the Apps heading to wrap without overlapping its content card.
+- Reorganize the Dashboard as one continuous surface with Quick Controls, Applications, and Developer groups; remove the duplicate device-context header and nested card treatment while preserving the existing templates, controllers, and actions.
 - Keep single-device control, Provider, ADB, STFService, minicap and minitouch behavior upstream-compatible.
 
 ## Security boundary

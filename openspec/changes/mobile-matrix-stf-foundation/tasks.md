@@ -89,3 +89,6 @@
 - [x] 8.33 完成控制页定向静态检查、模板构建和双主题宽/紧凑视口视觉验收；Airtest 真实执行不属于本任务证据
 - [x] 8.34 修复 Logs 旧版绝对定位日志层覆盖 Device Tools 工作区的问题，限制其定位上下文并接入主题表面 token
 - [x] 8.35 统一 Device Tools 全部页面的图标、文字、按钮和表单控件对齐基线，并修复 Apps 标题区窄列换行时的内容重叠
+- [x] 8.36 对 Dashboard 真实页面截图执行 Apple Design 与 ui-ux-pro-max 走查，确认重复页首、嵌套卡片、空间浪费、Apps 层级和操作对齐问题
+- [x] 8.37 将 Dashboard 收敛为 Quick Controls、Applications、Developer 三组连续表面，保留既有 STF 模板、控制器与事件并完成模板构建
+- [ ] 8.38 在 ADB 设备恢复后补充 Dashboard 默认蓝与玫瑰流光主题的宽/窄工作区真实截图验收

@@ -18,6 +18,7 @@ Mobile Matrix 已用 DeviceFarmer STF `3.7.9` 验证单台 Android 真机的发�
 - 设备矩阵不再以 STF 默认手机展位图作为截图失败或离线设备的封面回退；缺少截图时保持中性空白封面。可用设备使用与实时连接状态联动的中文状态按钮，并在底部信息层中垂直与水平居中。
 - 移除 STF 原生顶部导航栏，首页只保留 Mobile Matrix 自己的紧凑标题栏。
 - 重构 `/control/:serial` 单设备控制页为左侧设备主舞台与右侧双模式工作区；右侧默认显示“选择设备 / 配置操作 / 确认执行”三步群控布局，并自动显示当前控制设备。Airtest 未接入时后两步明确禁用且不伪造执行能力；现有 Dashboard、日志、截图、自动化、高级设置、文件和信息统一收进“设备工具”的分类侧栏与单一内容区。
+- 重新设计单设备控制页的 Dashboard：移除重复的设备上下文页首和独立卡片堆叠，将 Navigation、Clipboard、Shell、App Upload、Apps 与 Remote debug 收敛到一个连续表面，并按 Quick Controls、Applications、Developer 三个任务组组织；保留既有模板、控制器、事件和功能入口，仅调整视觉层级与响应式布局。
 - 单设备控制页所有功能性图标统一使用本地打包的 Material Design Icons Round，不再显示 Font Awesome、Glyphicons 或彩色方块图标；浏览器 favicon、App 图标和设备屏幕内容不属于功能性 UI 图标。
 - 将设备离线 `FatalMessage` 弹窗改为双主题紧凑状态对话框，移除默认手机展位图和旧 Font Awesome 图标，使用 Material 图标及“返回设备列表 / 重新连接”明确操作层级。
 - 修正 Mac 本地 STF 内部存储链路，统一使用 `--public-ip` 生成回环地址；截图处理器直连 7102 存储端口并透传无变换 JPEG，避免截图资源超时。

@@ -108,6 +108,21 @@ Mobile Matrix 默认启动 SHALL 使用 `vendor/devicefarmer-stf` 中固定的 S
 - **WHEN** 用户首次进入控制页且 `$root.platform` 不是 `native` 或 `web`
 - **THEN** 页面初始化为 `native` 并显示可用工具标签，不因设备平台值 `Android` 导致标签导航隐藏
 
+### Requirement: Dashboard SHALL 按任务层级组织既有设备工具
+单设备控制页的 Dashboard SHALL 使用一个连续表面，并按 Quick Controls、Applications、Developer 三个任务组组织 Navigation、Clipboard、Shell、App Upload、Apps 与 Remote debug；不得重复左侧设备信息，不得删除或复制既有控制器、事件和功能入口。
+
+#### Scenario: 打开 Dashboard
+- **WHEN** 用户在设备工具中打开 Dashboard
+- **THEN** 页面不再渲染重复的 Dashboard 大标题、设备名称、serial 或状态卡，所有工具位于一个连续表面，并按即时控制、应用管理和开发信息分组
+
+#### Scenario: Dashboard 窄工作区
+- **WHEN** 右侧工作区不足以并列容纳同组工具
+- **THEN** 工具回退为单列，标题、图标、内容和动作保持对齐，不产生横向溢出、边框嵌套或工具重叠
+
+#### Scenario: Dashboard 主题与功能保持不变
+- **WHEN** 用户在 `default` 或 `roseGlow` 主题下操作 Dashboard 的输入框、按钮、拖拽区或控制器动作
+- **THEN** 页面只切换既有语义 token 的表面与强调层级，所有既有 STF 事件、控制器和操作结果保持不变
+
 ### Requirement: 控制台 SHALL 支持两套项目主题
 页面 SHALL 只允许 `default` 液态玻璃蓝和 `roseGlow` 玫瑰流光主题，并 SHALL 通过 `doc/project-theme.md` 定义的语义 token 渲染同一份页面。
 
