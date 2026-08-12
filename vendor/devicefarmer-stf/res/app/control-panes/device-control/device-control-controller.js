@@ -9,6 +9,24 @@ module.exports = function DeviceControlCtrl($scope, DeviceService, GroupService,
 
   $scope.groupDevices = $scope.groupTracker.devices
 
+  // The header switcher is intentionally broader than the STF group. It
+  // exposes every connected, ready device and lets the normal control route
+  // perform the invite/lease transition before opening it.
+  $scope.switcherDevices = function() {
+    var devices = ($scope.airtestTracker && $scope.airtestTracker.devices || [])
+      .filter(function(device) {
+        return device.present && device.status === 3 && device.ready &&
+          (!device.owner || device.using)
+      })
+
+    if ($scope.device && !devices.some(function(device) {
+      return device.serial === $scope.device.serial
+    })) {
+      devices.unshift($scope.device)
+    }
+    return devices
+  }
+
   $scope.$on('$locationChangeStart', function(event, next, current) {
     $scope.LogcatService = LogcatService
     $rootScope.LogcatService = LogcatService

@@ -8,17 +8,17 @@ section.mm-execution-workspace(aria-labelledby='mm-execution-title')
       span Refresh engine
 
   ol.mm-execution-steps(aria-label='Execution steps')
-    li.mm-execution-step(ng-class='{active: airtestTargetCount() > 0, disabled: airtestTargetCount() === 0}')
+    li.mm-execution-step
       span.mm-step-index 1
       span
         strong Select devices
         small {{airtestTargetCount() ? airtestTargetCount() + ' device selected' + (airtestTargetCount() === 1 ? '' : 's') : 'Select a usable device'}}
-    li.mm-execution-step(ng-class='{active: airtestReady(), disabled: !airtestReady()}')
+    li.mm-execution-step
       span.mm-step-index 2
       span
         strong Configure task
         small {{airtestReady() ? 'Choose a registered Airtest task' : 'Requires an available Airtest engine'}}
-    li.mm-execution-step(ng-class='{active: airtest.state === "running" || airtest.result, disabled: !airtestReady() && airtest.state !== "running" && !airtest.result}')
+    li.mm-execution-step
       span.mm-step-index 3
       span
         strong Review & run
@@ -27,7 +27,12 @@ section.mm-execution-workspace(aria-labelledby='mm-execution-title')
   .mm-execution-target
     .mm-execution-target-heading
       span Target devices
-      button.mm-select-all(type='button', ng-click='selectAllAirtestTargets()', ng-disabled='airtest.state === "running" || !airtestTargetDevices().length') Select all usable
+      button.mm-select-all(
+        type='button'
+        ng-class='{"is-deselect": airtestAllTargetsSelected()}'
+        ng-click='toggleAllAirtestTargets()'
+        ng-disabled='airtest.state === "running" || !airtestTargetDevices().length')
+        span {{airtestAllTargetsSelected() ? 'Deselect all' : 'Select all'}}
     .mm-target-device-list
       button.mm-target-device(
         type='button'
@@ -44,21 +49,27 @@ section.mm-execution-workspace(aria-labelledby='mm-execution-title')
           span {{target.state | translate}}
       p.mm-target-device-empty(ng-if='!airtestTargetDevices().length') No usable connected devices are available.
 
-  .mm-execution-action(ng-class='{unavailable: !airtestReady() && airtest.state !== "running" && airtest.state !== "succeeded"}')
-    .mm-execution-action-heading
-      i.material-icons-round(aria-hidden='true') {{airtest.state === 'running' ? 'progress_activity' : airtest.result && airtest.result.status === 'failed' ? 'error_outline' : airtest.result ? 'task_alt' : airtest.state === 'unavailable' ? 'error_outline' : 'smart_toy'}}
-      div
-        h3 {{airtest.message}}
-        p(ng-if='airtest.state === "ready"') Engine version {{airtest.version || 'ready'}} · Select a registered Airtest task; each run creates fresh evidence screenshots.
-        p(ng-if='airtest.state === "checking"') Waiting for the local execution runtime.
-        p(ng-if='airtest.state === "unavailable"') Check the local Airtest runtime or the device connection, then retry.
+  .mm-execution-action(ng-class='{unavailable: !airtestReady() && !airtest.result}')
+    .mm-task-card-heading
+      i.material-icons-round.mm-task-card-icon(aria-hidden='true') smart_toy
+      div.mm-task-card-copy
+        span.mm-task-card-eyebrow Airtest task
+        h3 Registered task execution
+        p Choose a registered task and run it on the selected devices. Each run creates fresh evidence.
+      .mm-task-card-status(ng-class='{running: airtest.state === "running", failed: airtest.result && airtest.result.status === "failed"}')
+        i.material-icons-round(aria-hidden='true') {{airtest.state === 'running' ? 'progress_activity' : airtest.result && airtest.result.status === 'failed' ? 'error_outline' : airtest.result ? 'task_alt' : airtest.state === 'unavailable' ? 'error_outline' : 'check_circle'}}
+        span {{airtestStatusLabel()}}
+
+    p.mm-task-card-description {{airtest.state === 'unavailable' ? airtest.message : airtest.state === 'checking' ? 'Waiting for the local Airtest runtime.' : airtest.result ? airtest.message : 'Engine version ' + (airtest.version || 'ready') + ' is available.'}}
 
     .mm-execution-form
-      label(for='mm-airtest-task') Airtest task
-      select#mm-airtest-task.form-control(ng-model='airtest.task', ng-options='task.id as task.title for task in airtest.tasks', ng-disabled='!airtestReady() || airtest.state === "running"')
-      button.mm-execution-run(type='button', ng-click='runAirtestAction()', ng-disabled='!airtestReady() || airtest.state === "running"')
-        i.material-icons-round(aria-hidden='true') {{airtest.state === 'running' ? 'progress_activity' : 'play_arrow'}}
-        span {{airtest.state === 'running' ? 'Running task' : 'Run task'}}
+      label(for='mm-airtest-task') Select task
+      .mm-task-select-row
+        .mm-task-select-wrap
+          select#mm-airtest-task.form-control(ng-model='airtest.task', ng-options='task.id as task.title for task in airtest.tasks', ng-disabled='!airtestReady() || airtest.state === "running"')
+        button.mm-execution-run(type='button', ng-click='runAirtestAction()', ng-disabled='!airtestReady() || airtest.state === "running"')
+          i.material-icons-round(aria-hidden='true') {{airtest.state === 'running' ? 'progress_activity' : 'play_arrow'}}
+          span {{airtest.state === 'running' ? 'Running task' : 'Run task'}}
 
     .mm-execution-result(ng-if='airtest.result')
       span.mm-execution-result-label Result

@@ -199,7 +199,8 @@ start_stf() {
     -o "$STF_LOG_FILE" \
     -e "$STF_LOG_FILE" \
     -- /usr/bin/env PATH="$PATH" AIRTEST_PYTHON="$AIRTEST_PYTHON" \
-      AIRTEST_EVIDENCE_DIR="$AIRTEST_EVIDENCE_DIR" "$STF_BIN" local \
+      AIRTEST_EVIDENCE_DIR="$AIRTEST_EVIDENCE_DIR" \
+      STF_PROVIDER_SCREEN_GRABBER=minicap-apk "$STF_BIN" local \
       --public-ip 127.0.0.1 \
       --trusted-local \
       --local-user-name administrator \

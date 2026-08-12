@@ -34,7 +34,9 @@
   box-shadow: 0 18px 48px var(--mm-shadow);
   height: calc(100% - 24px);
   margin: 12px 8px 12px 12px;
+  min-width: 360px;
   overflow: hidden;
+  width: calc(100% - 20px);
 }
 
 .mm-control-workspace .stf-device-control,
@@ -56,15 +58,25 @@
 }
 
 .mm-control-workspace .stf-vnc-control-header {
-  padding: 0 10px;
+  padding: 0 16px;
   vertical-align: middle;
+}
+
+.mm-control-workspace .mm-device-header-layout {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  height: 58px;
+  min-width: 0;
+  width: 100%;
 }
 
 .mm-control-workspace .device-name-container {
   align-items: center;
   display: flex;
-  height: 56px;
-  max-width: calc(100% - 164px);
+  flex: 1 1 auto;
+  height: 100%;
+  min-width: 0;
 }
 
 .mm-control-workspace .stf-vnc-device-name {
@@ -87,9 +99,30 @@
 }
 
 .mm-control-workspace .device-name-text {
+  display: inline-block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.mm-control-workspace .device-name-menu-element {
+  align-items: center;
+  display: flex !important;
+  gap: 8px;
+  justify-content: space-between;
+  min-width: 248px;
+}
+
+.mm-control-workspace .device-name-menu-element > .pull-left {
+  align-items: center;
+  display: inline-flex;
+  min-width: 0;
+}
+
+.mm-control-workspace .device-name-menu-element .device-name-menu-state {
+  color: var(--mm-text-secondary);
+  font-size: 11px;
+  margin-left: 8px;
 }
 
 .mm-control-workspace .mm-device-symbol {
@@ -104,8 +137,11 @@
 .mm-control-workspace .stf-vnc-right-buttons {
   align-items: center;
   display: flex;
+  flex: 0 0 auto;
   gap: 6px;
-  margin-top: 10px;
+  height: 100%;
+  margin-top: 0;
+  padding: 0;
 }
 
 .mm-control-workspace .stf-vnc-right-buttons .btn-group {
@@ -129,7 +165,8 @@
   justify-content: center;
   margin: 0;
   min-width: 36px;
-  padding: 0 8px;
+  padding: 0;
+  width: 36px;
 }
 
 .mm-control-workspace .stf-vnc-right-buttons .active,
@@ -153,7 +190,7 @@
 }
 
 .mm-control-workspace .mm-device-screen-stage > .as-cell {
-  padding: 12px;
+  padding: 16px 14px 18px;
 }
 
 .mm-control-workspace device-screen {
@@ -169,13 +206,14 @@
 .mm-control-workspace .stf-vnc-bottom {
   background: var(--mm-bg-secondary);
   border-top: 1px solid var(--mm-outline);
-  height: 58px;
+  height: 72px;
 }
 
 .mm-control-workspace .stf-vnc-bottom .btn-group {
   display: flex;
   gap: 8px;
-  padding: 8px 10px;
+  height: 100%;
+  padding: 10px 14px 12px;
 }
 
 .mm-control-workspace .stf-vnc-bottom .btn {
@@ -656,9 +694,14 @@
 }
 
 .mm-control-workspace .mm-execution-step.active {
-  background: var(--mm-highlight);
-  border-color: var(--mm-metal-edge);
-  color: var(--mm-text-primary);
+  background: var(--mm-bg);
+  border-color: var(--mm-outline);
+  color: var(--mm-text-secondary);
+}
+
+.mm-control-workspace .mm-execution-step strong,
+.mm-control-workspace .mm-execution-step small {
+  color: inherit;
 }
 
 .mm-control-workspace .mm-execution-step.disabled {
@@ -697,6 +740,83 @@
   padding: 18px;
 }
 
+.mm-control-workspace .mm-task-card-heading {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  min-height: 52px;
+}
+
+.mm-control-workspace .mm-task-card-icon {
+  color: var(--mm-primary);
+  flex: 0 0 28px;
+  font-size: 28px;
+  line-height: 32px;
+}
+
+.mm-control-workspace .mm-task-card-copy {
+  min-width: 0;
+}
+
+.mm-control-workspace .mm-task-card-eyebrow {
+  color: var(--mm-primary);
+  display: block;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  line-height: 16px;
+  text-transform: uppercase;
+}
+
+.mm-control-workspace .mm-task-card-copy h3 {
+  color: var(--mm-text-primary);
+  font-size: 18px;
+  line-height: 24px;
+  margin: 0;
+}
+
+.mm-control-workspace .mm-task-card-copy p {
+  color: var(--mm-text-secondary);
+  font-size: 13px;
+  line-height: 20px;
+  margin: 2px 0 0;
+}
+
+.mm-control-workspace .mm-task-card-status {
+  align-items: center;
+  border: 1px solid var(--mm-outline);
+  border-radius: 999px;
+  color: var(--mm-success);
+  display: inline-flex;
+  flex: 0 0 auto;
+  gap: 5px;
+  justify-content: center;
+  margin-left: auto;
+  min-height: 30px;
+  min-width: 128px;
+  padding: 5px 10px;
+  white-space: nowrap;
+}
+
+.mm-control-workspace .mm-task-card-status .material-icons-round {
+  font-size: 17px;
+}
+
+.mm-control-workspace .mm-task-card-status.running {
+  color: var(--mm-primary);
+}
+
+.mm-control-workspace .mm-task-card-status.failed {
+  color: var(--mm-danger);
+}
+
+.mm-control-workspace .mm-task-card-description {
+  color: var(--mm-text-secondary);
+  line-height: 20px;
+  margin: 14px 0 0;
+  min-height: 20px;
+}
+
 .mm-control-workspace .mm-execution-action.unavailable {
   border-style: dashed;
 }
@@ -726,7 +846,7 @@
   align-items: end;
   display: grid;
   gap: 10px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 1fr;
   margin-top: 18px;
 }
 
@@ -738,12 +858,25 @@
   margin: 0;
 }
 
+.mm-control-workspace .mm-task-select-row {
+  align-items: stretch;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr) 132px;
+  min-width: 0;
+}
+
+.mm-control-workspace .mm-task-select-wrap {
+  min-width: 0;
+}
+
 .mm-control-workspace .mm-execution-form .form-control {
   height: 42px;
 }
 
 .mm-control-workspace .mm-execution-run {
   min-width: 132px;
+  width: 132px;
 }
 
 .mm-control-workspace .mm-execution-result {
@@ -786,6 +919,10 @@
 
 .mm-control-workspace .mm-select-all:disabled {
   color: var(--mm-disabled);
+}
+
+.mm-control-workspace .mm-select-all.is-deselect {
+  color: var(--mm-text-secondary);
 }
 
 .mm-control-workspace .mm-target-device-list {

@@ -3,40 +3,48 @@
     .as-table.fill-height
       .stf-vnc-navbar.as-row(ng-show='!$root.basicMode && !$root.standalone')
         .stf-vnc-control-header.as-cell
-          .stf-vnc-right-buttons.pull-right
-            .btn-group
-              label.btn-sm.btn-primary-outline(type='button', ng-click='tryToRotate("portrait")',
-              ng-model='currentRotation', uib-btn-radio='"portrait"',
-              uib-tooltip='{{ "Portrait" | translate }} ({{ "Current rotation:" | translate }} {{ device.display.rotation }}°)', tooltip-placement='bottom').pointer
-                i.material-icons-round phone_android
-              label.btn-sm.btn-primary-outline(type='button', ng-click='tryToRotate("landscape")',
-                ng-model='currentRotation', uib-btn-radio='"landscape"',
-              uib-tooltip='{{ "Landscape" | translate }} ({{ "Current rotation:" | translate }} {{ device.display.rotation }}°)', tooltip-placement='bottom').pointer
-                i.material-icons-round screen_rotation
-            .button-spacer
-            button(type='button', ng-model='showScreen', uib-btn-checkbox).btn.btn-xs.btn-info
-              i(ng-show='showScreen', uib-tooltip='{{"Hide Screen"|translate}}', tooltip-placement='bottom').material-icons-round visibility
-              i(ng-show='!showScreen', uib-tooltip='{{"Show Screen"|translate}}', tooltip-placement='bottom').material-icons-round visibility_off
-            button(type='button', ng-click='kickDevice(device); $event.stopPropagation()', uib-tooltip='{{"Stop Using"|translate}}', tooltip-placement='bottom').btn.btn-sm.btn-danger-outline
-              i.material-icons-round close
+          .mm-device-header-layout
+            .device-name-container(uib-dropdown)
+              a.stf-vnc-device-name.pointer.unselectable(
+                uib-dropdown-toggle
+                role='button'
+                aria-haspopup='true'
+                aria-expanded='false')
+                p
+                  i.material-icons-round.mm-device-symbol phone_android
+                  span.device-name-text {{ device.enhancedName }}
+                  span.caret(ng-show='switcherDevices().length > 1')
 
-          .device-name-container.pull-left(uib-dropdown)
-            a.stf-vnc-device-name.pointer.unselectable(uib-dropdown-toggle)
-              p
-                i.material-icons-round.mm-device-symbol phone_android
-                span.device-name-text {{ device.enhancedName }}
-                span.caret(ng-show='groupDevices.length > 0')
+              ul.dropdown-menu(role='menu', data-toggle='dropdown', ng-show='switcherDevices().length > 1').pointer.unselectable
+                li(ng-repeat='switchDevice in switcherDevices() track by switchDevice.serial')
+                  a.device-name-menu-element(
+                    ng-click='controlDevice(switchDevice); $event.stopPropagation()'
+                    ng-class='{"current-device": switchDevice.serial === device.serial}')
+                    .pull-left
+                      i.material-icons-round.mm-device-symbol phone_android
+                      span {{ switchDevice.enhancedName }}
+                      small.device-name-menu-state {{ switchDevice.state | translate }}
 
-            ul.dropdown-menu(role='menu', data-toggle='dropdown', ng-show='groupDevices.length > 0').pointer.unselectable
-              li(ng-repeat='groupDevice in groupDevices')
-                a.device-name-menu-element(ng-click='controlDevice(groupDevice); $event.stopPropagation()')
-                  .pull-left
-                    i.material-icons-round.mm-device-symbol phone_android
-                    span(ng-class='{"current-device": groupDevice.serial === device.serial }') {{ groupDevice.enhancedName }}
+                    .pull-right(ng-if='switchDevice.using && switchDevice.serial !== device.serial', ng-click='kickDevice(switchDevice); $event.stopPropagation()').kick-device
+                      i.material-icons-round close
+                    .clearfix
 
-                  .pull-right(ng-click='kickDevice(groupDevice); $event.stopPropagation()').kick-device
-                    i.material-icons-round close
-                  .clearfix
+            .stf-vnc-right-buttons
+              .btn-group
+                label.btn-sm.btn-primary-outline(type='button', ng-click='tryToRotate("portrait")',
+                ng-model='currentRotation', uib-btn-radio='"portrait"',
+                uib-tooltip='{{ "Portrait" | translate }} ({{ "Current rotation:" | translate }} {{ device.display.rotation }}°)', tooltip-placement='bottom').pointer
+                  i.material-icons-round phone_android
+                label.btn-sm.btn-primary-outline(type='button', ng-click='tryToRotate("landscape")',
+                  ng-model='currentRotation', uib-btn-radio='"landscape"',
+                uib-tooltip='{{ "Landscape" | translate }} ({{ "Current rotation:" | translate }} {{ device.display.rotation }}°)', tooltip-placement='bottom').pointer
+                  i.material-icons-round screen_rotation
+              .button-spacer
+              button(type='button', ng-model='showScreen', uib-btn-checkbox).btn.btn-xs.btn-info
+                i(ng-show='showScreen', uib-tooltip='{{"Hide Screen"|translate}}', tooltip-placement='bottom').material-icons-round visibility
+                i(ng-show='!showScreen', uib-tooltip='{{"Show Screen"|translate}}', tooltip-placement='bottom').material-icons-round visibility_off
+              button(type='button', ng-click='kickDevice(device); $event.stopPropagation()', uib-tooltip='{{"Stop Using"|translate}}', tooltip-placement='bottom').btn.btn-sm.btn-danger-outline
+                i.material-icons-round close
 
       .as-row.fill-height.mm-device-screen-stage
         div(ng-controller='DeviceScreenCtrl', ng-if='device').as-cell.fill-height

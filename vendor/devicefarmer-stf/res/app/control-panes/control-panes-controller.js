@@ -96,7 +96,7 @@ module.exports =
       selectedSerials: Object.create(null),
       message: gettext('Checking Airtest execution engine')
     }
-    $scope.airtestTracker = DeviceService.trackAll($scope)
+    $scope.airtestTracker = DeviceService.trackAll($scope, {digest: true})
 
     $scope.airtestDeviceReady = function() {
       return $scope.device && (
@@ -144,6 +144,11 @@ module.exports =
       }).length
     }
 
+    $scope.airtestAllTargetsSelected = function() {
+      var targets = $scope.airtestTargetDevices()
+      return targets.length > 0 && $scope.airtestTargetCount() === targets.length
+    }
+
     $scope.toggleAirtestTarget = function(device) {
       if (!$scope.airtestDeviceSelectable(device) ||
           $scope.airtest.state === 'running') {
@@ -158,14 +163,41 @@ module.exports =
       $scope.airtest.result = null
     }
 
-    $scope.selectAllAirtestTargets = function() {
+    $scope.toggleAllAirtestTargets = function() {
       if ($scope.airtest.state === 'running') {
         return
       }
-      $scope.airtestTargetDevices().forEach(function(device) {
-        $scope.airtest.selectedSerials[device.serial] = true
-      })
+      var targets = $scope.airtestTargetDevices()
+      if ($scope.airtestAllTargetsSelected()) {
+        targets.forEach(function(device) {
+          delete $scope.airtest.selectedSerials[device.serial]
+        })
+      }
+      else {
+        targets.forEach(function(device) {
+          $scope.airtest.selectedSerials[device.serial] = true
+        })
+      }
       $scope.airtest.result = null
+    }
+
+    $scope.airtestStatusLabel = function() {
+      if ($scope.airtest.state === 'running') {
+        return gettext('Running')
+      }
+      if ($scope.airtest.result && $scope.airtest.result.status === 'failed') {
+        return gettext('Failed')
+      }
+      if ($scope.airtest.result) {
+        return gettext('Ready to run again')
+      }
+      if ($scope.airtest.state === 'unavailable') {
+        return gettext('Engine unavailable')
+      }
+      if ($scope.airtest.state === 'checking') {
+        return gettext('Checking engine')
+      }
+      return gettext('Engine ready')
     }
 
     $scope.refreshAirtestStatus = function() {
@@ -216,8 +248,8 @@ module.exports =
           $scope.airtest.state = 'ready'
           $scope.airtest.result = response.data
           $scope.airtest.message = response.data.status === 'partial' ?
-            gettext('Action completed with device failures') :
-            gettext('Action completed on selected devices')
+            gettext('Completed with device failures') :
+            gettext('Completed on selected devices')
         })
         .catch(function(response) {
           $scope.airtest.state = 'ready'

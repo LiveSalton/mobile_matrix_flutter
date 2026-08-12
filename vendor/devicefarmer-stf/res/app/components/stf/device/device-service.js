@@ -212,12 +212,13 @@ module.exports = function DeviceServiceFactory($http, socket, EnhanceDeviceServi
 
   Tracker.prototype = new EventEmitter()
 
-  deviceService.trackAll = function($scope) {
+  deviceService.trackAll = function($scope, options) {
     var tracker = new Tracker($scope, {
       filter: function() {
         return true
       }
-    , digest: false
+    , digest: options && typeof options.digest !== 'undefined' ?
+        options.digest : false
     })
 
     oboe(CommonService.getBaseUrl() + '/api/v1/devices')

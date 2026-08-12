@@ -2,8 +2,41 @@ module.exports =
   function($scope, gettext, $location, $rootScope, ScopedHotkeysService,
     $window) {
 
-    $scope.remotePaneSize = Math.min(480,
-      Math.max(360, Math.round($window.innerWidth * 0.28))) + 'px'
+    var remotePaneStorageKey = 'mobileMatrix.controlPaneWidth'
+    var remotePaneMinimum = 384
+
+    function maximumRemotePaneWidth() {
+      return Math.max(remotePaneMinimum, $window.innerWidth - 360)
+    }
+
+    function normalizeRemotePaneWidth(width) {
+      return Math.min(maximumRemotePaneWidth(),
+        Math.max(remotePaneMinimum, Math.round(width)))
+    }
+
+    function readRemotePaneWidth() {
+      var storedWidth = parseInt(
+        $window.localStorage.getItem(remotePaneStorageKey), 10)
+
+      if (isFinite(storedWidth)) {
+        return normalizeRemotePaneWidth(storedWidth)
+      }
+
+      return normalizeRemotePaneWidth(Math.min(480,
+        Math.max(remotePaneMinimum, $window.innerWidth * 0.28)))
+    }
+
+    $scope.remotePaneSize = readRemotePaneWidth() + 'px'
+
+    $scope.$on('fa-pane-resize', function(event, pane) {
+      if (!pane || pane.anchor !== 'west' || !isFinite(pane.size) ||
+        pane.size < remotePaneMinimum) {
+        return
+      }
+
+      $window.localStorage.setItem(remotePaneStorageKey,
+        normalizeRemotePaneWidth(pane.size).toString())
+    })
 
     var actions = {
       previousDevice: function() {
