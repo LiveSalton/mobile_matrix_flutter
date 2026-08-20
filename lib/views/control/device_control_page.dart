@@ -95,11 +95,12 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
       realHeight: device.display.height,
     );
 
-    // 挂载智能复合屏幕流服务（优先直连 STF minicap 60 FPS，失败平滑回退）
+    // 与 Web 控制台共用 STF 设备屏幕 WebSocket，不启动另一套 minicap。
     _streamService = SmartScreenStreamService(
       serial: device.serial,
       realWidth: device.display.width,
       realHeight: device.display.height,
+      initialStreamUrl: device.display.streamUrl,
     );
   }
 

@@ -4,14 +4,406 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/device_model.dart';
 
+class StfServiceClipboardClient {
+  static const int _setClipboardMessageType = 9;
+  static const Duration _responseTimeout = Duration(seconds: 5);
+
+  final String serial;
+
+  Socket? _socket;
+  StreamIterator<Uint8List>? _socketReader;
+  Future<void>? _connectFuture;
+  int? _forwardPort;
+  int _nextRequestId = 1;
+  final List<int> _readBuffer = <int>[];
+  bool _isDisposed = false;
+
+  StfServiceClipboardClient({required this.serial});
+
+  Future<bool> setText(String text) async {
+    if (text.isEmpty || _isDisposed) return false;
+
+    Object? lastError;
+    for (var attempt = 0; attempt < 2; attempt++) {
+      try {
+        await _ensureConnected();
+        final socket = _socket;
+        if (socket == null) {
+          throw StateError('STF service socket is unavailable');
+        }
+
+        final requestId = _takeRequestId();
+        socket.add(_encodeSetClipboardFrame(requestId, text));
+        await socket.flush();
+
+        while (true) {
+          final envelope = _decodeEnvelope(await _readFrame());
+          if (envelope.id != requestId) continue;
+          if (envelope.type != _setClipboardMessageType) {
+            throw StateError('Unexpected STF response type ${envelope.type}');
+          }
+
+          final success = _decodeSetClipboardResponse(envelope.message);
+          if (kDebugMode) {
+            debugPrint(
+              '[StfClipboard:$serial] setText chars=${text.length} '
+              'success=$success',
+            );
+          }
+          return success;
+        }
+      } catch (error) {
+        lastError = error;
+        await _resetConnection();
+        if (attempt == 0) {
+          await Future<void>.delayed(const Duration(milliseconds: 150));
+        }
+      }
+    }
+
+    if (kDebugMode) {
+      debugPrint('[StfClipboard:$serial] setText failed: $lastError');
+    }
+    return false;
+  }
+
+  Future<void> _ensureConnected() async {
+    if (_isDisposed) {
+      throw StateError('STF clipboard client is disposed');
+    }
+    if (_socket != null) return;
+
+    final pending = _connectFuture ??= _connect();
+    try {
+      await pending;
+    } finally {
+      if (identical(_connectFuture, pending)) {
+        _connectFuture = null;
+      }
+    }
+  }
+
+  Future<void> _connect() async {
+    final adbPath = await AdbService.resolveAdbPath();
+    await _startService(adbPath);
+
+    final forward = await Process.run(adbPath, [
+      '-s',
+      serial,
+      'forward',
+      'tcp:0',
+      'localabstract:stfservice',
+    ]).timeout(const Duration(seconds: 5));
+    if (forward.exitCode != 0) {
+      throw StateError('ADB forward failed: ${forward.stderr}');
+    }
+
+    final port = int.tryParse(forward.stdout.toString().trim());
+    if (port == null || port <= 0) {
+      throw StateError('ADB forward returned invalid port: ${forward.stdout}');
+    }
+
+    _forwardPort = port;
+    try {
+      final socket = await Socket.connect(
+        InternetAddress.loopbackIPv4,
+        port,
+        timeout: const Duration(seconds: 3),
+      );
+      if (_isDisposed) {
+        socket.destroy();
+        throw StateError('STF clipboard client was disposed while connecting');
+      }
+
+      socket.setOption(SocketOption.tcpNoDelay, true);
+      _socket = socket;
+      _socketReader = StreamIterator<Uint8List>(socket);
+      if (kDebugMode) {
+        debugPrint('[StfClipboard:$serial] connected on tcp:$port');
+      }
+    } catch (_) {
+      await _removeForward(adbPath, port);
+      _forwardPort = null;
+      rethrow;
+    }
+  }
+
+  Future<void> _startService(String adbPath) async {
+    Future<ProcessResult> startWith(String command) {
+      return Process.run(adbPath, [
+        '-s',
+        serial,
+        'shell',
+        'am',
+        command,
+        '--user',
+        '0',
+        '-a',
+        'jp.co.cyberagent.stf.ACTION_START',
+        '-n',
+        'jp.co.cyberagent.stf/.Service',
+      ]).timeout(const Duration(seconds: 10));
+    }
+
+    var result = await startWith('start-foreground-service');
+    if (result.exitCode != 0 ||
+        result.stdout.toString().trimLeft().startsWith('Error')) {
+      result = await startWith('startservice');
+    }
+    if (result.exitCode != 0 ||
+        result.stdout.toString().trimLeft().startsWith('Error')) {
+      throw StateError(
+        'Unable to start STF Service: ${result.stderr}${result.stdout}',
+      );
+    }
+  }
+
+  int _takeRequestId() {
+    final id = _nextRequestId;
+    _nextRequestId = (_nextRequestId % 0xFFFFFF) + 1;
+    return id;
+  }
+
+  Future<Uint8List> _readFrame() async {
+    while (true) {
+      final frame = _tryTakeFrame();
+      if (frame != null) return frame;
+
+      final reader = _socketReader;
+      if (reader == null ||
+          !await reader.moveNext().timeout(_responseTimeout)) {
+        throw StateError('STF service socket closed before response');
+      }
+      _readBuffer.addAll(reader.current);
+    }
+  }
+
+  Uint8List? _tryTakeFrame() {
+    var length = 0;
+    var shift = 0;
+    var prefixLength = 0;
+
+    while (prefixLength < _readBuffer.length) {
+      final byte = _readBuffer[prefixLength++];
+      length |= (byte & 0x7F) << shift;
+      if ((byte & 0x80) == 0) {
+        if (_readBuffer.length - prefixLength < length) return null;
+        final frame = Uint8List.fromList(
+          _readBuffer.sublist(prefixLength, prefixLength + length),
+        );
+        _readBuffer.removeRange(0, prefixLength + length);
+        return frame;
+      }
+
+      shift += 7;
+      if (shift > 28) {
+        throw const FormatException('Invalid STF frame length');
+      }
+    }
+    return null;
+  }
+
+  Future<void> _resetConnection() async {
+    final reader = _socketReader;
+    _socketReader = null;
+    _socket?.destroy();
+    _socket = null;
+    _readBuffer.clear();
+    if (reader != null) {
+      await reader.cancel();
+    }
+
+    final port = _forwardPort;
+    _forwardPort = null;
+    if (port != null) {
+      final adbPath = await AdbService.resolveAdbPath();
+      await _removeForward(adbPath, port);
+    }
+  }
+
+  Future<void> _removeForward(String adbPath, int port) async {
+    try {
+      await Process.run(adbPath, [
+        '-s',
+        serial,
+        'forward',
+        '--remove',
+        'tcp:$port',
+      ]).timeout(const Duration(seconds: 3));
+    } catch (_) {}
+  }
+
+  void dispose() {
+    if (_isDisposed) return;
+    _isDisposed = true;
+    unawaited(_resetConnection());
+  }
+}
+
+class _StfEnvelope {
+  final int? id;
+  final int? type;
+  final Uint8List message;
+
+  const _StfEnvelope({
+    required this.id,
+    required this.type,
+    required this.message,
+  });
+}
+
+class _ProtoReader {
+  final Uint8List bytes;
+  int offset = 0;
+
+  _ProtoReader(this.bytes);
+
+  bool get isAtEnd => offset >= bytes.length;
+
+  int readVarint() {
+    var result = 0;
+    var shift = 0;
+    while (offset < bytes.length && shift <= 28) {
+      final byte = bytes[offset++];
+      result |= (byte & 0x7F) << shift;
+      if ((byte & 0x80) == 0) return result;
+      shift += 7;
+    }
+    throw const FormatException('Invalid protobuf varint');
+  }
+
+  Uint8List readBytes() {
+    final length = readVarint();
+    final end = offset + length;
+    if (length < 0 || end > bytes.length) {
+      throw const FormatException('Invalid protobuf byte length');
+    }
+    final value = Uint8List.fromList(bytes.sublist(offset, end));
+    offset = end;
+    return value;
+  }
+
+  void skipField(int wireType) {
+    switch (wireType) {
+      case 0:
+        readVarint();
+        return;
+      case 1:
+        offset += 8;
+        break;
+      case 2:
+        final length = readVarint();
+        offset += length;
+        break;
+      case 5:
+        offset += 4;
+        break;
+      default:
+        throw FormatException('Unsupported protobuf wire type $wireType');
+    }
+    if (offset > bytes.length) {
+      throw const FormatException('Protobuf field exceeds message length');
+    }
+  }
+}
+
+Uint8List _encodeSetClipboardFrame(int requestId, String text) {
+  final textBytes = utf8.encode(text);
+  final request = <int>[
+    ..._encodeProtoVarintField(1, 1),
+    ..._encodeProtoBytesField(2, textBytes),
+  ];
+  final envelope = <int>[
+    ..._encodeProtoVarintField(1, requestId),
+    ..._encodeProtoVarintField(
+      2,
+      StfServiceClipboardClient._setClipboardMessageType,
+    ),
+    ..._encodeProtoBytesField(3, request),
+  ];
+  return Uint8List.fromList(<int>[
+    ..._encodeVarint(envelope.length),
+    ...envelope,
+  ]);
+}
+
+List<int> _encodeProtoVarintField(int fieldNumber, int value) {
+  return <int>[..._encodeVarint(fieldNumber << 3), ..._encodeVarint(value)];
+}
+
+List<int> _encodeProtoBytesField(int fieldNumber, List<int> value) {
+  return <int>[
+    ..._encodeVarint((fieldNumber << 3) | 2),
+    ..._encodeVarint(value.length),
+    ...value,
+  ];
+}
+
+List<int> _encodeVarint(int value) {
+  if (value < 0) throw ArgumentError.value(value, 'value');
+  final bytes = <int>[];
+  var remaining = value;
+  do {
+    var byte = remaining & 0x7F;
+    remaining >>= 7;
+    if (remaining != 0) byte |= 0x80;
+    bytes.add(byte);
+  } while (remaining != 0);
+  return bytes;
+}
+
+_StfEnvelope _decodeEnvelope(Uint8List bytes) {
+  final reader = _ProtoReader(bytes);
+  int? id;
+  int? type;
+  Uint8List? message;
+
+  while (!reader.isAtEnd) {
+    final tag = reader.readVarint();
+    final fieldNumber = tag >> 3;
+    final wireType = tag & 0x07;
+    switch (fieldNumber) {
+      case 1 when wireType == 0:
+        id = reader.readVarint();
+      case 2 when wireType == 0:
+        type = reader.readVarint();
+      case 3 when wireType == 2:
+        message = reader.readBytes();
+      default:
+        reader.skipField(wireType);
+    }
+  }
+
+  if (type == null || message == null) {
+    throw const FormatException('Incomplete STF response envelope');
+  }
+  return _StfEnvelope(id: id, type: type, message: message);
+}
+
+bool _decodeSetClipboardResponse(Uint8List bytes) {
+  final reader = _ProtoReader(bytes);
+  while (!reader.isAtEnd) {
+    final tag = reader.readVarint();
+    final fieldNumber = tag >> 3;
+    final wireType = tag & 0x07;
+    if (fieldNumber == 1 && wireType == 0) {
+      return reader.readVarint() != 0;
+    }
+    reader.skipField(wireType);
+  }
+  throw const FormatException('Missing STF clipboard success response');
+}
+
 class AdbInteractiveSession {
   final String serial;
+  late final StfServiceClipboardClient _clipboardClient;
   Process? _process;
   Future<void>? _startFuture;
   Future<void> _commandQueue = Future<void>.value();
   bool _isDisposed = false;
 
   AdbInteractiveSession({required this.serial}) {
+    _clipboardClient = StfServiceClipboardClient(serial: serial);
     _startFuture = _startSession();
     sendCommand(
       'am start-foreground-service -a jp.co.cyberagent.stf.ACTION_START '
@@ -64,9 +456,9 @@ class AdbInteractiveSession {
     await pending;
   }
 
-  Future<void> _enqueue(Future<void> Function() operation) {
-    final next = _commandQueue.then((_) => operation());
-    _commandQueue = next.catchError((error, stack) {
+  Future<T> _enqueue<T>(Future<T> Function() operation) {
+    final next = _commandQueue.then<T>((_) => operation());
+    _commandQueue = next.then<void>((_) {}).catchError((error, stack) {
       if (kDebugMode) {
         debugPrint('[AdbInteractiveSession] Command failed: $error');
       }
@@ -146,32 +538,42 @@ class AdbInteractiveSession {
     unawaited(pasteText(text));
   }
 
-  void setClipboard(String text) {
-    if (text.isEmpty) return;
-    final escaped = text.replaceAll("'", "'\\''");
-    sendCommand(
-      "am broadcast -a jp.co.cyberagent.stf.ACTION_SET_CLIPBOARD --es text '$escaped'",
-    );
+  Future<bool> setClipboard(String text) {
+    if (text.isEmpty) return Future<bool>.value(false);
+    return _enqueue(() => _clipboardClient.setText(text));
   }
 
-  Future<void> pasteText(String text) {
-    if (text.isEmpty) return Future<void>.value();
+  Future<bool> pasteText(String text) {
+    if (text.isEmpty) return Future<bool>.value(false);
 
-    final escaped = text.replaceAll("'", "'\\''");
     return _enqueue(() async {
-      await _executeCommand(
-        "am broadcast -a jp.co.cyberagent.stf.ACTION_SET_CLIPBOARD --es text '$escaped'",
+      final clipboardSet = await _clipboardClient.setText(text);
+      if (!clipboardSet) return false;
+
+      // Match STF's compound paste path: wait for Android's clipboard state to
+      // settle, then issue the native paste key only after a successful service
+      // response. Keeping both steps in one queue item prevents interleaving.
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      final output = await AdbService.executeShell(
+        serial,
+        'input keyevent 279',
       );
-      // The Android clipboard receiver is asynchronous. Keep the broadcast
-      // and paste event in one queue item so concurrent keystrokes cannot
-      // interleave and paste the wrong value.
-      await Future<void>.delayed(const Duration(milliseconds: 80));
-      await _executeCommand('input keyevent 279');
+      final success =
+          !output.startsWith('Error') &&
+          !output.startsWith('Execution Exception');
+      if (kDebugMode) {
+        debugPrint(
+          '[AdbInteractiveSession:$serial] paste chars=${text.length} '
+          'success=$success',
+        );
+      }
+      return success;
     });
   }
 
   void dispose() {
     _isDisposed = true;
+    _clipboardClient.dispose();
     _process?.kill();
     _process = null;
   }
@@ -395,14 +797,18 @@ class AdbService {
     }
   }
 
-  static Future<void> injectText(String serial, String text) async {
-    if (text.isEmpty) return;
-    final escaped = text.replaceAll("'", "'\\''");
-    await executeShell(
-      serial,
-      "am broadcast -a jp.co.cyberagent.stf.ACTION_SET_CLIPBOARD --es text '$escaped'",
-    );
-    await Future<void>.delayed(const Duration(milliseconds: 80));
-    await executeShell(serial, 'input keyevent 279');
+  static Future<bool> injectText(String serial, String text) async {
+    if (text.isEmpty) return false;
+
+    final clipboard = StfServiceClipboardClient(serial: serial);
+    try {
+      if (!await clipboard.setText(text)) return false;
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      final output = await executeShell(serial, 'input keyevent 279');
+      return !output.startsWith('Error') &&
+          !output.startsWith('Execution Exception');
+    } finally {
+      clipboard.dispose();
+    }
   }
 }

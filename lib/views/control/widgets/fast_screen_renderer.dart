@@ -24,11 +24,14 @@ class _FastScreenRendererState extends State<FastScreenRenderer> {
   StreamSubscription<Uint8List>? _subscription;
   bool _isDecoding = false;
   Uint8List? _latestPendingBytes;
+  int _streamGeneration = 0;
 
-  // FPS 采样计算 (滑动平均窗口)
-  final List<DateTime> _frameTimestamps = [];
-  int _currentFps = 0;
-  double _lastFrameMs = 0;
+  final List<DateTime> _receivedFrameTimestamps = [];
+  final List<DateTime> _renderedFrameTimestamps = [];
+  int _receivedFps = 0;
+  int _renderedFps = 0;
+  int _droppedFrames = 0;
+  double _lastDecodeMs = 0;
 
   @override
   void initState() {
@@ -41,18 +44,25 @@ class _FastScreenRendererState extends State<FastScreenRenderer> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.frameStream != widget.frameStream) {
       _subscription?.cancel();
+      _streamGeneration++;
+      _latestPendingBytes = null;
       final old = _activeImage;
       _activeImage = null;
-      _frameTimestamps.clear();
-      _currentFps = 0;
+      _receivedFrameTimestamps.clear();
+      _renderedFrameTimestamps.clear();
+      _receivedFps = 0;
+      _renderedFps = 0;
+      _droppedFrames = 0;
+      _lastDecodeMs = 0;
       old?.dispose();
-      setState(() {});
       _subscribe();
     }
   }
 
   @override
   void dispose() {
+    _streamGeneration++;
+    _latestPendingBytes = null;
     _subscription?.cancel();
     _activeImage?.dispose();
     _activeImage = null;
@@ -60,41 +70,68 @@ class _FastScreenRendererState extends State<FastScreenRenderer> {
   }
 
   void _subscribe() {
+    final generation = _streamGeneration;
     _subscription = widget.frameStream.listen((bytes) {
+      if (!mounted || generation != _streamGeneration) return;
+      final now = DateTime.now();
+      _recordReceivedFrame(now);
+      if (_latestPendingBytes != null) {
+        _droppedFrames++;
+      }
       _latestPendingBytes = bytes;
       if (!_isDecoding) {
-        _decodeNextFrameIfNeeded();
+        unawaited(_decodeNextFrameIfNeeded());
       }
     });
+  }
+
+  void _recordReceivedFrame(DateTime now) {
+    _receivedFrameTimestamps.add(now);
+    _pruneFrameWindow(_receivedFrameTimestamps, now);
+    _receivedFps = _receivedFrameTimestamps.length;
+  }
+
+  void _recordRenderedFrame(DateTime now) {
+    _renderedFrameTimestamps.add(now);
+    _pruneFrameWindow(_renderedFrameTimestamps, now);
+    _renderedFps = _renderedFrameTimestamps.length;
+  }
+
+  void _pruneFrameWindow(List<DateTime> timestamps, DateTime now) {
+    timestamps.removeWhere(
+      (timestamp) => now.difference(timestamp).inMilliseconds > 1000,
+    );
   }
 
   Future<void> _decodeNextFrameIfNeeded() async {
     if (_latestPendingBytes == null || !mounted) return;
 
     _isDecoding = true;
+    final generation = _streamGeneration;
     final bytesToDecode = _latestPendingBytes!;
     _latestPendingBytes = null;
-
     final startTime = DateTime.now();
+    ui.ImmutableBuffer? buffer;
+    ui.ImageDescriptor? descriptor;
+    ui.Codec? codec;
 
     try {
-      final codec = await ui.instantiateImageCodec(bytesToDecode);
+      buffer = await ui.ImmutableBuffer.fromUint8List(bytesToDecode);
+      descriptor = await ui.ImageDescriptor.encoded(buffer);
+      codec = await descriptor.instantiateCodec();
       final frameInfo = await codec.getNextFrame();
       final newImage = frameInfo.image;
 
-      if (!mounted) {
+      if (!mounted || generation != _streamGeneration) {
         newImage.dispose();
         return;
       }
 
       final renderTime = DateTime.now();
-      final frameCost = renderTime.difference(startTime).inMicroseconds / 1000.0;
-
-      // 更新 FPS 计数
-      _frameTimestamps.add(renderTime);
-      _frameTimestamps.removeWhere((t) => renderTime.difference(t).inMilliseconds > 1000);
-      _currentFps = _frameTimestamps.length;
-      _lastFrameMs = frameCost;
+      final frameCost =
+          renderTime.difference(startTime).inMicroseconds / 1000.0;
+      _recordRenderedFrame(renderTime);
+      _lastDecodeMs = frameCost;
 
       final oldImage = _activeImage;
       setState(() {
@@ -104,9 +141,12 @@ class _FastScreenRendererState extends State<FastScreenRenderer> {
     } catch (_) {
       // 忽略异常损坏帧
     } finally {
+      codec?.dispose();
+      descriptor?.dispose();
+      buffer?.dispose();
       _isDecoding = false;
-      if (_latestPendingBytes != null) {
-        _decodeNextFrameIfNeeded();
+      if (_latestPendingBytes != null && mounted) {
+        unawaited(_decodeNextFrameIfNeeded());
       }
     }
   }
@@ -128,8 +168,10 @@ class _FastScreenRendererState extends State<FastScreenRenderer> {
         // 核心 Canvas 硬件直画或 Placeholder
         Positioned.fill(
           child: _activeImage != null
-              ? CustomPaint(
-                  painter: _ImageDirectPainter(image: _activeImage!),
+              ? RepaintBoundary(
+                  child: CustomPaint(
+                    painter: _ImageDirectPainter(image: _activeImage!),
+                  ),
                 )
               : (widget.placeholder ?? const SizedBox.shrink()),
         ),
@@ -146,12 +188,12 @@ class _FastScreenRendererState extends State<FastScreenRenderer> {
                   color: const Color(0xCC000000),
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(
-                    color: _getFpsColor(_currentFps).withValues(alpha: 0.8),
+                    color: _getFpsColor(_renderedFps).withValues(alpha: 0.8),
                     width: 1.5,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: _getFpsColor(_currentFps).withValues(alpha: 0.35),
+                      color: _getFpsColor(_renderedFps).withValues(alpha: 0.35),
                       blurRadius: 10,
                       spreadRadius: 1,
                     ),
@@ -165,23 +207,23 @@ class _FastScreenRendererState extends State<FastScreenRenderer> {
                       height: 7,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: _getFpsColor(_currentFps),
+                        color: _getFpsColor(_renderedFps),
                       ),
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      '⚡ $_currentFps FPS',
+                      'IN $_receivedFps · OUT $_renderedFps · DROP $_droppedFrames',
                       style: TextStyle(
-                        color: _getFpsColor(_currentFps),
+                        color: _getFpsColor(_renderedFps),
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
                         fontFamily: 'monospace',
                       ),
                     ),
-                    if (_lastFrameMs > 0) ...[
+                    if (_lastDecodeMs > 0) ...[
                       const SizedBox(width: 6),
                       Text(
-                        '· ${_lastFrameMs.toStringAsFixed(1)}ms',
+                        '· ${_lastDecodeMs.toStringAsFixed(1)}ms',
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.7),
                           fontSize: 10,
@@ -209,7 +251,12 @@ class _ImageDirectPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final src = Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble());
+    final src = Rect.fromLTWH(
+      0,
+      0,
+      image.width.toDouble(),
+      image.height.toDouble(),
+    );
     final dst = Rect.fromLTWH(0, 0, size.width, size.height);
     canvas.drawImageRect(image, src, dst, _paint);
   }

@@ -7,14 +7,15 @@ import 'adb_service.dart';
 import 'screen_stream_service.dart';
 
 /// 内置自驱原生 minicap 60 FPS 硬件级屏幕流直连服务
-class NativeMinicapStreamService extends ChangeNotifier implements IScreenStreamService {
+class NativeMinicapStreamService extends IScreenStreamService {
   final String serial;
   final int realWidth;
   final int realHeight;
   final int localPort;
 
   StreamState _state = StreamState.disconnected;
-  final StreamController<Uint8List> _streamController = StreamController<Uint8List>.broadcast();
+  final StreamController<Uint8List> _streamController =
+      StreamController<Uint8List>.broadcast();
   Process? _serverProcess;
   Socket? _socket;
   StreamSubscription? _socketSubscription;
@@ -56,15 +57,28 @@ class NativeMinicapStreamService extends ChangeNotifier implements IScreenStream
       final adb = await AdbService.resolveAdbPath();
 
       // 1. 确保手机上有 minicap.apk
-      final checkRes = await Process.run(adb, ['-s', serial, 'shell', 'ls', '/data/local/tmp/minicap.apk']);
-      if (checkRes.exitCode != 0 || checkRes.stdout.toString().contains('No such file')) {
+      final checkRes = await Process.run(adb, [
+        '-s',
+        serial,
+        'shell',
+        'ls',
+        '/data/local/tmp/minicap.apk',
+      ]);
+      if (checkRes.exitCode != 0 ||
+          checkRes.stdout.toString().contains('No such file')) {
         // 从 Flutter asset 提取并推送
         final apkBytes = await rootBundle.load('assets/minicap/minicap.apk');
         final tempDir = Directory.systemTemp;
         final tempApk = File('${tempDir.path}/minicap_$serial.apk');
         await tempApk.writeAsBytes(apkBytes.buffer.asUint8List());
 
-        await Process.run(adb, ['-s', serial, 'push', tempApk.path, '/data/local/tmp/minicap.apk']);
+        await Process.run(adb, [
+          '-s',
+          serial,
+          'push',
+          tempApk.path,
+          '/data/local/tmp/minicap.apk',
+        ]);
         try {
           await tempApk.delete();
         } catch (_) {}
@@ -72,16 +86,31 @@ class NativeMinicapStreamService extends ChangeNotifier implements IScreenStream
 
       // 2. 清理旧进程与 forward 规则
       await Process.run(adb, ['-s', serial, 'shell', 'pkill', '-f', 'minicap']);
-      await Process.run(adb, ['-s', serial, 'forward', '--remove', 'tcp:$localPort']);
+      await Process.run(adb, [
+        '-s',
+        serial,
+        'forward',
+        '--remove',
+        'tcp:$localPort',
+      ]);
 
       final virtW = (realWidth * 0.75).round();
       final virtH = (realHeight * 0.75).round();
 
       // 3. 启动真机 app_process minicap
       final minicapCmd =
-          'CLASSPATH=/data/local/tmp/minicap.apk app_process /system/bin io.devicefarmer.minicap.Main -S -Q 80 -P $realWidth' 'x' '$realHeight@$virtW' 'x' '$virtH/0';
+          'CLASSPATH=/data/local/tmp/minicap.apk app_process /system/bin io.devicefarmer.minicap.Main -S -Q 80 -P $realWidth'
+          'x'
+          '$realHeight@$virtW'
+          'x'
+          '$virtH/0';
 
-      _serverProcess = await Process.start(adb, ['-s', serial, 'shell', minicapCmd]);
+      _serverProcess = await Process.start(adb, [
+        '-s',
+        serial,
+        'shell',
+        minicapCmd,
+      ]);
 
       // 监听进程 stdout 和 stderr 判断是否启动成功
       final completer = Completer<bool>();
@@ -92,12 +121,20 @@ class NativeMinicapStreamService extends ChangeNotifier implements IScreenStream
         }
       }
 
-      _serverProcess?.stdout.transform(const SystemEncoding().decoder).listen(handleLog);
-      _serverProcess?.stderr.transform(const SystemEncoding().decoder).listen(handleLog);
+      _serverProcess?.stdout
+          .transform(const SystemEncoding().decoder)
+          .listen(handleLog);
+      _serverProcess?.stderr
+          .transform(const SystemEncoding().decoder)
+          .listen(handleLog);
 
       _serverProcess?.exitCode.then((code) {
         if (!_isDisposed) {
-          if (kDebugMode) debugPrint('[NativeMinicap:$serial] Process exited with code $code');
+          if (kDebugMode) {
+            debugPrint(
+              '[NativeMinicap:$serial] Process exited with code $code',
+            );
+          }
           _serverProcess = null;
           _scheduleReconnect();
         }
@@ -110,7 +147,13 @@ class NativeMinicapStreamService extends ChangeNotifier implements IScreenStream
       );
 
       // 5. 绑定本地端口 forward
-      await Process.run(adb, ['-s', serial, 'forward', 'tcp:$localPort', 'localabstract:minicap']);
+      await Process.run(adb, [
+        '-s',
+        serial,
+        'forward',
+        'tcp:$localPort',
+        'localabstract:minicap',
+      ]);
 
       // 6. 连接本地 Socket 获取极速 JPEG 流
       await _connectSocket();
@@ -124,7 +167,11 @@ class NativeMinicapStreamService extends ChangeNotifier implements IScreenStream
 
   Future<void> _connectSocket() async {
     try {
-      _socket = await Socket.connect('127.0.0.1', localPort, timeout: const Duration(seconds: 2));
+      _socket = await Socket.connect(
+        '127.0.0.1',
+        localPort,
+        timeout: const Duration(seconds: 2),
+      );
       _state = StreamState.streaming;
       _bannerParsed = false;
       _buffer.clear();
@@ -132,7 +179,9 @@ class NativeMinicapStreamService extends ChangeNotifier implements IScreenStream
       notifyListeners();
 
       if (kDebugMode) {
-        debugPrint('[NativeMinicap] Direct hardware TCP socket connected at port $localPort!');
+        debugPrint(
+          '[NativeMinicap] Direct hardware TCP socket connected at port $localPort!',
+        );
       }
 
       _socketSubscription = _socket?.listen(
@@ -174,7 +223,9 @@ class NativeMinicapStreamService extends ChangeNotifier implements IScreenStream
       // 2. 解析 4 字节 Frame Size
       if (_targetFrameSize == 0) {
         if (currentBytes.length < 4) return;
-        final bd = ByteData.sublistView(Uint8List.fromList(currentBytes.sublist(0, 4)));
+        final bd = ByteData.sublistView(
+          Uint8List.fromList(currentBytes.sublist(0, 4)),
+        );
         _targetFrameSize = bd.getUint32(0, Endian.little);
         _buffer.clear();
         if (currentBytes.length > 4) {
@@ -188,7 +239,9 @@ class NativeMinicapStreamService extends ChangeNotifier implements IScreenStream
         return;
       }
 
-      final frameData = Uint8List.fromList(currentBytes.sublist(0, _targetFrameSize));
+      final frameData = Uint8List.fromList(
+        currentBytes.sublist(0, _targetFrameSize),
+      );
       if (!_streamController.isClosed && !_isDisposed) {
         _streamController.add(frameData);
       }

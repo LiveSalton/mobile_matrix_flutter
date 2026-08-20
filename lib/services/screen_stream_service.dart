@@ -2,49 +2,126 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'adb_service.dart';
-import 'native_minicap_stream_service.dart';
 
-enum StreamState {
-  connecting,
-  streaming,
-  paused,
-  error,
-  disconnected,
+enum StreamState { connecting, streaming, paused, error, disconnected }
+
+class ScreenViewport {
+  final double logicalWidth;
+  final double logicalHeight;
+  final double devicePixelRatio;
+  final int rotation;
+
+  const ScreenViewport({
+    required this.logicalWidth,
+    required this.logicalHeight,
+    required this.devicePixelRatio,
+    required this.rotation,
+  });
+
+  @override
+  bool operator ==(Object other) {
+    return other is ScreenViewport &&
+        other.logicalWidth == logicalWidth &&
+        other.logicalHeight == logicalHeight &&
+        other.devicePixelRatio == devicePixelRatio &&
+        other.rotation == rotation;
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(logicalWidth, logicalHeight, devicePixelRatio, rotation);
 }
 
-abstract class IScreenStreamService {
+class ScreenProjection {
+  final int width;
+  final int height;
+
+  const ScreenProjection(this.width, this.height);
+}
+
+ScreenProjection calculateStfScreenProjection({
+  required ScreenViewport viewport,
+  required int realWidth,
+  required int realHeight,
+}) {
+  var logicalWidth = viewport.logicalWidth;
+  var logicalHeight = viewport.logicalHeight;
+  if (viewport.rotation == 90 || viewport.rotation == 270) {
+    final rotatedWidth = logicalHeight;
+    logicalHeight = logicalWidth;
+    logicalWidth = rotatedWidth;
+  }
+
+  if (logicalWidth <= 0 || logicalHeight <= 0) {
+    return ScreenProjection(
+      (realWidth * 0.36).ceil(),
+      (realHeight * 0.36).ceil(),
+    );
+  }
+
+  final density = viewport.devicePixelRatio.clamp(1.0, 1.5).toDouble();
+  var width = logicalWidth * density;
+  var height = logicalHeight * density;
+
+  final minimumWidth = realWidth * 0.36;
+  if (width < minimumWidth) {
+    final scale = minimumWidth / width;
+    width *= scale;
+    height *= scale;
+  }
+
+  final minimumHeight = realHeight * 0.36;
+  if (height < minimumHeight) {
+    final scale = minimumHeight / height;
+    width *= scale;
+    height *= scale;
+  }
+
+  return ScreenProjection(width.ceil(), height.ceil());
+}
+
+abstract class IScreenStreamService extends ChangeNotifier {
   Stream<Uint8List> get frameStream;
   StreamState get state;
+  String? get errorMessage => null;
   void startStream();
   void stopStream();
   void setStreamEnabled(bool enabled);
   void requestResolution(int width, int height);
+  void updateViewport(ScreenViewport viewport) {}
   void triggerImmediateRefresh();
-  void dispose();
 }
 
 /// STF minicap WebSocket 流服务
-class StfMinicapStreamService extends ChangeNotifier implements IScreenStreamService {
+class StfMinicapStreamService extends IScreenStreamService {
   final String wsUrl;
-  final int initialWidth;
-  final int initialHeight;
+  final int realWidth;
+  final int realHeight;
 
   StreamState _state = StreamState.disconnected;
-  final StreamController<Uint8List> _streamController = StreamController<Uint8List>.broadcast();
+  String? _errorMessage;
+  final StreamController<Uint8List> _streamController =
+      StreamController<Uint8List>.broadcast();
   WebSocket? _ws;
   StreamSubscription? _wsSubscription;
-  bool _isEnabled = true;
+  late bool _isEnabled;
   bool _isDisposed = false;
-  int _currentWidth;
-  int _currentHeight;
+  bool _isStoppedManually = false;
+  late int _currentWidth;
+  late int _currentHeight;
+  int? _lastSentWidth;
+  int? _lastSentHeight;
   Timer? _reconnectTimer;
 
   StfMinicapStreamService({
     required this.wsUrl,
-    this.initialWidth = 540,
-    this.initialHeight = 1209,
-  })  : _currentWidth = initialWidth,
-        _currentHeight = initialHeight {
+    required this.realWidth,
+    required this.realHeight,
+    bool initiallyEnabled = true,
+  }) {
+    _isEnabled = initiallyEnabled;
+    _currentWidth = (realWidth * 0.36).ceil();
+    _currentHeight = (realHeight * 0.36).ceil();
     startStream();
   }
 
@@ -55,33 +132,56 @@ class StfMinicapStreamService extends ChangeNotifier implements IScreenStreamSer
   StreamState get state => _state;
 
   @override
+  String? get errorMessage => _errorMessage;
+
+  @override
   void startStream() {
-    if (_isDisposed || _state == StreamState.streaming) return;
-    _connectWebSocket();
+    if (_isDisposed ||
+        _state == StreamState.connecting ||
+        _ws?.readyState == WebSocket.open) {
+      return;
+    }
+    _isStoppedManually = false;
+    unawaited(_connectWebSocket());
   }
 
   Future<void> _connectWebSocket() async {
-    _state = StreamState.connecting;
-    notifyListeners();
+    _setState(StreamState.connecting);
 
     try {
-      _ws = await WebSocket.connect(wsUrl).timeout(const Duration(milliseconds: 1500));
-      _state = StreamState.streaming;
-      notifyListeners();
+      final socket = await WebSocket.connect(
+        wsUrl,
+      ).timeout(const Duration(milliseconds: 1500));
+      if (_isDisposed || _isStoppedManually) {
+        await socket.close();
+        return;
+      }
+
+      _ws = socket;
+      _errorMessage = null;
+      _lastSentWidth = null;
+      _lastSentHeight = null;
+      _setState(_isEnabled ? StreamState.streaming : StreamState.paused);
 
       if (kDebugMode) {
-        debugPrint('[StfMinicapStream] Connected to $wsUrl successfully for current device');
+        debugPrint(
+          '[StfMinicapStream] Connected to $wsUrl successfully for current device',
+        );
       }
 
-      _ws?.add('size ${_currentWidth}x$_currentHeight');
       if (_isEnabled) {
-        _ws?.add('on');
+        _sendProjection(force: true);
+        socket.add('on');
       }
 
-      _wsSubscription = _ws?.listen(
+      _wsSubscription = socket.listen(
         (data) {
-          if (data is List<int> && !_streamController.isClosed && !_isDisposed) {
-            _streamController.add(data is Uint8List ? data : Uint8List.fromList(data));
+          if (data is List<int> &&
+              !_streamController.isClosed &&
+              !_isDisposed) {
+            _streamController.add(
+              data is Uint8List ? data : Uint8List.fromList(data),
+            );
           } else if (data is String) {
             if (kDebugMode) {
               debugPrint('[StfMinicapStream] Control message: $data');
@@ -92,11 +192,11 @@ class StfMinicapStreamService extends ChangeNotifier implements IScreenStreamSer
           if (kDebugMode) {
             debugPrint('[StfMinicapStream] Error: $err');
           }
-          _reconnect();
+          _scheduleReconnect('STF 屏幕连接中断，正在重试');
         },
         onDone: () {
-          if (!_isDisposed) {
-            _reconnect();
+          if (!_isDisposed && !_isStoppedManually) {
+            _scheduleReconnect('STF 屏幕连接已关闭，正在重试');
           }
         },
         cancelOnError: true,
@@ -105,42 +205,86 @@ class StfMinicapStreamService extends ChangeNotifier implements IScreenStreamSer
       if (kDebugMode) {
         debugPrint('[StfMinicapStream] Connect failed: $e, will retry');
       }
-      _reconnect();
+      _scheduleReconnect('无法连接 STF 屏幕服务，正在重试');
     }
   }
 
-  void _reconnect() {
+  void _setState(StreamState nextState) {
+    _state = nextState;
+    notifyListeners();
+  }
+
+  void _scheduleReconnect(String message) {
+    if (_isDisposed || _isStoppedManually) return;
     _wsSubscription?.cancel();
     _wsSubscription = null;
     _ws?.close();
     _ws = null;
-    _state = StreamState.disconnected;
-    notifyListeners();
+    _errorMessage = message;
+    _setState(StreamState.error);
 
-    if (!_isDisposed) {
+    if (!_isDisposed && !_isStoppedManually) {
       _reconnectTimer?.cancel();
       _reconnectTimer = Timer(const Duration(seconds: 2), () {
-        if (!_isDisposed && _state != StreamState.streaming) {
-          _connectWebSocket();
+        if (!_isDisposed && !_isStoppedManually) {
+          unawaited(_connectWebSocket());
         }
       });
     }
+  }
+
+  void _sendProjection({bool force = false}) {
+    final socket = _ws;
+    if (socket?.readyState != WebSocket.open) return;
+    if (!force &&
+        _lastSentWidth == _currentWidth &&
+        _lastSentHeight == _currentHeight) {
+      return;
+    }
+
+    socket?.add('size ${_currentWidth}x$_currentHeight');
+    _lastSentWidth = _currentWidth;
+    _lastSentHeight = _currentHeight;
   }
 
   @override
   void setStreamEnabled(bool enabled) {
     if (_isEnabled == enabled) return;
     _isEnabled = enabled;
-    _state = enabled ? StreamState.streaming : StreamState.paused;
-    _ws?.add(enabled ? 'on' : 'off');
-    notifyListeners();
+    final socket = _ws;
+    if (socket?.readyState == WebSocket.open) {
+      if (enabled) {
+        _sendProjection(force: true);
+        socket?.add('on');
+        _setState(StreamState.streaming);
+      } else {
+        socket?.add('off');
+        _setState(StreamState.paused);
+      }
+      return;
+    }
+
+    _setState(enabled ? StreamState.connecting : StreamState.paused);
+    if (enabled) startStream();
   }
 
   @override
   void requestResolution(int width, int height) {
-    _currentWidth = (width * 0.75).round();
-    _currentHeight = (height * 0.75).round();
-    _ws?.add('size ${_currentWidth}x$_currentHeight');
+    if (width <= 0 || height <= 0) return;
+    if (_currentWidth == width && _currentHeight == height) return;
+    _currentWidth = width;
+    _currentHeight = height;
+    _sendProjection();
+  }
+
+  @override
+  void updateViewport(ScreenViewport viewport) {
+    final projection = calculateStfScreenProjection(
+      viewport: viewport,
+      realWidth: realWidth,
+      realHeight: realHeight,
+    );
+    requestResolution(projection.width, projection.height);
   }
 
   @override
@@ -148,14 +292,16 @@ class StfMinicapStreamService extends ChangeNotifier implements IScreenStreamSer
 
   @override
   void stopStream() {
+    _isStoppedManually = true;
     _reconnectTimer?.cancel();
-    _ws?.add('off');
+    if (_ws?.readyState == WebSocket.open && _isEnabled) {
+      _ws?.add('off');
+    }
     _wsSubscription?.cancel();
     _wsSubscription = null;
     _ws?.close();
     _ws = null;
-    _state = StreamState.disconnected;
-    notifyListeners();
+    _setState(StreamState.disconnected);
   }
 
   @override
@@ -169,103 +315,157 @@ class StfMinicapStreamService extends ChangeNotifier implements IScreenStreamSer
   }
 }
 
-/// 智能复合屏幕流服务（优先内置自驱 NativeMinicap 60 FPS 满速硬件直连）
-class SmartScreenStreamService extends ChangeNotifier implements IScreenStreamService {
+/// 设备屏幕流装配入口，仅绑定 Web STF 使用的屏幕 WebSocket。
+class SmartScreenStreamService extends IScreenStreamService {
   final String serial;
   final int realWidth;
   final int realHeight;
+  final String? initialStreamUrl;
 
   IScreenStreamService? _activeService;
-  final StreamController<Uint8List> _streamController = StreamController<Uint8List>.broadcast();
+  final StreamController<Uint8List> _streamController =
+      StreamController<Uint8List>.broadcast();
   StreamSubscription? _activeSubscription;
+  Timer? _resolutionRetryTimer;
+  StreamState _state = StreamState.connecting;
+  String? _errorMessage;
+  ScreenViewport? _lastViewport;
+  bool _isEnabled = true;
+  bool _isResolving = false;
   bool _isDisposed = false;
 
   SmartScreenStreamService({
     required this.serial,
     required this.realWidth,
     required this.realHeight,
+    this.initialStreamUrl,
   }) {
-    _initStream();
+    unawaited(_resolveStfStream());
   }
 
   @override
   Stream<Uint8List> get frameStream => _streamController.stream;
 
   @override
-  StreamState get state => _activeService?.state ?? StreamState.connecting;
+  StreamState get state => _activeService?.state ?? _state;
 
-  Future<void> _initStream() async {
-    // 方案 1 (最优先)：启动应用内置自驱 NativeMinicapStreamService (60 FPS 原生硬件直连)
+  @override
+  String? get errorMessage => _activeService?.errorMessage ?? _errorMessage;
+
+  Future<void> _resolveStfStream() async {
+    if (_isDisposed || _isResolving || _activeService != null) return;
+    _isResolving = true;
+    _state = StreamState.connecting;
+    _errorMessage = null;
+    notifyListeners();
+
     try {
+      var wsUrl = initialStreamUrl?.trim();
+      if (wsUrl == null || wsUrl.isEmpty) {
+        final port = await AdbService.resolveDeviceScreenPort(serial);
+        if (port != null && port > 0) {
+          wsUrl = 'ws://127.0.0.1:$port';
+        }
+      }
+
       if (_isDisposed) return;
-      final nativeService = NativeMinicapStreamService(
-        serial: serial,
+      if (wsUrl == null || wsUrl.isEmpty) {
+        _setResolutionError();
+        return;
+      }
+
+      final stfService = StfMinicapStreamService(
+        wsUrl: wsUrl,
         realWidth: realWidth,
         realHeight: realHeight,
-        localPort: 17400 + (serial.hashCode.abs() % 100),
+        initiallyEnabled: _isEnabled,
       );
-      _bindService(nativeService);
-      return;
-    } catch (_) {}
-
-    // 方案 2：动态解析 STF 外部端口
-    final port = await AdbService.resolveDeviceScreenPort(serial);
-    if (_isDisposed) return;
-
-    if (port != null && port > 0) {
-      final wsUrl = 'ws://127.0.0.1:$port';
-      try {
-        final ws = await WebSocket.connect(wsUrl).timeout(const Duration(milliseconds: 600));
-        await ws.close();
-
-        if (_isDisposed) return;
-        final stfService = StfMinicapStreamService(
-          wsUrl: wsUrl,
-          initialWidth: (realWidth * 0.75).round(),
-          initialHeight: (realHeight * 0.75).round(),
-        );
-        _bindService(stfService);
-        return;
-      } catch (_) {}
+      _bindService(stfService);
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint('[SmartScreenStream] STF address resolution failed: $error');
+      }
+      if (!_isDisposed) _setResolutionError();
+    } finally {
+      _isResolving = false;
     }
+  }
 
-    if (_isDisposed) return;
-    // 方案 3：回退到 ADB 原生流
-    final adbService = AdbScreenStreamService(serial: serial);
-    _bindService(adbService);
+  void _setResolutionError() {
+    _state = StreamState.error;
+    _errorMessage = '未找到当前设备的 STF 屏幕服务，正在重试';
+    notifyListeners();
+    _resolutionRetryTimer?.cancel();
+    _resolutionRetryTimer = Timer(const Duration(seconds: 2), () {
+      unawaited(_resolveStfStream());
+    });
   }
 
   void _bindService(IScreenStreamService service) {
+    _resolutionRetryTimer?.cancel();
+    _resolutionRetryTimer = null;
     _activeSubscription?.cancel();
+    _activeService?.removeListener(_handleActiveStateChanged);
     _activeService?.dispose();
     _activeService = service;
+    service.addListener(_handleActiveStateChanged);
+    final viewport = _lastViewport;
+    if (viewport != null) service.updateViewport(viewport);
 
     _activeSubscription = service.frameStream.listen((bytes) {
       if (!_streamController.isClosed && !_isDisposed) {
         _streamController.add(bytes);
       }
     });
+    _handleActiveStateChanged();
+  }
+
+  void _handleActiveStateChanged() {
+    if (_isDisposed) return;
     notifyListeners();
   }
 
   @override
   void startStream() {
-    _activeService?.startStream();
+    final service = _activeService;
+    if (service != null) {
+      service.startStream();
+    } else {
+      unawaited(_resolveStfStream());
+    }
   }
 
   @override
   void stopStream() {
+    _resolutionRetryTimer?.cancel();
     _activeService?.stopStream();
+    _state = StreamState.disconnected;
+    notifyListeners();
   }
 
   @override
   void setStreamEnabled(bool enabled) {
-    _activeService?.setStreamEnabled(enabled);
+    if (_isEnabled == enabled) return;
+    _isEnabled = enabled;
+    final service = _activeService;
+    if (service != null) {
+      service.setStreamEnabled(enabled);
+    } else {
+      _state = enabled ? StreamState.connecting : StreamState.paused;
+      notifyListeners();
+      if (enabled) unawaited(_resolveStfStream());
+    }
   }
 
   @override
   void requestResolution(int width, int height) {
     _activeService?.requestResolution(width, height);
+  }
+
+  @override
+  void updateViewport(ScreenViewport viewport) {
+    _lastViewport = viewport;
+    _activeService?.updateViewport(viewport);
   }
 
   @override
@@ -276,17 +476,20 @@ class SmartScreenStreamService extends ChangeNotifier implements IScreenStreamSe
   @override
   void dispose() {
     _isDisposed = true;
+    _resolutionRetryTimer?.cancel();
     _activeSubscription?.cancel();
+    _activeService?.removeListener(_handleActiveStateChanged);
     _activeService?.dispose();
     _streamController.close();
     super.dispose();
   }
 }
 
-class AdbScreenStreamService extends ChangeNotifier implements IScreenStreamService {
+class AdbScreenStreamService extends IScreenStreamService {
   final String serial;
   StreamState _state = StreamState.disconnected;
-  final StreamController<Uint8List> _streamController = StreamController<Uint8List>.broadcast();
+  final StreamController<Uint8List> _streamController =
+      StreamController<Uint8List>.broadcast();
   bool _isEnabled = true;
   bool _isLoopRunning = false;
   bool _isDisposed = false;
@@ -377,10 +580,11 @@ class AdbScreenStreamService extends ChangeNotifier implements IScreenStreamServ
   }
 }
 
-class MockScreenStreamService extends ChangeNotifier implements IScreenStreamService {
+class MockScreenStreamService extends IScreenStreamService {
   final String streamUrl;
   StreamState _state = StreamState.disconnected;
-  final StreamController<Uint8List> _streamController = StreamController<Uint8List>.broadcast();
+  final StreamController<Uint8List> _streamController =
+      StreamController<Uint8List>.broadcast();
   bool _isEnabled = true;
   Timer? _connectTimer;
 

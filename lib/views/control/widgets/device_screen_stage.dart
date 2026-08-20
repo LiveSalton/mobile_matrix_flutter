@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../models/device_model.dart';
@@ -36,11 +37,15 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
   bool _isPointerDown = false;
   bool _isLongPressActive = false;
   Timer? _longPressVisualTimer;
+  ScreenViewport? _latestViewport;
+  ScreenViewport? _submittedViewport;
+  bool _viewportUpdateScheduled = false;
 
   @override
   void initState() {
     super.initState();
     _imeFocusNode = FocusNode(onKeyEvent: _handleKeyboardPassthrough);
+    _imeFocusNode.addListener(_handleImeFocusChanged);
     _imeController = TextEditingController();
     _initCoordinator();
   }
@@ -51,6 +56,14 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
     if (oldWidget.device.display.width != widget.device.display.width ||
         oldWidget.device.display.height != widget.device.display.height) {
       _initCoordinator();
+      _submittedViewport = null;
+    }
+    if (oldWidget.streamService != widget.streamService) {
+      _submittedViewport = null;
+      final viewport = _latestViewport;
+      if (viewport != null) {
+        _scheduleViewportUpdate(viewport);
+      }
     }
   }
 
@@ -69,6 +82,41 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
     );
   }
 
+  void _updateViewportAfterLayout(Rect renderRect) {
+    if (renderRect.width <= 0 || renderRect.height <= 0) return;
+    final viewport = ScreenViewport(
+      logicalWidth: renderRect.width,
+      logicalHeight: renderRect.height,
+      devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+      rotation: widget.device.display.rotation,
+    );
+    _latestViewport = viewport;
+    if (viewport == _submittedViewport) return;
+    _scheduleViewportUpdate(viewport);
+  }
+
+  void _scheduleViewportUpdate(ScreenViewport viewport) {
+    _latestViewport = viewport;
+    if (_viewportUpdateScheduled) return;
+    _viewportUpdateScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _viewportUpdateScheduled = false;
+      if (!mounted) return;
+      final latest = _latestViewport;
+      if (latest == null || latest == _submittedViewport) return;
+      _submittedViewport = latest;
+      widget.streamService.updateViewport(latest);
+    });
+  }
+
+  void _handleImeFocusChanged() {
+    if (kDebugMode) {
+      debugPrint(
+        '[DeviceInput:${widget.device.serial}] focus=${_imeFocusNode.hasFocus}',
+      );
+    }
+  }
+
   void _handlePointerDown(PointerDownEvent event, Rect renderRect) {
     if (!renderRect.contains(event.localPosition)) return;
 
@@ -77,7 +125,6 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
     if (!_imeFocusNode.hasFocus) {
       _imeFocusNode.requestFocus();
     }
-
     final relX = event.localPosition.dx - renderRect.left;
     final relY = event.localPosition.dy - renderRect.top;
 
@@ -163,6 +210,9 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
       _isLongPressActive = false;
       _touchPosition = null;
     });
+
+    // Web STF closes a gesture on pointer leave/cancel as well as mouseup.
+    unawaited(_finishPointerGesture());
   }
 
   void _handleKeyPress(DeviceKeyAction key) {
@@ -181,6 +231,12 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
     // Only commit finalized IME text. Pinyin and other composing text stays in
     // the hidden bridge until the desktop IME selects a candidate.
     _imeController.clear();
+    if (kDebugMode) {
+      debugPrint(
+        '[DeviceInput:${widget.device.serial}] IME committed '
+        'chars=${text.length}',
+      );
+    }
     unawaited(_sendTextToDevice(text));
   }
 
@@ -197,6 +253,12 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
     if (text == null || text.isEmpty) return;
 
     _imeController.clear();
+    if (kDebugMode) {
+      debugPrint(
+        '[DeviceInput:${widget.device.serial}] desktop paste requested '
+        'chars=${text.length}',
+      );
+    }
     final pasted = await widget.controlService.pasteText(text);
     if (pasted && mounted) {
       widget.streamService.triggerImmediateRefresh();
@@ -373,27 +435,17 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
                         stageSize,
                         widget.device.display.rotation,
                       );
+                      _updateViewportAfterLayout(renderRect);
 
-                      return Stack(
-                        children: [
-                          Positioned(
-                            left: renderRect.left,
-                            top: renderRect.top,
-                            width: 1,
-                            height: 1,
-                            child: _buildHiddenImeBridge(),
-                          ),
-
-                          // 交互层捕获
-                          Positioned.fill(
-                            child: Listener(
-                              behavior: HitTestBehavior.opaque,
-                              onPointerDown: (e) =>
-                                  _handlePointerDown(e, renderRect),
-                              onPointerMove: (e) =>
-                                  _handlePointerMove(e, renderRect),
-                              onPointerUp: _handlePointerUp,
-                              onPointerCancel: _handlePointerCancel,
+                      return Listener(
+                        behavior: HitTestBehavior.opaque,
+                        onPointerDown: (e) => _handlePointerDown(e, renderRect),
+                        onPointerMove: (e) => _handlePointerMove(e, renderRect),
+                        onPointerUp: _handlePointerUp,
+                        onPointerCancel: _handlePointerCancel,
+                        child: Stack(
+                          children: [
+                            Positioned.fill(
                               child: Container(
                                 color: tokens.bg,
                                 child: Center(
@@ -418,74 +470,118 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
                                       ],
                                     ),
                                     clipBehavior: Clip.antiAlias,
-                                    child: FastScreenRenderer(
-                                      frameStream:
-                                          widget.streamService.frameStream,
-                                      placeholder: _buildPlaceholder(context),
+                                    child: AnimatedBuilder(
+                                      animation: widget.streamService,
+                                      builder: (context, _) {
+                                        final state =
+                                            widget.streamService.state;
+                                        return Stack(
+                                          fit: StackFit.expand,
+                                          children: [
+                                            FastScreenRenderer(
+                                              frameStream: widget
+                                                  .streamService
+                                                  .frameStream,
+                                              placeholder: _buildPlaceholder(
+                                                context,
+                                                state: state,
+                                                errorMessage: widget
+                                                    .streamService
+                                                    .errorMessage,
+                                              ),
+                                            ),
+                                            if (state != StreamState.streaming)
+                                              _buildStreamStatusOverlay(
+                                                context,
+                                                state: state,
+                                                errorMessage: widget
+                                                    .streamService
+                                                    .errorMessage,
+                                              ),
+                                          ],
+                                        );
+                                      },
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
 
-                          // 触控指示光标 Feedback (包含长按脉冲特效)
-                          if (_isPointerDown && _touchPosition != null)
                             Positioned(
-                              left:
-                                  _touchPosition!.dx -
-                                  (_isLongPressActive ? 23 : 18),
-                              top:
-                                  _touchPosition!.dy -
-                                  (_isLongPressActive ? 23 : 18),
+                              left: renderRect.left,
+                              top: renderRect.top,
+                              width: renderRect.width,
+                              height: renderRect.height,
+                              // The bridge is focused programmatically after a
+                              // screen pointer down. It must not participate in
+                              // hit testing, otherwise macOS can retarget or
+                              // cancel the drag when the hidden TextField gains
+                              // focus.
                               child: IgnorePointer(
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  width: _isLongPressActive ? 46 : 36,
-                                  height: _isLongPressActive ? 46 : 36,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: _isLongPressActive
-                                        ? const Color(
-                                            0xFF00D591,
-                                          ).withValues(alpha: 0.35)
-                                        : tokens.primary.withValues(alpha: 0.3),
-                                    border: Border.all(
+                                child: _buildHiddenImeBridge(),
+                              ),
+                            ),
+
+                            // 触控指示光标 Feedback (包含长按脉冲特效)
+                            if (_isPointerDown && _touchPosition != null)
+                              Positioned(
+                                left:
+                                    _touchPosition!.dx -
+                                    (_isLongPressActive ? 23 : 18),
+                                top:
+                                    _touchPosition!.dy -
+                                    (_isLongPressActive ? 23 : 18),
+                                child: IgnorePointer(
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    width: _isLongPressActive ? 46 : 36,
+                                    height: _isLongPressActive ? 46 : 36,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
                                       color: _isLongPressActive
-                                          ? const Color(0xFF00D591)
-                                          : tokens.primary,
-                                      width: _isLongPressActive ? 2.5 : 2,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color:
-                                            (_isLongPressActive
-                                                    ? const Color(0xFF00D591)
-                                                    : tokens.primary)
-                                                .withValues(alpha: 0.5),
-                                        blurRadius: _isLongPressActive
-                                            ? 16
-                                            : 10,
-                                        spreadRadius: _isLongPressActive
-                                            ? 4
-                                            : 2,
+                                          ? const Color(
+                                              0xFF00D591,
+                                            ).withValues(alpha: 0.35)
+                                          : tokens.primary.withValues(
+                                              alpha: 0.3,
+                                            ),
+                                      border: Border.all(
+                                        color: _isLongPressActive
+                                            ? const Color(0xFF00D591)
+                                            : tokens.primary,
+                                        width: _isLongPressActive ? 2.5 : 2,
                                       ),
-                                    ],
-                                  ),
-                                  child: Center(
-                                    child: Container(
-                                      width: _isLongPressActive ? 12 : 8,
-                                      height: _isLongPressActive ? 12 : 8,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: tokens.textPrimary,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color:
+                                              (_isLongPressActive
+                                                      ? const Color(0xFF00D591)
+                                                      : tokens.primary)
+                                                  .withValues(alpha: 0.5),
+                                          blurRadius: _isLongPressActive
+                                              ? 16
+                                              : 10,
+                                          spreadRadius: _isLongPressActive
+                                              ? 4
+                                              : 2,
+                                        ),
+                                      ],
+                                    ),
+                                    child: Center(
+                                      child: Container(
+                                        width: _isLongPressActive ? 12 : 8,
+                                        height: _isLongPressActive ? 12 : 8,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: tokens.textPrimary,
+                                        ),
                                       ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
                       );
                     },
                   )
@@ -518,8 +614,21 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
     );
   }
 
-  Widget _buildPlaceholder(BuildContext context) {
+  Widget _buildPlaceholder(
+    BuildContext context, {
+    required StreamState state,
+    String? errorMessage,
+  }) {
     final tokens = context.tokens;
+    final isError = state == StreamState.error;
+    final isPaused = state == StreamState.paused;
+    final label = switch (state) {
+      StreamState.streaming => '等待 STF 屏幕首帧...',
+      StreamState.paused => 'STF 屏幕流已暂停',
+      StreamState.error => errorMessage ?? 'STF 屏幕服务不可用',
+      StreamState.disconnected => 'STF 屏幕连接已断开',
+      StreamState.connecting => '正在连接 STF 屏幕流...',
+    };
 
     return Stack(
       children: [
@@ -542,23 +651,99 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SizedBox(
-                width: 32,
-                height: 32,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: tokens.primary,
+              if (isError || isPaused)
+                Icon(
+                  isError
+                      ? Icons.signal_wifi_statusbar_connected_no_internet_4
+                      : Icons.pause_circle_outline_rounded,
+                  size: 34,
+                  color: isError ? const Color(0xFFEF4444) : tokens.primary,
+                )
+              else
+                SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: tokens.primary,
+                  ),
                 ),
-              ),
               const SizedBox(height: 14),
               Text(
-                '正在建立 60 FPS 极速屏幕流...',
-                style: TextStyle(color: tokens.textPrimary, fontSize: 13),
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isError ? const Color(0xFFFCA5A5) : tokens.textPrimary,
+                  fontSize: 13,
+                ),
               ),
             ],
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildStreamStatusOverlay(
+    BuildContext context, {
+    required StreamState state,
+    String? errorMessage,
+  }) {
+    final tokens = context.tokens;
+    final isError = state == StreamState.error;
+    final isConnecting = state == StreamState.connecting;
+    final label = switch (state) {
+      StreamState.connecting => '正在连接 STF 屏幕流...',
+      StreamState.paused => 'STF 屏幕流已暂停',
+      StreamState.error => errorMessage ?? 'STF 屏幕服务不可用',
+      StreamState.disconnected => 'STF 屏幕连接已断开',
+      StreamState.streaming => '',
+    };
+    return ColoredBox(
+      color: const Color(0xD90F172A),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isConnecting)
+                SizedBox(
+                  width: 32,
+                  height: 32,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: tokens.primary,
+                  ),
+                )
+              else
+                Icon(
+                  isError
+                      ? Icons.signal_wifi_statusbar_connected_no_internet_4
+                      : state == StreamState.paused
+                      ? Icons.pause_circle_outline_rounded
+                      : Icons.link_off_rounded,
+                  size: 34,
+                  color: isError
+                      ? const Color(0xFFEF4444)
+                      : tokens.textSecondary,
+                ),
+              const SizedBox(height: 12),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: isError
+                      ? const Color(0xFFFCA5A5)
+                      : tokens.textSecondary,
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -604,28 +789,29 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
   }
 
   Widget _buildHiddenImeBridge() {
-    return IgnorePointer(
-      child: ExcludeSemantics(
-        child: Opacity(
-          opacity: 0,
-          child: TextField(
-            focusNode: _imeFocusNode,
-            controller: _imeController,
-            autofocus: false,
-            showCursor: false,
-            enableInteractiveSelection: false,
-            maxLines: 1,
-            textInputAction: TextInputAction.send,
-            style: const TextStyle(
-              color: Colors.transparent,
-              fontSize: 1,
-              height: 1,
-            ),
-            cursorColor: Colors.transparent,
-            decoration: const InputDecoration.collapsed(hintText: ''),
-            onChanged: _handleImeChanged,
-            onSubmitted: _submitInput,
+    return ExcludeSemantics(
+      child: Opacity(
+        opacity: 0,
+        child: TextField(
+          focusNode: _imeFocusNode,
+          controller: _imeController,
+          autofocus: false,
+          showCursor: false,
+          enableInteractiveSelection: false,
+          expands: true,
+          minLines: null,
+          maxLines: null,
+          textInputAction: TextInputAction.newline,
+          textAlignVertical: TextAlignVertical.bottom,
+          style: const TextStyle(
+            color: Colors.transparent,
+            fontSize: 1,
+            height: 1,
           ),
+          cursorColor: Colors.transparent,
+          decoration: const InputDecoration.collapsed(hintText: ''),
+          onChanged: _handleImeChanged,
+          onSubmitted: _submitInput,
         ),
       ),
     );

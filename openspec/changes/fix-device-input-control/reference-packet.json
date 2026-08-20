@@ -16,13 +16,15 @@
     "out_of_scope": [
       "Pixel-identical replication of the STF web shell",
       "Replacing the existing Flutter screen renderer",
-      "Replacing ADB transport with the STF Socket.IO agent protocol",
+      "Replacing the existing ADB transport for text and physical keys",
       "Adding iOS device-control support",
-      "Running the reference application or target runtime in this source-only pass"
+      "Running the reference Web application; target runtime evidence is recorded separately"
     ],
     "allowed_differences": [
-      "Flutter uses a one-pixel fully transparent TextField as the hidden IME bridge instead of the reference DOM password input",
-      "The target keeps the approved ADB clipboard plus Android KEYCODE_PASTE transport instead of STF agent input.type and clipboard.paste events"
+      "Flutter uses a full-stage fully transparent TextField as the hidden IME bridge instead of the reference DOM password input",
+      "The target forwards STF SET_CLIPBOARD protobuf over ADB to localabstract:stfservice and uses Android KEYCODE_PASTE instead of the reference agent Ctrl+V event",
+      "The Flutter hidden terminal anchors its caret at the bottom of the phone stage so the desktop IME candidate window does not cover the phone field",
+      "The target resolves the current STF device channel and forwards the same gestureStart, touchDown/touchMove/touchUp commit, and gestureStop Socket.IO events as the Web reference"
     ],
     "authority_by_dimension": {
       "structure_layout": "Reference screen template plus the user's Web runtime observation",
@@ -31,7 +33,7 @@
       "interactions_accessibility": "Reference screen directive pointer, input, paste, and keyboard handlers",
       "system_ui_keyboard_permissions": "Reference focus directive and target Flutter IME ownership",
       "lifecycle_concurrency_cleanup": "Reference directive cleanup and target State disposal",
-      "platform_differences": "Approved Web-to-Flutter and STF-agent-to-ADB deviations"
+      "platform_differences": "Approved Web-to-Flutter desktop IME and clipboard transport differences"
     },
     "acceptance_owner": "user",
     "user_confirmed": true
@@ -176,10 +178,10 @@
       "id": "platform_differences",
       "critical": true,
       "status": "verified",
-      "reason": "The Web DOM terminal and STF agent transport have explicit approved Flutter and ADB mappings",
+      "reason": "The Web DOM terminal and clipboard transport have explicit approved Flutter mappings, while pointer gestures retain the reference STF transport",
       "evidence_ids": ["ev-reference-template", "ev-reference-transport", "ev-target-current"],
       "confidence": 0.95,
-      "next_action": "Apply only the approved mappings recorded as deviations"
+      "next_action": "Keep the approved desktop IME and clipboard mappings without changing the reference touch transport"
     },
     {
       "id": "runtime_acceptance",
@@ -277,7 +279,7 @@
       "reference_value": "An unlabelled input terminal is attached to the screen component and no synchronization input bar is rendered",
       "evidence_ids": ["ev-reference-template", "ev-user-web-observation"],
       "target_owner": "DeviceScreenStage hidden IME bridge",
-      "target_value": "A one-pixel fully transparent TextField remains focusable without affecting layout",
+      "target_value": "A full-stage fully transparent TextField is focused programmatically without rendering visible UI and is excluded from pointer hit testing",
       "verification_method": "Source inspection and Flutter static analysis"
     },
     {
@@ -333,8 +335,8 @@
       "reference_value": "Special keys and screen gestures continue through their device-control channels while the terminal owns text input",
       "evidence_ids": ["ev-reference-keyboard", "ev-reference-focus"],
       "target_owner": "DeviceScreenStage keyboard and pointer handlers",
-      "target_value": "Special-key mapping, touch move, touch up, and immediate refresh behavior stay unchanged",
-      "verification_method": "Scoped source diff and Flutter static analysis"
+      "target_value": "Special-key mapping remains unchanged; pointer down, every pointer move, and pointer up are forwarded through the current STF Socket.IO device channel with the same gesture and commit ordering as the Web reference, while wheel and trackpad scroll signals are intentionally not mapped to device gestures",
+      "verification_method": "Reference source trace, scoped target source diff, and Flutter static analysis"
     }
   ],
   "scenarios": [
@@ -395,11 +397,11 @@
       "status": "verified",
       "reason": "Removing the visible input bar must not regress the previously repaired control paths",
       "preconditions": "The device screen is visible and connected",
-      "action": "Use a mapped special key or drag across the rendered phone screen",
+      "action": "Use a mapped special key or drag across the rendered phone screen; separately emit a wheel or trackpad scroll signal over the screen",
       "reference_expected": "Keyboard and gesture commands continue independently of visible input chrome",
-      "target_expected": "Existing special-key and touch gesture handlers execute unchanged and refresh after completion",
+      "target_expected": "Special-key handlers execute unchanged; pointer drag sends Web-equivalent gestureStart, DOWN/MOVE/UP commits, and gestureStop through STF; wheel and trackpad scroll signals do not create device gestures",
       "target_owner": "DeviceScreenStage keyboard and pointer handlers",
-      "verification_method": "Scoped source diff and Flutter static analysis",
+      "verification_method": "Reference source trace, scoped target source diff, and Flutter static analysis",
       "evidence_ids": ["ev-reference-keyboard", "ev-reference-focus", "ev-target-current"],
       "entry_surface_id": "sf-device-screen",
       "reference_item_ids": ["ri-special-keys-gestures"],
@@ -411,15 +413,22 @@
     {
       "id": "dv-flutter-hidden-terminal",
       "reference_item_id": "ri-hidden-input-terminal",
-      "target_change": "Use a one-pixel fully transparent Flutter TextField with programmatic focus instead of a DOM password input",
+      "target_change": "Use a full-stage fully transparent Flutter TextField with natural and programmatic focus instead of a DOM password input",
       "reason": "Flutter needs an EditableText client to receive desktop IME commits while keeping the UI visually absent",
       "approved": true
     },
     {
       "id": "dv-adb-text-transport",
       "reference_item_id": "ri-clipboard-forward",
-      "target_change": "Keep the current ADB ACTION_SET_CLIPBOARD plus KEYCODE_PASTE transport instead of STF Socket.IO agent events",
-      "reason": "The user explicitly selected the ADB compound clipboard path to work across third-party Android keyboards",
+      "target_change": "Forward STF SET_CLIPBOARD protobuf through ADB to localabstract:stfservice, then use KEYCODE_PASTE instead of the reference agent Ctrl+V event",
+      "reason": "Live diagnosis proved the broadcast had no receiver, while the official STF service protocol returned success and worked across the active third-party Android keyboard",
+      "approved": true
+    },
+    {
+      "id": "dv-desktop-ime-bottom-anchor",
+      "reference_item_id": "ri-hidden-input-terminal",
+      "target_change": "Vertically align the transparent Flutter text caret to the bottom of the phone stage",
+      "reason": "The user explicitly requested that the macOS IME candidate window avoid the phone input field and phone keyboard area",
       "approved": true
     }
   ],
@@ -458,6 +467,11 @@
       "id": "ti-adb-transport-deviation",
       "owner": "IDeviceControlService text channel",
       "deviation_id": "dv-adb-text-transport"
+    },
+    {
+      "id": "ti-desktop-ime-bottom-anchor",
+      "owner": "DeviceScreenStage hidden IME bridge",
+      "deviation_id": "dv-desktop-ime-bottom-anchor"
     }
   ],
   "gate": {

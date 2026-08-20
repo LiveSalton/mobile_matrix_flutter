@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'adb_service.dart';
+import 'stf_touch_service.dart';
 
 enum DeviceKeyAction {
   home,
@@ -50,13 +51,7 @@ class AdbDeviceControlService extends ChangeNotifier
   final int realWidth;
   final int realHeight;
   late final AdbInteractiveSession _session;
-
-  double? _downXP;
-  double? _downYP;
-  double? _lastXP;
-  double? _lastYP;
-  DateTime? _downTime;
-  bool _hasMoved = false;
+  late final StfTouchService _touchService;
 
   String _clipboardContent = '';
   final List<String> _commandHistory = [];
@@ -67,6 +62,7 @@ class AdbDeviceControlService extends ChangeNotifier
     required this.realHeight,
   }) {
     _session = AdbInteractiveSession(serial: serial);
+    _touchService = StfTouchService(serial: serial);
   }
 
   List<String> get commandHistory => List.unmodifiable(_commandHistory);
@@ -79,12 +75,12 @@ class AdbDeviceControlService extends ChangeNotifier
     required double yP,
     double pressure = 0.5,
   }) {
-    _downXP = xP;
-    _downYP = yP;
-    _lastXP = xP;
-    _lastYP = yP;
-    _downTime = DateTime.now();
-    _hasMoved = false;
+    _touchService.touchDown(
+      contact: contact,
+      xP: xP,
+      yP: yP,
+      pressure: pressure,
+    );
   }
 
   @override
@@ -94,72 +90,23 @@ class AdbDeviceControlService extends ChangeNotifier
     required double yP,
     double pressure = 0.5,
   }) {
-    if (_downXP == null || _downYP == null) return;
-
-    final startX = (_downXP! * realWidth).round();
-    final startY = (_downYP! * realHeight).round();
-    final currentX = (xP * realWidth).round();
-    final currentY = (yP * realHeight).round();
-
-    final deltaX = (currentX - startX).abs();
-    final deltaY = (currentY - startY).abs();
-
-    if (deltaX > 20 || deltaY > 20) {
-      _hasMoved = true;
-    }
-
-    _lastXP = xP;
-    _lastYP = yP;
+    _touchService.touchMove(
+      contact: contact,
+      xP: xP,
+      yP: yP,
+      pressure: pressure,
+    );
   }
 
   @override
-  Future<void> touchUp({required int contact}) async {
-    if (_downXP == null || _downYP == null) return;
-
-    final startX = (_downXP! * realWidth).round();
-    final startY = (_downYP! * realHeight).round();
-    final endX = ((_lastXP ?? _downXP!) * realWidth).round();
-    final endY = ((_lastYP ?? _downYP!) * realHeight).round();
-
-    final deltaX = (endX - startX).abs();
-    final deltaY = (endY - startY).abs();
-
-    final elapsed = _downTime != null
-        ? DateTime.now().difference(_downTime!).inMilliseconds
-        : 200;
-
-    final Future<void> gesture;
-    if (!_hasMoved && deltaX < 15 && deltaY < 15) {
-      if (elapsed >= 450) {
-        // 长按手势下发
-        gesture = _session.longPressAndWait(
-          startX,
-          startY,
-          elapsed.clamp(500, 1500).toInt(),
-        );
-      } else {
-        // 毫秒级即时短点击
-        gesture = _session.tapAndWait(startX, startY);
-      }
-    } else {
-      // 顺畅滑动手势
-      final duration = elapsed.clamp(80, 400).toInt();
-      gesture = _session.swipeAndWait(startX, startY, endX, endY, duration);
-    }
-
-    // Clear the local gesture before awaiting ADB so a new pointer down cannot
-    // be cleared by a slower previous swipe command.
-    _downXP = null;
-    _downYP = null;
-    _lastXP = null;
-    _lastYP = null;
-    _hasMoved = false;
-
-    await gesture;
+  Future<void> touchUp({required int contact}) {
+    return _touchService.touchUp(contact: contact);
   }
 
   @override
-  void touchCommit() {}
+  void touchCommit() {
+    _touchService.touchCommit();
+  }
 
   @override
   void keyPress(DeviceKeyAction key) {
@@ -222,9 +169,19 @@ class AdbDeviceControlService extends ChangeNotifier
   @override
   Future<bool> pasteText(String text) async {
     if (text.isEmpty) return false;
+    final pasted = await _session.pasteText(text);
+    if (!pasted) {
+      if (kDebugMode) {
+        debugPrint('[AdbInput:$serial] paste failed chars=${text.length}');
+      }
+      return false;
+    }
+
     _clipboardContent = text;
-    await _session.pasteText(text);
     notifyListeners();
+    if (kDebugMode) {
+      debugPrint('[AdbInput:$serial] paste completed chars=${text.length}');
+    }
     return true;
   }
 
@@ -250,6 +207,7 @@ class AdbDeviceControlService extends ChangeNotifier
 
   @override
   void dispose() {
+    _touchService.dispose();
     _session.dispose();
     super.dispose();
   }
