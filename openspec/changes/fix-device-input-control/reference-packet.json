@@ -1,0 +1,466 @@
+{
+  "schema_version": 3,
+  "contract": {
+    "scope_id": "device-screen-hidden-keyboard-bridge",
+    "mode": "architecture-adapted",
+    "reference_kind": "project",
+    "evidence_mode": "source_only",
+    "ui_blueprint_required": false,
+    "in_scope": [
+      "The device screen has no visible desktop text input UI",
+      "Pointer down inside the rendered phone screen focuses the hidden desktop input bridge",
+      "Committed desktop IME text and desktop clipboard paste are forwarded to the focused Android field",
+      "Special keys and pointer gestures retain their existing device-control behavior",
+      "Focus nodes, controllers, timers, and gesture state are cleaned up with the widget lifecycle"
+    ],
+    "out_of_scope": [
+      "Pixel-identical replication of the STF web shell",
+      "Replacing the existing Flutter screen renderer",
+      "Replacing ADB transport with the STF Socket.IO agent protocol",
+      "Adding iOS device-control support",
+      "Running the reference application or target runtime in this source-only pass"
+    ],
+    "allowed_differences": [
+      "Flutter uses a one-pixel fully transparent TextField as the hidden IME bridge instead of the reference DOM password input",
+      "The target keeps the approved ADB clipboard plus Android KEYCODE_PASTE transport instead of STF agent input.type and clipboard.paste events"
+    ],
+    "authority_by_dimension": {
+      "structure_layout": "Reference screen template plus the user's Web runtime observation",
+      "visual_styling": "The user's explicit requirement that no input UI be visible",
+      "states_branches": "Reference screen directive focus and IME source flow",
+      "interactions_accessibility": "Reference screen directive pointer, input, paste, and keyboard handlers",
+      "system_ui_keyboard_permissions": "Reference focus directive and target Flutter IME ownership",
+      "lifecycle_concurrency_cleanup": "Reference directive cleanup and target State disposal",
+      "platform_differences": "Approved Web-to-Flutter and STF-agent-to-ADB deviations"
+    },
+    "acceptance_owner": "user",
+    "user_confirmed": true
+  },
+  "reference": {
+    "kind": "project",
+    "root": "/Users/salton/codeGit/mobile-matrix",
+    "revision": "2e2e7d6280af68264566dba88523ea1e79baecfb",
+    "entry_points": [
+      "vendor/devicefarmer-stf/res/app/components/stf/screen/screen.pug",
+      "vendor/devicefarmer-stf/res/app/components/stf/screen/screen-directive.js",
+      "vendor/devicefarmer-stf/res/app/components/stf/control/control-service.js",
+      "vendor/devicefarmer-stf/lib/units/device/plugins/service.js"
+    ],
+    "source_context": {
+      "platform": "Web desktop controlling Android",
+      "locale": "not applicable to the hidden input bridge",
+      "theme": "not applicable because the input bridge is not visible",
+      "data_prerequisites": "An Android device screen is connected and the phone field has been selected",
+      "inspected_at": "2026-08-20T00:00:00+08:00"
+    }
+  },
+  "dimensions": [
+    {
+      "id": "structure_layout",
+      "critical": true,
+      "status": "verified",
+      "reason": "The reference template contains only an unlabelled input terminal under the screen component; the user confirms no input UI is visible",
+      "evidence_ids": ["ev-reference-template", "ev-user-web-observation"],
+      "confidence": 0.98,
+      "next_action": "Remove the visible Flutter input bar and retain only an invisible focus terminal"
+    },
+    {
+      "id": "visual_styling",
+      "critical": true,
+      "status": "verified",
+      "reason": "The required visual result is the absence of any keyboard or synchronization input chrome",
+      "evidence_ids": ["ev-user-web-observation"],
+      "confidence": 1,
+      "next_action": "Verify no input bar, hint, icon, border, or extra spacing remains"
+    },
+    {
+      "id": "content_i18n",
+      "critical": false,
+      "status": "not_applicable",
+      "reason": "The hidden bridge renders no user-facing copy",
+      "evidence_ids": [],
+      "confidence": 1,
+      "next_action": "none"
+    },
+    {
+      "id": "assets_fonts_icons",
+      "critical": false,
+      "status": "not_applicable",
+      "reason": "No asset, font, or icon is added or changed",
+      "evidence_ids": [],
+      "confidence": 1,
+      "next_action": "none"
+    },
+    {
+      "id": "states_branches",
+      "critical": true,
+      "status": "verified",
+      "reason": "The reference distinguishes unfocused, focused, IME composing, and committed-text behavior",
+      "evidence_ids": ["ev-reference-keyboard", "ev-reference-focus"],
+      "confidence": 0.97,
+      "next_action": "Keep autofocus disabled and forward only committed IME text"
+    },
+    {
+      "id": "interactions_accessibility",
+      "critical": true,
+      "status": "verified",
+      "reason": "Pointer down focuses the terminal; paste, text input, and special keys are explicitly handled",
+      "evidence_ids": ["ev-reference-keyboard", "ev-reference-focus"],
+      "confidence": 0.98,
+      "next_action": "Map the handlers to the hidden Flutter focus terminal"
+    },
+    {
+      "id": "navigation_routes",
+      "critical": false,
+      "status": "not_applicable",
+      "reason": "No route or navigation structure changes",
+      "evidence_ids": [],
+      "confidence": 1,
+      "next_action": "none"
+    },
+    {
+      "id": "data_api_storage",
+      "critical": false,
+      "status": "not_applicable",
+      "reason": "No application data, API, or storage contract changes",
+      "evidence_ids": [],
+      "confidence": 1,
+      "next_action": "none"
+    },
+    {
+      "id": "environment_build_runtime",
+      "critical": false,
+      "status": "not_applicable",
+      "reason": "No build or environment configuration changes",
+      "evidence_ids": [],
+      "confidence": 1,
+      "next_action": "none"
+    },
+    {
+      "id": "system_ui_keyboard_permissions",
+      "critical": true,
+      "status": "verified",
+      "reason": "The reference requests browser input focus from the screen gesture while keeping the terminal visually absent",
+      "evidence_ids": ["ev-reference-focus", "ev-reference-focus-directive"],
+      "confidence": 0.96,
+      "next_action": "Request Flutter focus only after a valid screen pointer down"
+    },
+    {
+      "id": "lifecycle_concurrency_cleanup",
+      "critical": true,
+      "status": "verified",
+      "reason": "The reference stops gesture listeners and the target already owns focus/controller/timer disposal in widget State",
+      "evidence_ids": ["ev-reference-keyboard", "ev-target-current"],
+      "confidence": 0.94,
+      "next_action": "Preserve current disposal and pointer-cancel cleanup"
+    },
+    {
+      "id": "animation_timing",
+      "critical": false,
+      "status": "not_applicable",
+      "reason": "The hidden input bridge has no animation",
+      "evidence_ids": [],
+      "confidence": 1,
+      "next_action": "none"
+    },
+    {
+      "id": "errors_empty_loading_retry",
+      "critical": false,
+      "status": "verified",
+      "reason": "Empty clipboard input is ignored and does not disturb focus",
+      "evidence_ids": ["ev-target-current"],
+      "confidence": 0.95,
+      "next_action": "Preserve the existing empty-clipboard guard"
+    },
+    {
+      "id": "platform_differences",
+      "critical": true,
+      "status": "verified",
+      "reason": "The Web DOM terminal and STF agent transport have explicit approved Flutter and ADB mappings",
+      "evidence_ids": ["ev-reference-template", "ev-reference-transport", "ev-target-current"],
+      "confidence": 0.95,
+      "next_action": "Apply only the approved mappings recorded as deviations"
+    },
+    {
+      "id": "runtime_acceptance",
+      "critical": false,
+      "status": "not_applicable",
+      "reason": "This correction is intentionally limited to source and static acceptance until the user requests another runtime run",
+      "evidence_ids": [],
+      "confidence": 1,
+      "next_action": "User performs connected-device acceptance or explicitly requests a new runtime pass"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "ev-reference-template",
+      "kind": "source",
+      "locator": "/Users/salton/codeGit/mobile-matrix/vendor/devicefarmer-stf/res/app/components/stf/screen/screen.pug:1",
+      "captured_at": "2026-08-20T00:00:00+08:00"
+    },
+    {
+      "id": "ev-reference-keyboard",
+      "kind": "source",
+      "locator": "/Users/salton/codeGit/mobile-matrix/vendor/devicefarmer-stf/res/app/components/stf/screen/screen-directive.js:450",
+      "captured_at": "2026-08-20T00:00:00+08:00"
+    },
+    {
+      "id": "ev-reference-focus",
+      "kind": "source",
+      "locator": "/Users/salton/codeGit/mobile-matrix/vendor/devicefarmer-stf/res/app/components/stf/screen/screen-directive.js:773",
+      "captured_at": "2026-08-20T00:00:00+08:00"
+    },
+    {
+      "id": "ev-reference-focus-directive",
+      "kind": "source",
+      "locator": "/Users/salton/codeGit/mobile-matrix/vendor/devicefarmer-stf/res/app/components/stf/common/focus-element/focus-element-directive.js:1",
+      "captured_at": "2026-08-20T00:00:00+08:00"
+    },
+    {
+      "id": "ev-reference-transport",
+      "kind": "source",
+      "locator": "/Users/salton/codeGit/mobile-matrix/vendor/devicefarmer-stf/lib/units/device/plugins/service.js:300",
+      "captured_at": "2026-08-20T00:00:00+08:00"
+    },
+    {
+      "id": "ev-target-current",
+      "kind": "source",
+      "locator": "/Users/salton/codeGit/mobile_matrix_flutter/lib/views/control/widgets/device_screen_stage.dart:25",
+      "captured_at": "2026-08-20T00:00:00+08:00"
+    },
+    {
+      "id": "ev-user-web-observation",
+      "kind": "user_observation",
+      "locator": "conversation:2026-08-20:Web has no visible input UI and typing begins after selecting a phone input field",
+      "captured_at": "2026-08-20T00:00:00+08:00"
+    }
+  ],
+  "integration_contracts": {
+    "network": [],
+    "animation": [],
+    "asset_sources": []
+  },
+  "runtime_observations": [
+    {
+      "id": "ro-user-web-hidden-input",
+      "outcome": "consistent",
+      "affected_ids": [
+        "structure_layout",
+        "visual_styling",
+        "ri-hidden-input-terminal",
+        "sc-click-screen-then-type"
+      ],
+      "evidence_ids": ["ev-user-web-observation"]
+    }
+  ],
+  "surfaces": [
+    {
+      "id": "sf-device-screen",
+      "surface_type": "control_stage",
+      "critical": true,
+      "status": "verified",
+      "reason": "The rendered phone screen is the root interaction surface and contains no visible keyboard terminal",
+      "parent_surface_id": null,
+      "entry_scenario_id": null,
+      "evidence_ids": ["ev-reference-template", "ev-user-web-observation"]
+    }
+  ],
+  "reference_items": [
+    {
+      "id": "ri-hidden-input-terminal",
+      "item_type": "structure_rule",
+      "scenario_ids": ["sc-before-screen-click", "sc-click-screen-then-type"],
+      "dimension_id": "structure_layout",
+      "critical": true,
+      "status": "verified",
+      "reason": "The terminal exists for keyboard capture without user-facing keyboard chrome",
+      "reference_value": "An unlabelled input terminal is attached to the screen component and no synchronization input bar is rendered",
+      "evidence_ids": ["ev-reference-template", "ev-user-web-observation"],
+      "target_owner": "DeviceScreenStage hidden IME bridge",
+      "target_value": "A one-pixel fully transparent TextField remains focusable without affecting layout",
+      "verification_method": "Source inspection and Flutter static analysis"
+    },
+    {
+      "id": "ri-screen-focus",
+      "item_type": "interaction",
+      "scenario_ids": ["sc-click-screen-then-type", "sc-paste-after-screen-click"],
+      "dimension_id": "interactions_accessibility",
+      "critical": true,
+      "status": "verified",
+      "reason": "The reference focuses its input terminal when a screen gesture starts",
+      "reference_value": "Pointer down or touch start on the device screen focuses the hidden input terminal",
+      "evidence_ids": ["ev-reference-focus"],
+      "target_owner": "DeviceScreenStage._handlePointerDown",
+      "target_value": "A valid pointer down inside the rendered phone rectangle requests hidden input focus",
+      "verification_method": "Source inspection of pointer bounds and focus request"
+    },
+    {
+      "id": "ri-ime-forward",
+      "item_type": "interaction",
+      "scenario_ids": ["sc-click-screen-then-type"],
+      "dimension_id": "states_branches",
+      "critical": true,
+      "status": "verified",
+      "reason": "The reference forwards input-event text and immediately clears the terminal for the next IME commit",
+      "reference_value": "Committed IME text is forwarded once and the hidden terminal is reset",
+      "evidence_ids": ["ev-reference-keyboard"],
+      "target_owner": "DeviceScreenStage._handleImeChanged",
+      "target_value": "Composing text remains local; finalized text is cleared and sent once",
+      "verification_method": "Source inspection of composing range guard and controller reset"
+    },
+    {
+      "id": "ri-clipboard-forward",
+      "item_type": "interaction",
+      "scenario_ids": ["sc-paste-after-screen-click"],
+      "dimension_id": "interactions_accessibility",
+      "critical": true,
+      "status": "verified",
+      "reason": "The reference prevents local paste and forwards text/plain to the device",
+      "reference_value": "Paste reads desktop plain text and forwards it exactly once to the device",
+      "evidence_ids": ["ev-reference-keyboard", "ev-reference-transport"],
+      "target_owner": "DeviceScreenStage._pasteDesktopClipboard and IDeviceControlService",
+      "target_value": "Cmd/Ctrl+V reads desktop plain text and uses the existing Android clipboard plus KEYCODE_PASTE channel",
+      "verification_method": "Source trace from keyboard handler through the device control service"
+    },
+    {
+      "id": "ri-special-keys-gestures",
+      "item_type": "interaction",
+      "scenario_ids": ["sc-special-key-and-swipe"],
+      "dimension_id": "interactions_accessibility",
+      "critical": true,
+      "status": "verified",
+      "reason": "The reference forwards keyboard and gesture events independently of visible input UI",
+      "reference_value": "Special keys and screen gestures continue through their device-control channels while the terminal owns text input",
+      "evidence_ids": ["ev-reference-keyboard", "ev-reference-focus"],
+      "target_owner": "DeviceScreenStage keyboard and pointer handlers",
+      "target_value": "Special-key mapping, touch move, touch up, and immediate refresh behavior stay unchanged",
+      "verification_method": "Scoped source diff and Flutter static analysis"
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "sc-before-screen-click",
+      "critical": true,
+      "status": "verified",
+      "reason": "The corrected interaction must not capture desktop typing before the user selects the phone screen",
+      "preconditions": "The device control stage is visible and has not received a valid screen pointer down",
+      "action": "Type on the desktop keyboard",
+      "reference_expected": "The hidden terminal is not automatically focused and no input UI is visible",
+      "target_expected": "The Flutter hidden terminal uses autofocus false and remains visually absent",
+      "target_owner": "DeviceScreenStage hidden IME bridge",
+      "verification_method": "Source inspection of TextField configuration and widget placement",
+      "evidence_ids": ["ev-reference-template", "ev-user-web-observation"],
+      "entry_surface_id": "sf-device-screen",
+      "reference_item_ids": ["ri-hidden-input-terminal"],
+      "result_surface_ids": ["sf-device-screen"],
+      "cleanup_result": "The stage remains unchanged and ready for a screen click"
+    },
+    {
+      "id": "sc-click-screen-then-type",
+      "critical": true,
+      "status": "verified",
+      "reason": "This is the primary Web STF keyboard interaction requested by the user",
+      "preconditions": "A phone application text field is visible in the streamed device screen",
+      "action": "Click the phone field in the device screen, then commit desktop IME text",
+      "reference_expected": "Screen gesture focus activates the hidden terminal; committed text is forwarded and the terminal is cleared",
+      "target_expected": "The screen click reaches Android, focuses the hidden Flutter terminal, and finalized text uses the device text channel once",
+      "target_owner": "DeviceScreenStage pointer, IME, and text-send handlers",
+      "verification_method": "Source trace plus later connected-device acceptance",
+      "evidence_ids": ["ev-reference-keyboard", "ev-reference-focus", "ev-user-web-observation"],
+      "entry_surface_id": "sf-device-screen",
+      "reference_item_ids": ["ri-hidden-input-terminal", "ri-screen-focus", "ri-ime-forward"],
+      "result_surface_ids": ["sf-device-screen"],
+      "cleanup_result": "The hidden terminal is empty and remains focused for the next committed text"
+    },
+    {
+      "id": "sc-paste-after-screen-click",
+      "critical": true,
+      "status": "verified",
+      "reason": "Desktop clipboard forwarding is part of the requested control path",
+      "preconditions": "The phone field was selected through the device screen and desktop clipboard contains plain text",
+      "action": "Press Cmd+V on macOS or Ctrl+V on Windows/Linux",
+      "reference_expected": "Desktop plain text is forwarded once without leaving visible text in the terminal",
+      "target_expected": "Desktop plain text is written to the Android clipboard and KEYCODE_PASTE is sent once",
+      "target_owner": "DeviceScreenStage and IDeviceControlService",
+      "verification_method": "Source trace plus later connected-device acceptance",
+      "evidence_ids": ["ev-reference-keyboard", "ev-reference-transport"],
+      "entry_surface_id": "sf-device-screen",
+      "reference_item_ids": ["ri-screen-focus", "ri-clipboard-forward"],
+      "result_surface_ids": ["sf-device-screen"],
+      "cleanup_result": "The hidden terminal remains empty and focused"
+    },
+    {
+      "id": "sc-special-key-and-swipe",
+      "critical": true,
+      "status": "verified",
+      "reason": "Removing the visible input bar must not regress the previously repaired control paths",
+      "preconditions": "The device screen is visible and connected",
+      "action": "Use a mapped special key or drag across the rendered phone screen",
+      "reference_expected": "Keyboard and gesture commands continue independently of visible input chrome",
+      "target_expected": "Existing special-key and touch gesture handlers execute unchanged and refresh after completion",
+      "target_owner": "DeviceScreenStage keyboard and pointer handlers",
+      "verification_method": "Scoped source diff and Flutter static analysis",
+      "evidence_ids": ["ev-reference-keyboard", "ev-reference-focus", "ev-target-current"],
+      "entry_surface_id": "sf-device-screen",
+      "reference_item_ids": ["ri-special-keys-gestures"],
+      "result_surface_ids": ["sf-device-screen"],
+      "cleanup_result": "No pointer, timer, or local editing state remains after gesture completion or widget disposal"
+    }
+  ],
+  "deviations": [
+    {
+      "id": "dv-flutter-hidden-terminal",
+      "reference_item_id": "ri-hidden-input-terminal",
+      "target_change": "Use a one-pixel fully transparent Flutter TextField with programmatic focus instead of a DOM password input",
+      "reason": "Flutter needs an EditableText client to receive desktop IME commits while keeping the UI visually absent",
+      "approved": true
+    },
+    {
+      "id": "dv-adb-text-transport",
+      "reference_item_id": "ri-clipboard-forward",
+      "target_change": "Keep the current ADB ACTION_SET_CLIPBOARD plus KEYCODE_PASTE transport instead of STF Socket.IO agent events",
+      "reason": "The user explicitly selected the ADB compound clipboard path to work across third-party Android keyboards",
+      "approved": true
+    }
+  ],
+  "target_inventory": [
+    {
+      "id": "ti-hidden-ime-terminal",
+      "owner": "DeviceScreenStage hidden IME bridge",
+      "reference_item_id": "ri-hidden-input-terminal"
+    },
+    {
+      "id": "ti-pointer-focus",
+      "owner": "DeviceScreenStage._handlePointerDown",
+      "reference_item_id": "ri-screen-focus"
+    },
+    {
+      "id": "ti-ime-forward",
+      "owner": "DeviceScreenStage._handleImeChanged",
+      "reference_item_id": "ri-ime-forward"
+    },
+    {
+      "id": "ti-clipboard-forward",
+      "owner": "DeviceScreenStage._pasteDesktopClipboard",
+      "reference_item_id": "ri-clipboard-forward"
+    },
+    {
+      "id": "ti-special-keys-gestures",
+      "owner": "DeviceScreenStage keyboard and pointer handlers",
+      "reference_item_id": "ri-special-keys-gestures"
+    },
+    {
+      "id": "ti-flutter-terminal-deviation",
+      "owner": "DeviceScreenStage hidden IME bridge",
+      "deviation_id": "dv-flutter-hidden-terminal"
+    },
+    {
+      "id": "ti-adb-transport-deviation",
+      "owner": "IDeviceControlService text channel",
+      "deviation_id": "dv-adb-text-transport"
+    }
+  ],
+  "gate": {
+    "implementation_allowed": true
+  }
+}
