@@ -92,6 +92,33 @@ abstract class IScreenStreamService extends ChangeNotifier {
   void triggerImmediateRefresh();
 }
 
+/// Keeps the Flutter tool workspace compatible while the WebView owns the
+/// actual STF screen stream and all screen interaction.
+class PassiveScreenStreamService extends IScreenStreamService {
+  static final Stream<Uint8List> _emptyFrames = Stream<Uint8List>.empty();
+
+  @override
+  Stream<Uint8List> get frameStream => _emptyFrames;
+
+  @override
+  StreamState get state => StreamState.streaming;
+
+  @override
+  void startStream() {}
+
+  @override
+  void stopStream() {}
+
+  @override
+  void setStreamEnabled(bool enabled) {}
+
+  @override
+  void requestResolution(int width, int height) {}
+
+  @override
+  void triggerImmediateRefresh() {}
+}
+
 /// STF minicap WebSocket 流服务
 class StfMinicapStreamService extends IScreenStreamService {
   final String wsUrl;

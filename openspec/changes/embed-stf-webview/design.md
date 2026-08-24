@@ -2,7 +2,7 @@
 
 ## 责任边界
 
-Flutter 负责设备选择、页面布局、STF 服务健康状态、WebView 生命周期和回退入口。WKWebView 负责 STF Web 的 DOM、隐藏输入端、鼠标/触控板事件、浏览器输入法、剪贴板、Socket.IO 和屏幕 WebSocket。STF 服务端和 vendor Web 源码不改动。
+Flutter 负责设备发现、顺序列表、页面布局、每个设备的 STF 服务健康状态和 WebView 生命周期。每个 WKWebView 负责对应 STF Web 的 DOM、隐藏输入端、鼠标/触控板事件、浏览器输入法、剪贴板、Socket.IO 和屏幕 WebSocket。STF 服务端和 vendor Web 源码不改动。
 
 ## 页面与路由
 
@@ -12,7 +12,9 @@ Flutter 负责设备选择、页面布局、STF 服务健康状态、WebView 生
 http://127.0.0.1:7100/#!/c/<serial>?standalone
 ```
 
-STF 的 standalone 模板只包含 `device-screen`，适合放在 Flutter 左侧手机舞台。Flutter 右侧 `DeviceWorkspace` 继续保留业务工具；WebView 舞台本身不再叠加 Flutter `Listener`、`TextField`、触控反馈或渲染器。
+STF 的 standalone 模板只包含 `device-screen`，每个设备卡片只承载一个对应 WebView。Flutter 不再渲染右侧 `DeviceWorkspace`，WebView 舞台本身不再叠加 Flutter `Listener`、`TextField`、触控反馈或渲染器。
+
+设备卡片按照 `AdbService.getConnectedDevices()` 返回顺序构建，使用设备序列号作为稳定 Key。设备新增、断开或顺序变化时，已有设备的 WebView 不复用到其他序列号；每台设备拥有独立的 `StfWebSessionService`，避免一个页面的加载错误覆盖其他设备。
 
 ## WebView 会话
 
@@ -28,16 +30,11 @@ STF 的 standalone 模板只包含 `device-screen`，适合放在 Flutter 左侧
 
 ## 控制面互斥
 
-`DeviceControlPage` 增加 `ControlSurfaceMode`：
-
-- `web`: 左侧使用 `StfWebViewStage`，右侧工具继续使用 Flutter 服务。
-- `native`: 使用已有 `DeviceScreenStage`，用于 WebView 失败时回退。
-
-模式切换时，先停止旧控制面，再创建新控制面。Web 模式下不启动或不展示原生手机画面，避免两个屏幕 WebSocket 和两个触控入口同时存在；回退到 native 时才恢复旧屏幕流和 Flutter 触控服务。
+设备墙默认只启用 Web 控制面；同一张设备卡片不叠加原生 Flutter 触控层、输入层或屏幕渲染器，避免两个触控入口同时存在。WebView 加载失败时提供本卡片重试入口；旧 Dart native 舞台继续保留在代码库中，暂不作为多设备墙的默认渲染路径。
 
 ## 键盘与剪贴板
 
-WebView 获得焦点后不由 Flutter 外层 `Focus` 抢占按键。Cmd/Ctrl+V、中文输入法组合串、回车和退格全部留给 STF Web 页面处理。Flutter 右侧工具仍可使用现有 ADB 文本/按键服务，但不向 WebView 手机画面转发重复输入。
+WebView 获得焦点后不由 Flutter 外层 `Focus` 抢占按键。Cmd/Ctrl+V、中文输入法组合串、回车和退格全部留给 STF Web 页面处理；Flutter 不再提供右侧工具箱向手机画面转发重复输入。
 
 ## 错误与可观测性
 

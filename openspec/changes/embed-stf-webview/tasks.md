@@ -3,20 +3,21 @@
 ## OpenSpec / 依赖
 
 - [x] 1.1 创建 WebView 嵌入变更，明确 Web 页面负责手机舞台交互、Flutter 负责容器和设备状态。
-- [ ] 1.2 增加官方 `webview_flutter` 依赖并完成 macOS 插件注册与依赖获取。
+- [x] 1.2 增加官方 `webview_flutter` 依赖并完成 macOS 插件注册与依赖获取。
 
 ## Flutter WebView 实现
 
-- [ ] 2.1 新增 `StfWebSessionService`，实现 STF 健康检查、standalone URL、Cookie 保留、导航/脚本错误日志和重试状态。
-- [ ] 2.2 新增 `StfWebViewStage`，以原生 WebView 加载 `#!/c/<serial>?standalone`，不叠加 Flutter 触控或输入层。
-- [ ] 2.3 将设备控制页左侧手机舞台接入 WebView 模式，设备切换时正确销毁旧页面并加载新 serial。
-- [ ] 2.4 保持 Flutter 右侧业务工作区可用，并确保 Web/native 两个控制面互斥。
-- [ ] 2.5 增加 WebView 未就绪时的重试和 native 回退入口。
+- [x] 2.1 新增 `StfWebSessionService`，实现 STF 健康检查、standalone URL、Cookie 保留、导航/脚本错误日志和重试状态。
+- [x] 2.2 新增 `StfWebViewStage`，以原生 WebView 加载 `#!/c/<serial>?standalone`，不叠加 Flutter 触控或输入层。
+- [x] 2.3 将设备控制页左侧手机舞台接入 WebView 模式，设备切换时正确销毁旧页面并加载新 serial。
+- [ ] 2.4 移除右侧群控与设备工具箱，仅保留按连接顺序排列的 WebView 设备墙。
+- [ ] 2.5 为每台设备创建独立 STF Web 会话和 WebView，确保加载状态、错误和 Cookie 不跨设备污染。
+- [x] 2.6 增加 WebView 未就绪时的按卡片重试入口。
 
 ## 验收
 
-- [ ] 3.1 Flutter 格式化、静态分析和 macOS Debug 构建通过。
-- [ ] 3.2 STF Web 页面在 WebView 中加载并显示荣耀 Magic 6 Pro standalone 手机画面。
+- [x] 3.1 Flutter 格式化、静态分析和 macOS Debug 构建通过。
+- [x] 3.2 STF Web 页面在 WebView 中加载并显示荣耀 Magic 6 Pro standalone 手机画面。
 - [ ] 3.3 验证点击手机输入框后电脑中文输入法直接输入，且不出现 Flutter 输入框。
 - [ ] 3.4 验证 Cmd/Ctrl+V 的中文、Emoji、长文本粘贴。
 - [ ] 3.5 验证鼠标拖动和 Mac 双指行为与 Web 端一致，手机在拖动过程中实时跟手。

@@ -4,10 +4,10 @@ Flutter 自己重现 STF Web 的屏幕流、隐藏输入、鼠标事件和 Socke
 
 ## What Changes
 
-- 在 Flutter macOS 控制台中嵌入原生 WebView，加载 STF 的 standalone 设备控制路由。
-- 将手机屏幕的点击、拖动、滚轮、键盘、输入法和剪贴板事件完全交给 WebView 内的 STF Web 页面处理。
-- Flutter 保留设备发现、设备切换、顶部导航、右侧业务工作区和 STF 服务不可用提示。
-- WebView 按当前设备序列号切换 `#!/c/<serial>?standalone` 路由，并复用 STF Web 的 Cookie、Socket.IO 和屏幕 WebSocket。
+- 在 Flutter macOS 控制台中嵌入多个原生 WebView，按设备发现顺序加载 STF 的 standalone 设备控制路由。
+- 将每台手机屏幕的点击、拖动、滚轮、键盘、输入法和剪贴板事件完全交给对应 WebView 内的 STF Web 页面处理。
+- Flutter 保留设备发现、设备列表刷新、顶部导航和 STF 服务不可用提示，移除右侧群控与设备工具箱。
+- 每个 WebView 按设备序列号加载独立的 `#!/c/<serial>?standalone` 页面，并独立维护页面加载状态；Cookie、Socket.IO 和屏幕 WebSocket 由对应 Web 页面复用。
 - 第一阶段保留原 Flutter 屏幕舞台作为可回退路径；WebView 真机验收通过后再移除重复的 Dart 触控/屏幕流实现。
 
 ## Capabilities
@@ -22,7 +22,7 @@ Flutter 自己重现 STF Web 的屏幕流、隐藏输入、鼠标事件和 Socke
 
 ## Impact
 
-- Flutter：新增 WebView 依赖、WebView 舞台和 STF Web 会话状态管理；控制页改为可切换 Web/native 舞台。
+- Flutter：新增 WebView 依赖、WebView 舞台和 STF Web 会话状态管理；控制页改为按设备顺序展示多张 WebView 卡片。
 - macOS：使用系统 WKWebView；当前工程已有网络客户端 entitlement，无需新增权限。
 - STF：不修改 STF Web 源码、Socket.IO 协议或设备服务，只加载现有本地 Web 服务。
 - 验收：需要本机 STF HTTP 服务可用，并在荣耀 Magic 6 Pro 真机上验证输入、粘贴和实时拖动。
