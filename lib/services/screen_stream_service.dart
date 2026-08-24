@@ -333,6 +333,9 @@ class SmartScreenStreamService extends IScreenStreamService {
   bool _isEnabled = true;
   bool _isResolving = false;
   bool _isDisposed = false;
+  bool _isStarted = true;
+  bool _preferInitialStreamUrl = true;
+  bool _recoveryScheduled = false;
 
   SmartScreenStreamService({
     required this.serial,
@@ -352,23 +355,37 @@ class SmartScreenStreamService extends IScreenStreamService {
   @override
   String? get errorMessage => _activeService?.errorMessage ?? _errorMessage;
 
-  Future<void> _resolveStfStream() async {
-    if (_isDisposed || _isResolving || _activeService != null) return;
+  Future<void> _resolveStfStream({bool forceResolve = false}) async {
+    if (!_isStarted || _isDisposed || _isResolving || _activeService != null) {
+      return;
+    }
     _isResolving = true;
     _state = StreamState.connecting;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      var wsUrl = initialStreamUrl?.trim();
+      var wsUrl = forceResolve || !_preferInitialStreamUrl
+          ? null
+          : initialStreamUrl?.trim();
       if (wsUrl == null || wsUrl.isEmpty) {
+        _preferInitialStreamUrl = false;
         final port = await AdbService.resolveDeviceScreenPort(serial);
         if (port != null && port > 0) {
           wsUrl = 'ws://127.0.0.1:$port';
+          if (kDebugMode) {
+            debugPrint(
+              '[SmartScreenStream:$serial] resolved STF screen port $port',
+            );
+          }
+        } else if (kDebugMode) {
+          debugPrint(
+            '[SmartScreenStream:$serial] STF screen port is unavailable',
+          );
         }
       }
 
-      if (_isDisposed) return;
+      if (_isDisposed || !_isStarted) return;
       if (wsUrl == null || wsUrl.isEmpty) {
         _setResolutionError();
         return;
@@ -391,13 +408,14 @@ class SmartScreenStreamService extends IScreenStreamService {
     }
   }
 
-  void _setResolutionError() {
+  void _setResolutionError([String message = '未找到当前设备的 STF 屏幕服务，正在重试']) {
     _state = StreamState.error;
-    _errorMessage = '未找到当前设备的 STF 屏幕服务，正在重试';
+    _errorMessage = message;
     notifyListeners();
     _resolutionRetryTimer?.cancel();
     _resolutionRetryTimer = Timer(const Duration(seconds: 2), () {
-      unawaited(_resolveStfStream());
+      _resolutionRetryTimer = null;
+      unawaited(_resolveStfStream(forceResolve: true));
     });
   }
 
@@ -422,11 +440,47 @@ class SmartScreenStreamService extends IScreenStreamService {
 
   void _handleActiveStateChanged() {
     if (_isDisposed) return;
+
+    final service = _activeService;
+    if (service != null && service.state == StreamState.error) {
+      final message = service.errorMessage ?? 'STF 屏幕连接已断开，正在重新解析服务';
+      if (!_recoveryScheduled) {
+        _recoveryScheduled = true;
+        scheduleMicrotask(() {
+          _recoveryScheduled = false;
+          if (_isDisposed ||
+              !_isStarted ||
+              !identical(_activeService, service)) {
+            return;
+          }
+          _detachActiveService();
+          _setResolutionError(message);
+        });
+      }
+      return;
+    }
+
     notifyListeners();
+  }
+
+  void _detachActiveService() {
+    final subscription = _activeSubscription;
+    _activeSubscription = null;
+    if (subscription != null) {
+      unawaited(subscription.cancel());
+    }
+
+    final service = _activeService;
+    _activeService = null;
+    if (service != null) {
+      service.removeListener(_handleActiveStateChanged);
+      service.dispose();
+    }
   }
 
   @override
   void startStream() {
+    _isStarted = true;
     final service = _activeService;
     if (service != null) {
       service.startStream();
@@ -437,7 +491,9 @@ class SmartScreenStreamService extends IScreenStreamService {
 
   @override
   void stopStream() {
+    _isStarted = false;
     _resolutionRetryTimer?.cancel();
+    _resolutionRetryTimer = null;
     _activeService?.stopStream();
     _state = StreamState.disconnected;
     notifyListeners();
@@ -449,8 +505,10 @@ class SmartScreenStreamService extends IScreenStreamService {
     _isEnabled = enabled;
     final service = _activeService;
     if (service != null) {
+      if (enabled) _isStarted = true;
       service.setStreamEnabled(enabled);
     } else {
+      _isStarted = enabled;
       _state = enabled ? StreamState.connecting : StreamState.paused;
       notifyListeners();
       if (enabled) unawaited(_resolveStfStream());
@@ -475,7 +533,9 @@ class SmartScreenStreamService extends IScreenStreamService {
 
   @override
   void dispose() {
+    _isStarted = false;
     _isDisposed = true;
+    _recoveryScheduled = false;
     _resolutionRetryTimer?.cancel();
     _activeSubscription?.cancel();
     _activeService?.removeListener(_handleActiveStateChanged);

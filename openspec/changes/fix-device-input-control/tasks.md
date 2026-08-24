@@ -17,6 +17,7 @@
 - [x] 2.7 将设备触控切换为 Web 原版 STF Socket.IO 链路，动态解析设备 channel，并逐事件发送 `gestureStart`、DOWN/MOVE/UP commit、`gestureStop` 到 minitouch。
 - [x] 2.8 让透明 IME 代理退出命中测试，避免桌面输入焦点重定向或取消正在进行的画布拖动。
 - [x] 2.9 对齐 Web STF 的 `SeqQueue(100)`，让触控序号按 `0..99` 循环，避免长时间操作后服务端丢弃事件。
+- [x] 2.10 屏幕 WebSocket 断开或 STF 屏幕子进程重启后，按当前设备序列号重新解析并绑定最新屏幕端口，不永久重试失效端口。
 
 ## 静态验收
 
@@ -26,4 +27,4 @@
 - [x] 3.4 桌面输入法候选窗底部锚点已热更新到当前调试进程；最终候选窗视觉位置由用户在当前窗口验收。
 - [x] 3.5 核对目标端不存在 `PointerScrollEvent`/`onPointerSignal` 设备手势入口，并通过 Flutter、Reference Packet 与 OpenSpec 静态校验。
 - [x] 3.6 使用荣耀 Magic 6 Pro 对 Dart STF 触控通道执行真机验证：在 UP 前的停顿截图中列表已经移动，后续 MOVE 继续推动列表，确认不是抬手后才合成滑动。
-- [ ] 3.7 对最终清理后的实现重新执行格式化、Flutter 静态分析、Reference Packet、OpenSpec、macOS Debug 构建与运行连接检查。
+- [x] 3.7 对最终清理后的实现重新执行格式化、Flutter 静态分析、Reference Packet、OpenSpec、macOS Debug 构建与运行连接检查。

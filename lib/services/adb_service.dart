@@ -616,16 +616,22 @@ class AdbService {
   static Future<int?> resolveDeviceScreenPort(String serial) async {
     try {
       final psRes = await Process.run('ps', [
-        'aux',
+        '-axww',
+        '-o',
+        'command=',
       ]).timeout(const Duration(seconds: 2));
       if (psRes.exitCode == 0) {
         final stdout = psRes.stdout.toString();
         final lines = LineSplitter.split(stdout);
+        final serialArgument = RegExp(
+          r'--serial(?:=|\s+)' + RegExp.escape(serial) + r'(?:\s|$)',
+        );
         for (final line in lines) {
-          if (line.contains('stf') &&
-              line.contains('device') &&
-              line.contains(serial)) {
-            final match = RegExp(r'--screen-port\s+(\d+)').firstMatch(line);
+          if (line.toLowerCase().contains('stf') &&
+              serialArgument.hasMatch(line)) {
+            final match = RegExp(
+              r'--screen-port(?:=|\s+)(\d+)',
+            ).firstMatch(line);
             if (match != null) {
               final port = int.tryParse(match.group(1)!);
               if (port != null && port > 0) {

@@ -76,3 +76,8 @@
 
 - **WHEN** 用户在 ADB 交互 shell 或 STF Socket.IO 触控连接尚未完全建立时点击、输入或粘贴
 - **THEN** 文本/按键 SHALL 等待 ADB 会话后按提交顺序执行，必要时逐条回退到独立 `adb shell`；触控 SHALL 暂存首个完整手势并在 STF 设备 channel 建立后按事件顺序发送，不得静默丢弃首个操作
+
+#### Scenario: 切换设备或 STF 屏幕进程重启后恢复画面
+
+- **WHEN** 当前设备切换，或 STF 为当前设备重启了屏幕子进程导致原屏幕 WebSocket 断开
+- **THEN** 屏幕流 SHALL 释放旧 WebSocket，按当前设备序列号重新解析最新 `--screen-port` 并自动重连；不得持续使用旧端口并长期显示“未找到当前设备的 STF 屏幕服务”
