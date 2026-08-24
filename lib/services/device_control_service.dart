@@ -36,6 +36,9 @@ abstract class IDeviceControlService {
   });
   Future<void> touchUp({required int contact});
   void touchCommit();
+  void rawKeyDown(String keyName);
+  void rawKeyUp(String keyName);
+  void rawKeyPress(String keyName);
   void keyPress(DeviceKeyAction key);
   Future<bool> typeText(String text);
   Future<bool> pasteText(String text);
@@ -106,6 +109,21 @@ class AdbDeviceControlService extends ChangeNotifier
   @override
   void touchCommit() {
     _touchService.touchCommit();
+  }
+
+  @override
+  void rawKeyDown(String keyName) {
+    _touchService.keyDown(keyName);
+  }
+
+  @override
+  void rawKeyUp(String keyName) {
+    _touchService.keyUp(keyName);
+  }
+
+  @override
+  void rawKeyPress(String keyName) {
+    _touchService.keyPress(keyName);
   }
 
   @override
@@ -265,6 +283,21 @@ class MockDeviceControlService extends ChangeNotifier
   @override
   void touchCommit() {
     _logAction('touchCommit seq=$_nextSeq');
+  }
+
+  @override
+  void rawKeyDown(String keyName) {
+    _logAction('rawKeyDown: $keyName');
+  }
+
+  @override
+  void rawKeyUp(String keyName) {
+    _logAction('rawKeyUp: $keyName');
+  }
+
+  @override
+  void rawKeyPress(String keyName) {
+    _logAction('rawKeyPress: $keyName');
   }
 
   @override

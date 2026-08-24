@@ -3,16 +3,32 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
+class ScreenFpsStats {
+  final int received;
+  final int rendered;
+  final int dropped;
+  final double lastDecodeMs;
+
+  const ScreenFpsStats({
+    this.received = 0,
+    this.rendered = 0,
+    this.dropped = 0,
+    this.lastDecodeMs = 0,
+  });
+
+  static const empty = ScreenFpsStats();
+}
+
 class FastScreenRenderer extends StatefulWidget {
   final Stream<Uint8List> frameStream;
   final Widget? placeholder;
-  final bool showFps;
+  final ValueChanged<ScreenFpsStats>? onFpsChanged;
 
   const FastScreenRenderer({
     super.key,
     required this.frameStream,
     this.placeholder,
-    this.showFps = true,
+    this.onFpsChanged,
   });
 
   @override
@@ -132,6 +148,14 @@ class _FastScreenRendererState extends State<FastScreenRenderer> {
           renderTime.difference(startTime).inMicroseconds / 1000.0;
       _recordRenderedFrame(renderTime);
       _lastDecodeMs = frameCost;
+      widget.onFpsChanged?.call(
+        ScreenFpsStats(
+          received: _receivedFps,
+          rendered: _renderedFps,
+          dropped: _droppedFrames,
+          lastDecodeMs: _lastDecodeMs,
+        ),
+      );
 
       final oldImage = _activeImage;
       setState(() {
@@ -151,16 +175,6 @@ class _FastScreenRendererState extends State<FastScreenRenderer> {
     }
   }
 
-  Color _getFpsColor(int fps) {
-    if (fps >= 45) {
-      return const Color(0xFF00D591); // 绿色
-    } else if (fps >= 25) {
-      return const Color(0xFFFF9124); // 黄色
-    } else {
-      return const Color(0xFFEF4444); // 红色
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Stack(
@@ -175,67 +189,6 @@ class _FastScreenRendererState extends State<FastScreenRenderer> {
                 )
               : (widget.placeholder ?? const SizedBox.shrink()),
         ),
-
-        // 屏幕左上角实时 FPS 检测 HUD (始终显示)
-        if (widget.showFps)
-          Positioned(
-            top: 10,
-            left: 10,
-            child: IgnorePointer(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xCC000000),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: _getFpsColor(_renderedFps).withValues(alpha: 0.8),
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _getFpsColor(_renderedFps).withValues(alpha: 0.35),
-                      blurRadius: 10,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 7,
-                      height: 7,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: _getFpsColor(_renderedFps),
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'IN $_receivedFps · OUT $_renderedFps · DROP $_droppedFrames',
-                      style: TextStyle(
-                        color: _getFpsColor(_renderedFps),
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'monospace',
-                      ),
-                    ),
-                    if (_lastDecodeMs > 0) ...[
-                      const SizedBox(width: 6),
-                      Text(
-                        '· ${_lastDecodeMs.toStringAsFixed(1)}ms',
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.7),
-                          fontSize: 10,
-                          fontFamily: 'monospace',
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ),
       ],
     );
   }

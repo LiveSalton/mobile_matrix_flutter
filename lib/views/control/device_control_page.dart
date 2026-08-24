@@ -164,6 +164,7 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
               // 顶部导航栏
               AppHeader(
                 currentDevice: _currentDevice,
+                currentTheme: widget.themeController.currentTheme,
                 availableDevices: _devices,
                 onDeviceSelected: _handleDeviceChanged,
                 onRefreshDevices: _scanAdbDevices,

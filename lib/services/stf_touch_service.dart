@@ -67,6 +67,18 @@ class StfTouchService {
     _enqueue('input.touchCommit');
   }
 
+  void keyDown(String keyName) {
+    _enqueue('input.keyDown', <String, Object>{'key': keyName});
+  }
+
+  void keyUp(String keyName) {
+    _enqueue('input.keyUp', <String, Object>{'key': keyName});
+  }
+
+  void keyPress(String keyName) {
+    _enqueue('input.keyPress', <String, Object>{'key': keyName});
+  }
+
   void _enqueue(String name, [Map<String, Object>? values]) {
     if (_isDisposed) return;
 

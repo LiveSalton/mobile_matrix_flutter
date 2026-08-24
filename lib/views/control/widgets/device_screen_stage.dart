@@ -3,8 +3,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../models/device_model.dart';
+import '../../../services/android_keyboard_mapper.dart';
 import '../../../services/device_control_service.dart';
 import '../../../services/scaling_coordinator.dart';
+import '../../../services/screen_capture_service.dart';
 import '../../../services/screen_stream_service.dart';
 import '../../../theme/app_theme.dart';
 import 'fast_screen_renderer.dart';
@@ -28,25 +30,28 @@ class DeviceScreenStage extends StatefulWidget {
 }
 
 class _DeviceScreenStageState extends State<DeviceScreenStage> {
-  late final FocusNode _imeFocusNode;
-  late final TextEditingController _imeController;
+  late final FocusNode _rawKeyboardFocusNode;
+  late ScreenCaptureService _captureService;
+  bool _pasteShortcutActive = false;
+  bool _isCopyingScreenshot = false;
 
   late ScalingCoordinator _coordinator;
   Offset? _touchPosition;
-  NormalizedPoint? _lastNormalizedPoint;
   bool _isPointerDown = false;
   bool _isLongPressActive = false;
   Timer? _longPressVisualTimer;
   ScreenViewport? _latestViewport;
   ScreenViewport? _submittedViewport;
   bool _viewportUpdateScheduled = false;
+  final ValueNotifier<ScreenFpsStats> _fpsStatsNotifier = ValueNotifier(
+    ScreenFpsStats.empty,
+  );
 
   @override
   void initState() {
     super.initState();
-    _imeFocusNode = FocusNode(onKeyEvent: _handleKeyboardPassthrough);
-    _imeFocusNode.addListener(_handleImeFocusChanged);
-    _imeController = TextEditingController();
+    _rawKeyboardFocusNode = FocusNode(onKeyEvent: _handleKeyboardPassthrough);
+    _captureService = ScreenCaptureService(serial: widget.device.serial);
     _initCoordinator();
   }
 
@@ -59,20 +64,98 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
       _submittedViewport = null;
     }
     if (oldWidget.streamService != widget.streamService) {
+      _fpsStatsNotifier.value = ScreenFpsStats.empty;
       _submittedViewport = null;
       final viewport = _latestViewport;
       if (viewport != null) {
         _scheduleViewportUpdate(viewport);
       }
     }
+    if (oldWidget.device.serial != widget.device.serial) {
+      _fpsStatsNotifier.value = ScreenFpsStats.empty;
+      _captureService = ScreenCaptureService(serial: widget.device.serial);
+    }
   }
 
   @override
   void dispose() {
     _longPressVisualTimer?.cancel();
-    _imeFocusNode.dispose();
-    _imeController.dispose();
+    _rawKeyboardFocusNode.dispose();
+    _fpsStatsNotifier.dispose();
     super.dispose();
+  }
+
+  void _handleFpsChanged(ScreenFpsStats stats) {
+    if (mounted) {
+      _fpsStatsNotifier.value = stats;
+    }
+  }
+
+  Future<void> _handleScreenshot() async {
+    if (_isCopyingScreenshot) return;
+
+    setState(() {
+      _isCopyingScreenshot = true;
+    });
+    try {
+      await _captureService.copyScreenshotToClipboard();
+      if (!mounted) return;
+      _showCaptureMessage('屏幕截图已复制到剪贴板');
+    } catch (error) {
+      if (!mounted) return;
+      _showCaptureMessage('截取屏幕失败：$error');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCopyingScreenshot = false;
+        });
+      }
+    }
+  }
+
+  void _showCaptureMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text(message), duration: const Duration(seconds: 4)),
+      );
+  }
+
+  Color _getFpsColor(int fps, AppColorTokens tokens) {
+    if (fps >= 45) return tokens.success;
+    if (fps >= 25) return tokens.warning;
+    return tokens.danger;
+  }
+
+  Widget _buildFpsIndicator(ScreenFpsStats stats, AppColorTokens tokens) {
+    final color = _getFpsColor(stats.rendered, tokens);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            'FPS ${stats.rendered}',
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'monospace',
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _initCoordinator() {
@@ -109,21 +192,13 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
     });
   }
 
-  void _handleImeFocusChanged() {
-    if (kDebugMode) {
-      debugPrint(
-        '[DeviceInput:${widget.device.serial}] focus=${_imeFocusNode.hasFocus}',
-      );
-    }
-  }
-
   void _handlePointerDown(PointerDownEvent event, Rect renderRect) {
     if (!renderRect.contains(event.localPosition)) return;
 
-    // Mirror STF Web: the device screen gesture activates the hidden desktop
-    // input bridge, so no separate input UI is needed.
-    if (!_imeFocusNode.hasFocus) {
-      _imeFocusNode.requestFocus();
+    // Mirror STF Web: clicking the device screen activates the raw keyboard
+    // bridge, while the phone's own IME remains responsible for composition.
+    if (!_rawKeyboardFocusNode.hasFocus) {
+      _rawKeyboardFocusNode.requestFocus();
     }
     final relX = event.localPosition.dx - renderRect.left;
     final relY = event.localPosition.dy - renderRect.top;
@@ -149,7 +224,6 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
     setState(() {
       _isPointerDown = true;
       _touchPosition = event.localPosition;
-      _lastNormalizedPoint = norm;
     });
 
     widget.controlService.touchDown(contact: 0, xP: norm.xP, yP: norm.yP);
@@ -172,7 +246,6 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
 
     setState(() {
       _touchPosition = event.localPosition;
-      _lastNormalizedPoint = norm;
     });
 
     widget.controlService.touchMove(contact: 0, xP: norm.xP, yP: norm.yP);
@@ -220,39 +293,11 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
     widget.streamService.triggerImmediateRefresh();
   }
 
-  void _handleImeChanged(String text) {
-    if (text.isEmpty) return;
-
-    final composing = _imeController.value.composing;
-    if (composing.isValid && !composing.isCollapsed) {
-      return;
-    }
-
-    // Only commit finalized IME text. Pinyin and other composing text stays in
-    // the hidden bridge until the desktop IME selects a candidate.
-    _imeController.clear();
-    if (kDebugMode) {
-      debugPrint(
-        '[DeviceInput:${widget.device.serial}] IME committed '
-        'chars=${text.length}',
-      );
-    }
-    unawaited(_sendTextToDevice(text));
-  }
-
-  Future<void> _sendTextToDevice(String text) async {
-    final sent = await widget.controlService.typeText(text);
-    if (sent && mounted) {
-      widget.streamService.triggerImmediateRefresh();
-    }
-  }
-
   Future<void> _pasteDesktopClipboard() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final text = data?.text;
     if (text == null || text.isEmpty) return;
 
-    _imeController.clear();
     if (kDebugMode) {
       debugPrint(
         '[DeviceInput:${widget.device.serial}] desktop paste requested '
@@ -265,88 +310,49 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
     }
   }
 
-  void _submitInput(String value) {
-    final text = value;
-    if (text.isNotEmpty) {
-      _imeController.clear();
-      unawaited(_sendTextToDevice(text));
-      return;
-    }
-
-    _handleKeyPress(DeviceKeyAction.enter);
-  }
-
   KeyEventResult _handleKeyboardPassthrough(FocusNode node, KeyEvent event) {
     final key = event.logicalKey;
     final isMeta =
         HardwareKeyboard.instance.isMetaPressed ||
         HardwareKeyboard.instance.isControlPressed;
 
-    // 1. 拦截 Cmd+V (Mac) / Ctrl+V (Win/Linux) 剪贴板直通
-    if (event is KeyDownEvent && isMeta && key == LogicalKeyboardKey.keyV) {
-      unawaited(_pasteDesktopClipboard());
+    // Clipboard paste is the one intentional desktop-to-device text path.
+    if (event is KeyUpEvent &&
+        key == LogicalKeyboardKey.keyV &&
+        _pasteShortcutActive) {
+      _pasteShortcutActive = false;
       return KeyEventResult.handled;
     }
 
-    if (event is! KeyDownEvent) return KeyEventResult.ignored;
-
-    final hasLocalInput =
-        _imeController.text.isNotEmpty ||
-        (_imeController.value.composing.isValid &&
-            !_imeController.value.composing.isCollapsed);
-
-    // 2. 物理控制按键映射 (退格、回车、Tab、Escape、方向键)
-    if (key == LogicalKeyboardKey.backspace) {
-      if (hasLocalInput) return KeyEventResult.ignored;
-      widget.controlService.keyPress(DeviceKeyAction.delete);
-      widget.streamService.triggerImmediateRefresh();
-      return KeyEventResult.handled;
-    } else if (key == LogicalKeyboardKey.enter ||
-        key == LogicalKeyboardKey.numpadEnter) {
-      if (_imeController.value.composing.isValid &&
-          !_imeController.value.composing.isCollapsed) {
-        return KeyEventResult.ignored;
+    if ((event is KeyDownEvent || event is KeyRepeatEvent) &&
+        isMeta &&
+        key == LogicalKeyboardKey.keyV) {
+      if (event is KeyDownEvent) {
+        _pasteShortcutActive = true;
+        unawaited(_pasteDesktopClipboard());
       }
-      if (_imeController.text.isNotEmpty) {
-        _submitInput(_imeController.text);
-        return KeyEventResult.handled;
+      return KeyEventResult.handled;
+    }
+
+    if (event is KeyDownEvent || event is KeyRepeatEvent) {
+      final keyName = AndroidKeyboardMapper.keyNameFor(event);
+      if (keyName == null) return KeyEventResult.ignored;
+      widget.controlService.rawKeyDown(keyName);
+      return KeyEventResult.handled;
+    }
+
+    if (event is KeyUpEvent) {
+      if (AndroidKeyboardMapper.isCharsetSwitch(event)) {
+        widget.controlService.rawKeyPress(AndroidKeyboardMapper.switchCharset);
+      } else {
+        final keyName = AndroidKeyboardMapper.keyNameFor(event);
+        if (keyName == null) return KeyEventResult.ignored;
+        widget.controlService.rawKeyUp(keyName);
       }
-      widget.controlService.keyPress(DeviceKeyAction.enter);
-      widget.streamService.triggerImmediateRefresh();
-      return KeyEventResult.handled;
-    } else if (key == LogicalKeyboardKey.escape) {
-      if (hasLocalInput) return KeyEventResult.ignored;
-      widget.controlService.keyPress(DeviceKeyAction.back);
-      widget.streamService.triggerImmediateRefresh();
-      return KeyEventResult.handled;
-    } else if (key == LogicalKeyboardKey.tab) {
-      if (hasLocalInput) return KeyEventResult.ignored;
-      widget.controlService.keyPress(DeviceKeyAction.tab);
-      widget.streamService.triggerImmediateRefresh();
-      return KeyEventResult.handled;
-    } else if (key == LogicalKeyboardKey.arrowUp) {
-      if (hasLocalInput) return KeyEventResult.ignored;
-      widget.controlService.keyPress(DeviceKeyAction.dpadUp);
-      widget.streamService.triggerImmediateRefresh();
-      return KeyEventResult.handled;
-    } else if (key == LogicalKeyboardKey.arrowDown) {
-      if (hasLocalInput) return KeyEventResult.ignored;
-      widget.controlService.keyPress(DeviceKeyAction.dpadDown);
-      widget.streamService.triggerImmediateRefresh();
-      return KeyEventResult.handled;
-    } else if (key == LogicalKeyboardKey.arrowLeft) {
-      if (hasLocalInput) return KeyEventResult.ignored;
-      widget.controlService.keyPress(DeviceKeyAction.dpadLeft);
-      widget.streamService.triggerImmediateRefresh();
-      return KeyEventResult.handled;
-    } else if (key == LogicalKeyboardKey.arrowRight) {
-      if (hasLocalInput) return KeyEventResult.ignored;
-      widget.controlService.keyPress(DeviceKeyAction.dpadRight);
       widget.streamService.triggerImmediateRefresh();
       return KeyEventResult.handled;
     }
 
-    // 其余字符按键全部放行给 TextField 进行原生输入法（IME）处理
     return KeyEventResult.ignored;
   }
 
@@ -390,34 +396,13 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
                   style: TextStyle(color: tokens.textSecondary, fontSize: 11),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 2,
-                  ),
-                  decoration: BoxDecoration(
-                    color: tokens.primary.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    '${widget.device.display.rotation}°',
-                    style: TextStyle(
-                      color: tokens.primary,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                ValueListenableBuilder<ScreenFpsStats>(
+                  valueListenable: _fpsStatsNotifier,
+                  builder: (context, stats, _) =>
+                      _buildFpsIndicator(stats, tokens),
                 ),
                 const Spacer(),
-                if (_lastNormalizedPoint != null && _isPointerDown)
-                  Text(
-                    'Touch: (${(_lastNormalizedPoint!.xP * 100).toStringAsFixed(0)}%, ${(_lastNormalizedPoint!.yP * 100).toStringAsFixed(0)}%)',
-                    style: TextStyle(
-                      color: tokens.primary,
-                      fontSize: 11,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
+                _buildCaptureButton(tokens),
               ],
             ),
           ),
@@ -489,6 +474,7 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
                                                     .streamService
                                                     .errorMessage,
                                               ),
+                                              onFpsChanged: _handleFpsChanged,
                                             ),
                                             if (state != StreamState.streaming)
                                               _buildStreamStatusOverlay(
@@ -512,13 +498,12 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
                               top: renderRect.top,
                               width: renderRect.width,
                               height: renderRect.height,
-                              // The bridge is focused programmatically after a
-                              // screen pointer down. It must not participate in
-                              // hit testing, otherwise macOS can retarget or
-                              // cancel the drag when the hidden TextField gains
-                              // focus.
+                              // The raw keyboard bridge is focused
+                              // programmatically after a screen pointer down.
+                              // It must not participate in hit testing, so it
+                              // cannot retarget or cancel the touch gesture.
                               child: IgnorePointer(
-                                child: _buildHiddenImeBridge(),
+                                child: _buildRawKeyboardBridge(),
                               ),
                             ),
 
@@ -611,6 +596,22 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
           _buildNavigationBar(context),
         ],
       ),
+    );
+  }
+
+  Widget _buildCaptureButton(AppColorTokens tokens) {
+    return IconButton(
+      tooltip: '复制截屏',
+      style: IconButton.styleFrom(
+        foregroundColor: tokens.primary,
+        side: BorderSide(color: tokens.primary.withValues(alpha: 0.7)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        padding: const EdgeInsets.all(6),
+        minimumSize: const Size(32, 32),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      onPressed: _isCopyingScreenshot ? null : _handleScreenshot,
+      icon: const Icon(Icons.content_copy_outlined, size: 16),
     );
   }
 
@@ -788,31 +789,13 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
     );
   }
 
-  Widget _buildHiddenImeBridge() {
+  Widget _buildRawKeyboardBridge() {
     return ExcludeSemantics(
-      child: Opacity(
-        opacity: 0,
-        child: TextField(
-          focusNode: _imeFocusNode,
-          controller: _imeController,
-          autofocus: false,
-          showCursor: false,
-          enableInteractiveSelection: false,
-          expands: true,
-          minLines: null,
-          maxLines: null,
-          textInputAction: TextInputAction.newline,
-          textAlignVertical: TextAlignVertical.bottom,
-          style: const TextStyle(
-            color: Colors.transparent,
-            fontSize: 1,
-            height: 1,
-          ),
-          cursorColor: Colors.transparent,
-          decoration: const InputDecoration.collapsed(hintText: ''),
-          onChanged: _handleImeChanged,
-          onSubmitted: _submitInput,
-        ),
+      child: Focus(
+        focusNode: _rawKeyboardFocusNode,
+        canRequestFocus: true,
+        skipTraversal: true,
+        child: const SizedBox.expand(),
       ),
     );
   }

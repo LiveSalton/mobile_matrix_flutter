@@ -775,7 +775,7 @@ class AdbService {
         'exec-out',
         'screencap',
         '-p',
-      ]).timeout(const Duration(milliseconds: 2500));
+      ], stdoutEncoding: null).timeout(const Duration(milliseconds: 2500));
 
       if (result.exitCode == 0 && result.stdout is List<int>) {
         return Uint8List.fromList(result.stdout as List<int>);

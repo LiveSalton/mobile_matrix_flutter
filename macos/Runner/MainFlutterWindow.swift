@@ -116,7 +116,11 @@ public class VideoTexturePlugin: NSObject {
 class MainFlutterWindow: NSWindow {
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
-    let windowFrame = self.frame
+    let minimumWindowSize = NSSize(width: 1120, height: 760)
+    minSize = minimumWindowSize
+    var windowFrame = self.frame
+    windowFrame.size.width = max(windowFrame.size.width, minimumWindowSize.width)
+    windowFrame.size.height = max(windowFrame.size.height, minimumWindowSize.height)
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)
 

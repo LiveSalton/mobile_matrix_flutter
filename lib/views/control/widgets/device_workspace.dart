@@ -5,8 +5,6 @@ import '../../../services/device_control_service.dart';
 import '../../../services/screen_stream_service.dart';
 import '../../../theme/app_theme.dart';
 
-enum WorkspaceMode { batchExecution, deviceTools }
-
 class DeviceWorkspace extends StatefulWidget {
   final DeviceModel device;
   final IDeviceControlService controlService;
@@ -24,8 +22,6 @@ class DeviceWorkspace extends StatefulWidget {
 }
 
 class _DeviceWorkspaceState extends State<DeviceWorkspace> {
-  WorkspaceMode _currentMode = WorkspaceMode.deviceTools;
-
   // 剪贴板
   final TextEditingController _clipboardController = TextEditingController();
   // 打字输入
@@ -138,11 +134,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
           _buildModeTabBar(context),
 
           // 核心内容区
-          Expanded(
-            child: _currentMode == WorkspaceMode.deviceTools
-                ? _buildToolsDashboard(context)
-                : _buildBatchExecutionWizard(context),
-          ),
+          Expanded(child: _buildToolsDashboard(context)),
         ],
       ),
     );
@@ -163,16 +155,9 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
           _buildModeTabButton(
             title: '设备工具箱',
             icon: Icons.build_circle_outlined,
-            mode: WorkspaceMode.deviceTools,
             tokens: tokens,
           ),
-          const SizedBox(width: 8),
-          _buildModeTabButton(
-            title: '群控执行向导',
-            icon: Icons.layers_outlined,
-            mode: WorkspaceMode.batchExecution,
-            tokens: tokens,
-          ),
+          const Spacer(),
         ],
       ),
     );
@@ -181,47 +166,28 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   Widget _buildModeTabButton({
     required String title,
     required IconData icon,
-    required WorkspaceMode mode,
     required AppColorTokens tokens,
   }) {
-    final isSelected = _currentMode == mode;
-
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _currentMode = mode;
-        });
-      },
-      borderRadius: BorderRadius.circular(6),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? tokens.primary.withValues(alpha: 0.15)
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(
-            color: isSelected ? tokens.primary : Colors.transparent,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: tokens.primary.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: tokens.primary),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: tokens.primary),
+          const SizedBox(width: 6),
+          Text(
+            title,
+            style: TextStyle(
+              color: tokens.primary,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
           ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: isSelected ? tokens.primary : tokens.textSecondary,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              title,
-              style: TextStyle(
-                color: isSelected ? tokens.primary : tokens.textSecondary,
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -586,106 +552,6 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
       side: BorderSide(color: tokens.outline),
       padding: const EdgeInsets.symmetric(horizontal: 4),
       onPressed: () => _handleExecuteShell(command),
-    );
-  }
-
-  Widget _buildBatchExecutionWizard(BuildContext context) {
-    final tokens = context.tokens;
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildCard(
-          context: context,
-          title: '群控执行向导',
-          icon: Icons.layers_rounded,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildStepItem(
-                stepNum: '1',
-                title: '选择执行设备',
-                desc:
-                    '当前已指定: ${widget.device.displayName} (${widget.device.serial})',
-                isActive: true,
-                tokens: tokens,
-              ),
-              const SizedBox(height: 12),
-              _buildStepItem(
-                stepNum: '2',
-                title: '配置群控操作任务',
-                desc: '支持批量触控录制回放、APK 安装、Shell 脚本批量下发',
-                isActive: false,
-                tokens: tokens,
-              ),
-              const SizedBox(height: 12),
-              _buildStepItem(
-                stepNum: '3',
-                title: '确认并监控执行',
-                desc: '执行引擎准备就绪，待任务接入',
-                isActive: false,
-                tokens: tokens,
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStepItem({
-    required String stepNum,
-    required String title,
-    required String desc,
-    required bool isActive,
-    required AppColorTokens tokens,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 24,
-          height: 24,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: isActive ? tokens.primary : tokens.bgSecondary,
-            border: Border.all(
-              color: isActive ? tokens.primary : tokens.outline,
-            ),
-          ),
-          child: Center(
-            child: Text(
-              stepNum,
-              style: TextStyle(
-                color: isActive ? tokens.textPrimary : tokens.textSecondary,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(
-                  color: isActive ? tokens.textPrimary : tokens.textSecondary,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                desc,
-                style: TextStyle(color: tokens.textSecondary, fontSize: 11),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 

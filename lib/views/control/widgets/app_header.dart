@@ -4,6 +4,7 @@ import '../../../theme/app_theme.dart';
 
 class AppHeader extends StatelessWidget {
   final DeviceModel? currentDevice;
+  final AppThemeType currentTheme;
   final List<DeviceModel> availableDevices;
   final ValueChanged<DeviceModel> onDeviceSelected;
   final VoidCallback onRefreshDevices;
@@ -16,6 +17,7 @@ class AppHeader extends StatelessWidget {
   const AppHeader({
     super.key,
     required this.currentDevice,
+    required this.currentTheme,
     required this.availableDevices,
     required this.onDeviceSelected,
     required this.onRefreshDevices,
@@ -57,6 +59,9 @@ class AppHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final logoAsset = currentTheme == AppThemeType.roseGlow
+        ? 'assets/branding/mobile-matrix-128-rose.png'
+        : 'assets/branding/mobile-matrix-128.png';
 
     return Container(
       height: 56,
@@ -80,15 +85,11 @@ class AppHeader extends StatelessWidget {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: tokens.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: tokens.primary, width: 1.2),
                 ),
-                child: Icon(
-                  Icons.grid_view_rounded,
-                  size: 16,
-                  color: tokens.primary,
-                ),
+                clipBehavior: Clip.antiAlias,
+                child: Image.asset(logoAsset, fit: BoxFit.cover),
               ),
               const SizedBox(width: 10),
               Text(

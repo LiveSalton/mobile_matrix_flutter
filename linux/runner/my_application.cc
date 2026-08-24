@@ -52,7 +52,21 @@ static void my_application_activate(GApplication* application) {
     gtk_window_set_title(window, "mobile_matrix");
   }
 
-  gtk_window_set_default_size(window, 1280, 720);
+  gtk_window_set_default_size(window, 1280, 760);
+  GdkGeometry minimum_window_size = {};
+  minimum_window_size.min_width = 1120;
+  minimum_window_size.min_height = 760;
+  gtk_window_set_geometry_hints(window, nullptr, &minimum_window_size,
+                                GDK_HINT_MIN_SIZE);
+
+  g_autofree gchar* executable_path =
+      g_file_read_link("/proc/self/exe", nullptr);
+  if (executable_path != nullptr) {
+    g_autofree gchar* executable_dir = g_path_get_dirname(executable_path);
+    g_autofree gchar* icon_path =
+        g_build_filename(executable_dir, "data", "app_icon.png", nullptr);
+    gtk_window_set_icon_from_file(window, icon_path, nullptr);
+  }
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
   fl_dart_project_set_dart_entrypoint_arguments(
