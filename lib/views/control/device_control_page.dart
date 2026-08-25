@@ -1,13 +1,17 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/device_model.dart';
 import '../../services/adb_service.dart';
 import '../../services/device_control_service.dart';
+import '../../services/device_tools_service.dart';
 import '../../services/screen_stream_service.dart';
 import '../../theme/app_theme.dart';
 import 'widgets/app_header.dart';
 import 'widgets/device_screen_stage.dart';
 import 'widgets/device_workspace.dart';
+import 'widgets/fast_screen_renderer.dart';
 
 class DeviceControlPage extends StatefulWidget {
   final ThemeController themeController;
@@ -20,6 +24,9 @@ class DeviceControlPage extends StatefulWidget {
 
 class _DeviceControlPageState extends State<DeviceControlPage> {
   final FocusNode _keyboardFocusNode = FocusNode();
+  final ValueNotifier<ScreenFpsStats> _fpsStatsNotifier = ValueNotifier(
+    ScreenFpsStats.empty,
+  );
   bool _isScreenVisible = true;
   bool _isScanning = false;
   String _adbPathInfo = '';
@@ -28,6 +35,7 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
   List<DeviceModel> _devices = [];
   DeviceModel? _currentDevice;
   IDeviceControlService? _controlService;
+  DeviceToolsService? _toolsService;
   IScreenStreamService? _streamService;
 
   @override
@@ -61,6 +69,8 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
           } else {
             _controlService?.dispose();
             _controlService = null;
+            _toolsService?.dispose();
+            _toolsService = null;
             _streamService?.stopStream();
             _streamService?.dispose();
             _streamService = null;
@@ -87,6 +97,7 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
     _streamService?.stopStream();
     _streamService?.dispose();
     _controlService?.dispose();
+    _toolsService?.dispose();
 
     _currentDevice = device;
     _controlService = AdbDeviceControlService(
@@ -94,6 +105,7 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
       realWidth: device.display.width,
       realHeight: device.display.height,
     );
+    _toolsService = DeviceToolsService(serial: device.serial);
 
     // 与 Web 控制台共用 STF 设备屏幕 WebSocket，不启动另一套 minicap。
     _streamService = SmartScreenStreamService(
@@ -107,7 +119,9 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
   @override
   void dispose() {
     _keyboardFocusNode.dispose();
+    _fpsStatsNotifier.dispose();
     _controlService?.dispose();
+    _toolsService?.dispose();
     _streamService?.dispose();
     super.dispose();
   }
@@ -151,6 +165,11 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final hasReadyDevice =
+        _currentDevice != null &&
+        _controlService != null &&
+        _streamService != null &&
+        _toolsService != null;
 
     return Focus(
       focusNode: _keyboardFocusNode,
@@ -161,34 +180,55 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
         body: SafeArea(
           child: Column(
             children: [
-              // 顶部导航栏
-              AppHeader(
-                currentDevice: _currentDevice,
-                currentTheme: widget.themeController.currentTheme,
-                availableDevices: _devices,
-                onDeviceSelected: _handleDeviceChanged,
-                onRefreshDevices: _scanAdbDevices,
-                onToggleTheme: widget.themeController.toggleTheme,
-                onToggleRotation: _handleToggleRotation,
-                onToggleScreenVisibility: _handleToggleScreenVisibility,
-                isScreenVisible: _isScreenVisible,
-                isScanning: _isScanning,
-              ),
+              if (!hasReadyDevice)
+                AppHeader(
+                  currentDevice: _currentDevice,
+                  currentTheme: widget.themeController.currentTheme,
+                  availableDevices: _devices,
+                  onDeviceSelected: _handleDeviceChanged,
+                  onRefreshDevices: _scanAdbDevices,
+                  onToggleTheme: widget.themeController.toggleTheme,
+                  onToggleRotation: _handleToggleRotation,
+                  onToggleScreenVisibility: _handleToggleScreenVisibility,
+                  isScreenVisible: _isScreenVisible,
+                  isScanning: _isScanning,
+                ),
 
-              // 主体内容：双栏响应式工作台
+              // 主体内容：左侧手机舞台，右侧设备控制工作区
               Expanded(
-                child:
-                    _currentDevice != null &&
-                        _controlService != null &&
-                        _streamService != null
+                child: hasReadyDevice
                     ? LayoutBuilder(
                         builder: (context, constraints) {
-                          final isWideScreen = constraints.maxWidth >= 720;
-                          final leftStageWidth = isWideScreen
-                              ? (_currentDevice!.display.isLandscape
-                                    ? 520.0
-                                    : 380.0)
-                              : constraints.maxWidth * 0.45;
+                          const navigationBarHeight = 48.0;
+                          const minRightWorkspaceWidth = 520.0;
+                          const minStageWidth = 280.0;
+                          final screenHeight = math
+                              .max(
+                                0.0,
+                                constraints.maxHeight - navigationBarHeight,
+                              )
+                              .toDouble();
+                          final deviceAspectRatio =
+                              _currentDevice!.display.width /
+                              _currentDevice!.display.height;
+                          final screenAspectRatio =
+                              _currentDevice!.display.isLandscape
+                              ? 1.0 / deviceAspectRatio
+                              : deviceAspectRatio;
+                          final aspectFittedWidth =
+                              screenHeight * screenAspectRatio;
+                          final maxStageWidth = math
+                              .max(
+                                minStageWidth,
+                                constraints.maxWidth - minRightWorkspaceWidth,
+                              )
+                              .toDouble();
+                          final leftStageWidth = math
+                              .min(
+                                maxStageWidth,
+                                math.max(minStageWidth, aspectFittedWidth),
+                              )
+                              .toDouble();
 
                           return Row(
                             children: [
@@ -199,16 +239,40 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
                                   device: _currentDevice!,
                                   controlService: _controlService!,
                                   streamService: _streamService!,
+                                  fpsStatsNotifier: _fpsStatsNotifier,
                                   isVisible: _isScreenVisible,
                                 ),
                               ),
 
-                              // 右侧工具箱与群控工作区 (真机 Shell/输入/按键)
+                              // 右侧设备工具箱
                               Expanded(
-                                child: DeviceWorkspace(
-                                  device: _currentDevice!,
-                                  controlService: _controlService!,
-                                  streamService: _streamService!,
+                                child: Column(
+                                  children: [
+                                    AppHeader(
+                                      currentDevice: _currentDevice,
+                                      currentTheme:
+                                          widget.themeController.currentTheme,
+                                      availableDevices: _devices,
+                                      onDeviceSelected: _handleDeviceChanged,
+                                      onRefreshDevices: _scanAdbDevices,
+                                      onToggleTheme:
+                                          widget.themeController.toggleTheme,
+                                      onToggleRotation: _handleToggleRotation,
+                                      onToggleScreenVisibility:
+                                          _handleToggleScreenVisibility,
+                                      isScreenVisible: _isScreenVisible,
+                                      isScanning: _isScanning,
+                                    ),
+                                    Expanded(
+                                      child: DeviceWorkspace(
+                                        device: _currentDevice!,
+                                        controlService: _controlService!,
+                                        toolsService: _toolsService!,
+                                        streamService: _streamService!,
+                                        fpsStats: _fpsStatsNotifier,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],

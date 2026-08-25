@@ -1,0 +1,109 @@
+{
+  "schema_version": 3,
+  "contract": {
+    "scope_id": "device-toolbox-web-parity",
+    "mode": "architecture-adapted",
+    "reference_kind": "project",
+    "evidence_mode": "source_only",
+    "ui_blueprint_required": false,
+    "in_scope": [
+      "The Web device toolbox has seven tool groups",
+      "Each group exposes the traced device action surface",
+      "Flutter keeps one scrollable content surface and a persistent tool navigator",
+      "ADB is the desktop transport for the new actions"
+    ],
+    "out_of_scope": [
+      "Web group-control modes",
+      "Web-only Run JavaScript and VNC",
+      "Pixel-identical Web shell rendering",
+      "Runtime/device acceptance in this source-only packet"
+    ],
+    "allowed_differences": [
+      "Flutter uses ADB host/shell commands instead of the Web STF control service",
+      "Flutter file pulling uses a user-provided local path instead of a browser download URL",
+      "Flutter screenshots copy PNG data to the system clipboard without a Web screenshot history",
+      "Flutter uses native desktop scrolling and Material controls"
+    ],
+    "authority_by_dimension": {
+      "structure_layout": "Web control-panes templates and target user-confirmed layout constraints",
+      "states_branches": "Web tool controllers and target ADB result handling",
+      "interactions_accessibility": "Web control service calls traced to each tool action",
+      "data_api_storage": "Web control service command contracts mapped to ADB",
+      "errors_empty_loading_retry": "Web controller guards plus target service result boundary",
+      "platform_differences": "User-approved desktop ADB mapping"
+    },
+    "acceptance_owner": "user",
+    "user_confirmed": true
+  },
+  "reference": {
+    "kind": "project",
+    "root": "/Users/salton/codeGit/mobile-matrix",
+    "revision": "2e2e7d6280af68264566dba88523ea1e79baecfb",
+    "entry_points": [
+      "vendor/devicefarmer-stf/res/app/control-panes/control-panes-controller.js",
+      "vendor/devicefarmer-stf/res/app/control-panes/control-panes.pug",
+      "vendor/devicefarmer-stf/res/app/components/stf/control/control-service.js"
+    ],
+    "source_context": {
+      "platform": "Web desktop controlling Android",
+      "locale": "zh-CN and existing Web labels",
+      "theme": "dark control workspace",
+      "data_prerequisites": "An ADB/STF-connected Android device",
+      "inspected_at": "2026-08-25T00:00:00+08:00"
+    }
+  },
+  "dimensions": [
+    {"id":"structure_layout","critical":true,"status":"verified","reason":"Web control panes define seven tools and a single active content surface","evidence_ids":["ev-web-layout"],"confidence":0.95,"next_action":"map to target navigator and scrollable content"},
+    {"id":"visual_styling","critical":false,"status":"verified","reason":"Target keeps the existing dark tool-card language while adapting the shell to desktop scrolling","evidence_ids":["ev-target-workspace"],"confidence":0.85,"next_action":"static visual source review"},
+    {"id":"content_i18n","critical":false,"status":"verified","reason":"Tool labels and actions are taken from the Web templates and existing Chinese target copy","evidence_ids":["ev-web-layout"],"confidence":0.9,"next_action":"keep labels consistent"},
+    {"id":"assets_fonts_icons","critical":false,"status":"not_applicable","reason":"No new image or font asset is required","evidence_ids":[],"confidence":1,"next_action":"none"},
+    {"id":"states_branches","critical":true,"status":"verified","reason":"Web controllers expose loading, success, empty and failure branches for logs, files, screenshots and info","evidence_ids":["ev-web-controllers"],"confidence":0.9,"next_action":"map each to service result state"},
+    {"id":"interactions_accessibility","critical":true,"status":"verified","reason":"The Web action buttons and input fields were traced to control service methods","evidence_ids":["ev-web-actions"],"confidence":0.9,"next_action":"implement native controls with tooltips and feedback"},
+    {"id":"navigation_routes","critical":false,"status":"not_applicable","reason":"Tools are an in-page workspace, not routes","evidence_ids":[],"confidence":1,"next_action":"none"},
+    {"id":"data_api_storage","critical":true,"status":"verified","reason":"Device operations are issued through the Web control service and map to the target ADB service boundary","evidence_ids":["ev-web-control"],"confidence":0.86,"next_action":"preserve serial-scoped service ownership"},
+    {"id":"environment_build_runtime","critical":false,"status":"not_applicable","reason":"This packet does not claim build or runtime evidence","evidence_ids":[],"confidence":1,"next_action":"user may request runtime verification later"},
+    {"id":"system_ui_keyboard_permissions","critical":false,"status":"verified","reason":"The new tools reuse existing desktop ADB permissions and do not add a new system UI flow","evidence_ids":["ev-target-services"],"confidence":0.85,"next_action":"show readable command errors"},
+    {"id":"lifecycle_concurrency_cleanup","critical":true,"status":"verified","reason":"Logcat process and device-scoped tool service require explicit stop/dispose ownership","evidence_ids":["ev-web-controllers"],"confidence":0.9,"next_action":"stop processes on device switch and page dispose"},
+    {"id":"animation_timing","critical":false,"status":"not_applicable","reason":"No new animation is required","evidence_ids":[],"confidence":1,"next_action":"none"},
+    {"id":"errors_empty_loading_retry","critical":true,"status":"verified","reason":"Web tools guard empty paths and asynchronous results; target service returns readable failures","evidence_ids":["ev-web-controllers","ev-target-services"],"confidence":0.88,"next_action":"cover empty and failed commands"},
+    {"id":"platform_differences","critical":true,"status":"verified","reason":"Desktop ADB mappings and the explicit JS/VNC exclusions are user-approved deviations","evidence_ids":["ev-user-scope"],"confidence":0.98,"next_action":"keep deviations explicit in source and spec"},
+    {"id":"runtime_acceptance","critical":true,"status":"not_applicable","reason":"No connected-device or visual runtime acceptance was requested for this source-only packet","evidence_ids":[],"confidence":1,"next_action":"user verifies on a connected device"}
+  ],
+  "evidence": [
+    {"id":"ev-web-layout","kind":"source","locator":"/Users/salton/codeGit/mobile-matrix/vendor/devicefarmer-stf/res/app/control-panes/control-panes.pug:1","captured_at":"2026-08-25T00:00:00+08:00"},
+    {"id":"ev-web-controllers","kind":"source","locator":"/Users/salton/codeGit/mobile-matrix/vendor/devicefarmer-stf/res/app/control-panes:logs, screenshots, automation, explorer, advanced, info controllers","captured_at":"2026-08-25T00:00:00+08:00"},
+    {"id":"ev-web-actions","kind":"source","locator":"/Users/salton/codeGit/mobile-matrix/vendor/devicefarmer-stf/res/app/control-panes/dashboard and advanced templates","captured_at":"2026-08-25T00:00:00+08:00"},
+    {"id":"ev-web-control","kind":"source","locator":"/Users/salton/codeGit/mobile-matrix/vendor/devicefarmer-stf/res/app/components/stf/control/control-service.js","captured_at":"2026-08-25T00:00:00+08:00"},
+    {"id":"ev-target-workspace","kind":"source","locator":"/Users/salton/codeGit/mobile_matrix_flutter/lib/views/control/widgets/device_workspace.dart","captured_at":"2026-08-25T00:00:00+08:00"},
+    {"id":"ev-target-services","kind":"source","locator":"/Users/salton/codeGit/mobile_matrix_flutter/lib/services/adb_service.dart","captured_at":"2026-08-25T00:00:00+08:00"},
+    {"id":"ev-user-scope","kind":"user_confirmation","locator":"conversation:2026-08-25:按这个做","captured_at":"2026-08-25T00:00:00+08:00"}
+  ],
+  "integration_contracts": {"network":[],"animation":[],"asset_sources":[]},
+  "runtime_observations": [],
+  "surfaces": [
+    {"id":"sf-toolbox","surface_type":"device_toolbox","critical":true,"status":"verified","reason":"The target toolbox is the single workspace surface for all seven tools","parent_surface_id":null,"entry_scenario_id":null,"evidence_ids":["ev-web-layout","ev-target-workspace"]}
+  ],
+  "reference_items": [
+    {"id":"ri-seven-tools","item_type":"structure_rule","scenario_ids":["sc-switch-tools"],"dimension_id":"structure_layout","critical":true,"status":"verified","reason":"Web exposes seven named device tools","reference_value":"Dashboard, Logs, Screenshots, Automation, File Explorer, Advanced, Info","evidence_ids":["ev-web-layout"],"target_owner":"DeviceWorkspace tool navigator","target_value":"Seven DeviceToolKind entries with one active scrollable content surface","verification_method":"Source inspection and static analysis"},
+    {"id":"ri-serial-scoped-operations","item_type":"data_contract","scenario_ids":["sc-run-device-action"],"dimension_id":"data_api_storage","critical":true,"status":"verified","reason":"Web control calls are scoped to the current device","reference_value":"control service action methods use the active device channel","evidence_ids":["ev-web-control"],"target_owner":"DeviceToolsService","target_value":"Every ADB operation includes the current serial and service lifecycle follows device selection","verification_method":"Source inspection"},
+    {"id":"ri-desktop-deviations","item_type":"platform_rule","scenario_ids":["sc-run-device-action"],"dimension_id":"platform_differences","critical":true,"status":"verified","reason":"Desktop cannot use browser downloads and Web-only JS/VNC are excluded","reference_value":"Web templates use browser download/WebView-only operations","evidence_ids":["ev-user-scope"],"deviation_id":"dev-desktop-mapping"}
+  ],
+  "scenarios": [
+    {"id":"sc-switch-tools","critical":true,"status":"verified","reason":"The user must be able to move between the seven Web tool groups","preconditions":"The device control page is open with a connected device","action":"Click each device-tool navigation entry","reference_expected":"Clicking a tool changes the active pane without leaving the workspace","target_expected":"DeviceWorkspace switches DeviceToolKind and keeps the content pane scrollable","verification_method":"Source inspection and widget test","target_owner":"DeviceWorkspace","cleanup_result":"The selected tool remains active and no process is left running","entry_surface_id":"sf-toolbox","reference_item_ids":["ri-seven-tools"],"result_surface_ids":["sf-toolbox"],"evidence_ids":["ev-web-layout"]},
+    {"id":"sc-run-device-action","critical":true,"status":"verified","reason":"A tool action must be device-scoped and failure-safe","preconditions":"A device serial is available and the selected tool is visible","action":"Trigger one valid tool action and one invalid empty-input action","reference_expected":"The active control service receives the action and reports progress/result","target_expected":"DeviceToolsService executes the serial-scoped ADB operation and surfaces success/failure without uncaught exceptions","verification_method":"Pure service tests and source inspection","target_owner":"DeviceToolsService","cleanup_result":"The command result is shown and later tools remain usable","entry_surface_id":"sf-toolbox","reference_item_ids":["ri-serial-scoped-operations","ri-desktop-deviations"],"result_surface_ids":["sf-toolbox"],"evidence_ids":["ev-web-control","ev-user-scope"]}
+  ],
+  "deviations": [
+    {"id":"dev-desktop-mapping","approved":true,"reference_item_id":"ri-desktop-deviations","target_change":"Use native ADB commands, system clipboard screenshots, user-provided file destinations, and omit Web-only JavaScript/VNC","reason":"User approved desktop Flutter implementation using ADB, clipboard-only screenshots, target-path file pulling and excluding Web-only JavaScript/VNC"}
+  ],
+  "target_inventory": [
+    {"id":"ti-toolbox","owner":"lib/views/control/widgets/device_workspace.dart","reference_item_id":"ri-seven-tools"},
+    {"id":"ti-tool-navigator","owner":"lib/views/control/widgets/device_workspace.dart","reference_item_id":"ri-seven-tools"},
+    {"id":"ti-tool-service","owner":"lib/services/device_tools_service.dart","reference_item_id":"ri-serial-scoped-operations"},
+    {"id":"ti-desktop-mapping","owner":"lib/services/device_tools_service.dart","deviation_id":"dev-desktop-mapping"}
+  ],
+  "gate": {
+    "implementation_allowed": true,
+    "blocking_unknowns": ["runtime_acceptance"],
+    "notes": "Source-only implementation is allowed after user confirmation; runtime/device and visual acceptance remain user-owned."
+  }
+}

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/device_model.dart';
+import '../models/device_tool_models.dart';
 
 class StfServiceClipboardClient {
   static const int _setClipboardMessageType = 9;
@@ -800,6 +801,56 @@ class AdbService {
       }
     } catch (e) {
       return 'Execution Exception: $e';
+    }
+  }
+
+  static Future<DeviceToolResult> executeHostCommand(
+    List<String> arguments,
+  ) async {
+    final adb = await resolveAdbPath();
+    try {
+      final result = await Process.run(
+        adb,
+        arguments,
+      ).timeout(const Duration(seconds: 15));
+      final stdout = result.stdout.toString();
+      final stderr = result.stderr.toString().trim();
+      if (result.exitCode == 0) {
+        return DeviceToolResult.ok(stdout);
+      }
+      return DeviceToolResult.failure(
+        stderr.isEmpty ? 'ADB 命令执行失败 (${result.exitCode})' : stderr,
+        output: stdout,
+      );
+    } catch (error) {
+      return DeviceToolResult.failure('ADB 命令执行异常: $error');
+    }
+  }
+
+  static Future<DeviceToolResult> installApk(String serial, String localPath) {
+    return executeHostCommand(['-s', serial, 'install', '-r', localPath]);
+  }
+
+  static Future<DeviceToolResult> pullFile(
+    String serial,
+    String remotePath,
+    String localPath,
+  ) {
+    return executeHostCommand(['-s', serial, 'pull', remotePath, localPath]);
+  }
+
+  static Future<Process?> startLogcat(String serial) async {
+    final adb = await resolveAdbPath();
+    try {
+      return await Process.start(adb, [
+        '-s',
+        serial,
+        'logcat',
+        '-v',
+        'threadtime',
+      ]);
+    } catch (_) {
+      return null;
     }
   }
 

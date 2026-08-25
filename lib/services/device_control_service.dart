@@ -19,6 +19,46 @@ enum DeviceKeyAction {
   dpadDown,
   dpadLeft,
   dpadRight,
+  camera,
+  switchCharset,
+  search,
+  mute,
+  mediaRewind,
+  mediaPrevious,
+  mediaPlayPause,
+  mediaStop,
+  mediaNext,
+  mediaFastForward,
+}
+
+int androidKeyCodeForAction(DeviceKeyAction key) {
+  return switch (key) {
+    DeviceKeyAction.home => 3,
+    DeviceKeyAction.back => 4,
+    DeviceKeyAction.menu => 82,
+    DeviceKeyAction.appSwitch => 187,
+    DeviceKeyAction.power => 26,
+    DeviceKeyAction.volumeUp => 24,
+    DeviceKeyAction.volumeDown => 25,
+    DeviceKeyAction.enter => 66,
+    DeviceKeyAction.delete => 67,
+    DeviceKeyAction.tab => 61,
+    DeviceKeyAction.escape => 111,
+    DeviceKeyAction.dpadUp => 19,
+    DeviceKeyAction.dpadDown => 20,
+    DeviceKeyAction.dpadLeft => 21,
+    DeviceKeyAction.dpadRight => 22,
+    DeviceKeyAction.camera => 27,
+    DeviceKeyAction.switchCharset => 95,
+    DeviceKeyAction.search => 84,
+    DeviceKeyAction.mute => 91,
+    DeviceKeyAction.mediaRewind => 89,
+    DeviceKeyAction.mediaPrevious => 88,
+    DeviceKeyAction.mediaPlayPause => 85,
+    DeviceKeyAction.mediaStop => 86,
+    DeviceKeyAction.mediaNext => 87,
+    DeviceKeyAction.mediaFastForward => 90,
+  };
 }
 
 abstract class IDeviceControlService {
@@ -128,55 +168,7 @@ class AdbDeviceControlService extends ChangeNotifier
 
   @override
   void keyPress(DeviceKeyAction key) {
-    int keyCode = 3;
-    switch (key) {
-      case DeviceKeyAction.home:
-        keyCode = 3;
-        break;
-      case DeviceKeyAction.back:
-        keyCode = 4;
-        break;
-      case DeviceKeyAction.menu:
-        keyCode = 82;
-        break;
-      case DeviceKeyAction.appSwitch:
-        keyCode = 187;
-        break;
-      case DeviceKeyAction.power:
-        keyCode = 26;
-        break;
-      case DeviceKeyAction.volumeUp:
-        keyCode = 24;
-        break;
-      case DeviceKeyAction.volumeDown:
-        keyCode = 25;
-        break;
-      case DeviceKeyAction.enter:
-        keyCode = 66;
-        break;
-      case DeviceKeyAction.delete:
-        keyCode = 67;
-        break;
-      case DeviceKeyAction.tab:
-        keyCode = 61;
-        break;
-      case DeviceKeyAction.escape:
-        keyCode = 111;
-        break;
-      case DeviceKeyAction.dpadUp:
-        keyCode = 19;
-        break;
-      case DeviceKeyAction.dpadDown:
-        keyCode = 20;
-        break;
-      case DeviceKeyAction.dpadLeft:
-        keyCode = 21;
-        break;
-      case DeviceKeyAction.dpadRight:
-        keyCode = 22;
-        break;
-    }
-    _session.keyevent(keyCode);
+    _session.keyevent(androidKeyCodeForAction(key));
   }
 
   @override

@@ -6,7 +6,6 @@ import '../../../models/device_model.dart';
 import '../../../services/android_keyboard_mapper.dart';
 import '../../../services/device_control_service.dart';
 import '../../../services/scaling_coordinator.dart';
-import '../../../services/screen_capture_service.dart';
 import '../../../services/screen_stream_service.dart';
 import '../../../theme/app_theme.dart';
 import 'fast_screen_renderer.dart';
@@ -15,6 +14,7 @@ class DeviceScreenStage extends StatefulWidget {
   final DeviceModel device;
   final IDeviceControlService controlService;
   final IScreenStreamService streamService;
+  final ValueNotifier<ScreenFpsStats> fpsStatsNotifier;
   final bool isVisible;
 
   const DeviceScreenStage({
@@ -22,6 +22,7 @@ class DeviceScreenStage extends StatefulWidget {
     required this.device,
     required this.controlService,
     required this.streamService,
+    required this.fpsStatsNotifier,
     this.isVisible = true,
   });
 
@@ -31,9 +32,7 @@ class DeviceScreenStage extends StatefulWidget {
 
 class _DeviceScreenStageState extends State<DeviceScreenStage> {
   late final FocusNode _rawKeyboardFocusNode;
-  late ScreenCaptureService _captureService;
   bool _pasteShortcutActive = false;
-  bool _isCopyingScreenshot = false;
 
   late ScalingCoordinator _coordinator;
   Offset? _touchPosition;
@@ -43,15 +42,11 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
   ScreenViewport? _latestViewport;
   ScreenViewport? _submittedViewport;
   bool _viewportUpdateScheduled = false;
-  final ValueNotifier<ScreenFpsStats> _fpsStatsNotifier = ValueNotifier(
-    ScreenFpsStats.empty,
-  );
 
   @override
   void initState() {
     super.initState();
     _rawKeyboardFocusNode = FocusNode(onKeyEvent: _handleKeyboardPassthrough);
-    _captureService = ScreenCaptureService(serial: widget.device.serial);
     _initCoordinator();
   }
 
@@ -64,7 +59,7 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
       _submittedViewport = null;
     }
     if (oldWidget.streamService != widget.streamService) {
-      _fpsStatsNotifier.value = ScreenFpsStats.empty;
+      widget.fpsStatsNotifier.value = ScreenFpsStats.empty;
       _submittedViewport = null;
       final viewport = _latestViewport;
       if (viewport != null) {
@@ -72,8 +67,7 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
       }
     }
     if (oldWidget.device.serial != widget.device.serial) {
-      _fpsStatsNotifier.value = ScreenFpsStats.empty;
-      _captureService = ScreenCaptureService(serial: widget.device.serial);
+      widget.fpsStatsNotifier.value = ScreenFpsStats.empty;
     }
   }
 
@@ -81,81 +75,13 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
   void dispose() {
     _longPressVisualTimer?.cancel();
     _rawKeyboardFocusNode.dispose();
-    _fpsStatsNotifier.dispose();
     super.dispose();
   }
 
   void _handleFpsChanged(ScreenFpsStats stats) {
     if (mounted) {
-      _fpsStatsNotifier.value = stats;
+      widget.fpsStatsNotifier.value = stats;
     }
-  }
-
-  Future<void> _handleScreenshot() async {
-    if (_isCopyingScreenshot) return;
-
-    setState(() {
-      _isCopyingScreenshot = true;
-    });
-    try {
-      await _captureService.copyScreenshotToClipboard();
-      if (!mounted) return;
-      _showCaptureMessage('屏幕截图已复制到剪贴板');
-    } catch (error) {
-      if (!mounted) return;
-      _showCaptureMessage('截取屏幕失败：$error');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isCopyingScreenshot = false;
-        });
-      }
-    }
-  }
-
-  void _showCaptureMessage(String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text(message), duration: const Duration(seconds: 4)),
-      );
-  }
-
-  Color _getFpsColor(int fps, AppColorTokens tokens) {
-    if (fps >= 45) return tokens.success;
-    if (fps >= 25) return tokens.warning;
-    return tokens.danger;
-  }
-
-  Widget _buildFpsIndicator(ScreenFpsStats stats, AppColorTokens tokens) {
-    final color = _getFpsColor(stats.rendered, tokens);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            'FPS ${stats.rendered}',
-            style: TextStyle(
-              color: color,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'monospace',
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   void _initCoordinator() {
@@ -367,46 +293,6 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
       ),
       child: Column(
         children: [
-          // 顶部信息条
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: tokens.bgSecondary.withValues(alpha: 0.5),
-              border: Border(
-                bottom: BorderSide(
-                  color: tokens.outline.withValues(alpha: 0.3),
-                ),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.smartphone_rounded, size: 16, color: tokens.primary),
-                const SizedBox(width: 8),
-                Text(
-                  widget.device.displayName,
-                  style: TextStyle(
-                    color: tokens.textPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  '${widget.device.display.width}×${widget.device.display.height}',
-                  style: TextStyle(color: tokens.textSecondary, fontSize: 11),
-                ),
-                const SizedBox(width: 8),
-                ValueListenableBuilder<ScreenFpsStats>(
-                  valueListenable: _fpsStatsNotifier,
-                  builder: (context, stats, _) =>
-                      _buildFpsIndicator(stats, tokens),
-                ),
-                const Spacer(),
-                _buildCaptureButton(tokens),
-              ],
-            ),
-          ),
-
           // 核心屏幕区域
           Expanded(
             child: widget.isVisible
@@ -596,22 +482,6 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
           _buildNavigationBar(context),
         ],
       ),
-    );
-  }
-
-  Widget _buildCaptureButton(AppColorTokens tokens) {
-    return IconButton(
-      tooltip: '复制截屏',
-      style: IconButton.styleFrom(
-        foregroundColor: tokens.primary,
-        side: BorderSide(color: tokens.primary.withValues(alpha: 0.7)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-        padding: const EdgeInsets.all(6),
-        minimumSize: const Size(32, 32),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      ),
-      onPressed: _isCopyingScreenshot ? null : _handleScreenshot,
-      icon: const Icon(Icons.content_copy_outlined, size: 16),
     );
   }
 
