@@ -769,6 +769,7 @@ class AdbService {
 
   static Future<Uint8List?> captureScreen(String serial) async {
     final adb = await resolveAdbPath();
+    debugPrint('[SCREEN-CAPTURE] adb start serial=$serial executable=$adb');
     try {
       final result = await Process.run(adb, [
         '-s',
@@ -779,9 +780,20 @@ class AdbService {
       ], stdoutEncoding: null).timeout(const Duration(milliseconds: 2500));
 
       if (result.exitCode == 0 && result.stdout is List<int>) {
-        return Uint8List.fromList(result.stdout as List<int>);
+        final bytes = Uint8List.fromList(result.stdout as List<int>);
+        debugPrint(
+          '[SCREEN-CAPTURE] adb success serial=$serial '
+          'exit=${result.exitCode} bytes=${bytes.length}',
+        );
+        return bytes;
       }
-    } catch (_) {}
+      debugPrint(
+        '[SCREEN-CAPTURE] adb failure serial=$serial '
+        'exit=${result.exitCode} stderr=${result.stderr}',
+      );
+    } catch (error) {
+      debugPrint('[SCREEN-CAPTURE] adb exception serial=$serial error=$error');
+    }
     return null;
   }
 

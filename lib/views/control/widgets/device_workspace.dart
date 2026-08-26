@@ -387,14 +387,28 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   }
 
   Future<void> _handleCopyScreenshot() async {
-    if (_isCopyingScreenshot) return;
+    if (_isCopyingScreenshot) {
+      debugPrint('[SCREEN-CAPTURE] ignored duplicate click');
+      return;
+    }
+    debugPrint(
+      '[SCREEN-CAPTURE] button pressed serial=${widget.device.serial}',
+    );
     setState(() => _isCopyingScreenshot = true);
     try {
       await ScreenCaptureService(
         serial: widget.device.serial,
       ).copyScreenshotToClipboard();
+      debugPrint(
+        '[SCREEN-CAPTURE] button completed serial=${widget.device.serial}',
+      );
       if (mounted) setState(() => _screenshotMessage = '已复制 PNG 到系统图片剪贴板');
-    } catch (error) {
+    } catch (error, stackTrace) {
+      debugPrint(
+        '[SCREEN-CAPTURE] button failed '
+        'serial=${widget.device.serial} error=$error',
+      );
+      debugPrintStack(label: '[SCREEN-CAPTURE] stack', stackTrace: stackTrace);
       if (mounted) setState(() => _screenshotMessage = '$error');
     } finally {
       if (mounted) setState(() => _isCopyingScreenshot = false);
