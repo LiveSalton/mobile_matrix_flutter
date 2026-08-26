@@ -12,6 +12,9 @@ class DeviceToolsService extends ChangeNotifier {
   final String serial;
   Process? _logcatProcess;
   StreamController<String>? _logController;
+  DeviceCpuTimes? _previousCpuTimes;
+  int? _previousNetworkBytes;
+  DateTime? _previousMonitorAt;
   bool _isDisposed = false;
 
   DeviceToolsService({required this.serial});
@@ -277,6 +280,83 @@ class DeviceToolsService extends ChangeNotifier {
       return DeviceInfoSnapshot(values: {'error': result.message});
     }
     return DeviceInfoSnapshot(values: _decodeInfo(result.output));
+  }
+
+  void resetMonitorBaseline() {
+    _previousCpuTimes = null;
+    _previousNetworkBytes = null;
+    _previousMonitorAt = null;
+  }
+
+  Future<DeviceMonitorSnapshot> readMonitorSnapshot() async {
+    final capturedAt = DateTime.now();
+    if (_isDisposed) {
+      return DeviceMonitorSnapshot(
+        cpuPercent: null,
+        memoryPercent: null,
+        networkBytesPerSecond: null,
+        capturedAt: capturedAt,
+      );
+    }
+
+    final responses = await Future.wait([
+      AdbService.executeShell(serial, 'cat /proc/stat'),
+      AdbService.executeShell(serial, 'cat /proc/meminfo'),
+      AdbService.executeShell(serial, 'cat /proc/net/dev'),
+    ]);
+    if (_isDisposed) {
+      return DeviceMonitorSnapshot(
+        cpuPercent: null,
+        memoryPercent: null,
+        networkBytesPerSecond: null,
+        capturedAt: capturedAt,
+      );
+    }
+
+    final cpuTimes = DeviceToolParsers.parseCpuTimes(responses[0]);
+    final memoryPercent = DeviceToolParsers.parseMemoryUsagePercent(
+      responses[1],
+    );
+    final networkBytes = DeviceToolParsers.parseNetworkBytes(responses[2]);
+
+    double? cpuPercent;
+    final previousCpuTimes = _previousCpuTimes;
+    if (cpuTimes != null && previousCpuTimes != null) {
+      final totalDelta = cpuTimes.total - previousCpuTimes.total;
+      final idleDelta = cpuTimes.idle - previousCpuTimes.idle;
+      if (totalDelta > 0 && idleDelta >= 0) {
+        cpuPercent = ((totalDelta - idleDelta) / totalDelta * 100)
+            .clamp(0.0, 100.0)
+            .toDouble();
+      }
+    }
+
+    double? networkBytesPerSecond;
+    final previousNetworkBytes = _previousNetworkBytes;
+    final previousMonitorAt = _previousMonitorAt;
+    if (networkBytes != null &&
+        previousNetworkBytes != null &&
+        previousMonitorAt != null) {
+      final elapsedSeconds =
+          capturedAt.difference(previousMonitorAt).inMicroseconds / 1000000;
+      final byteDelta = networkBytes - previousNetworkBytes;
+      if (elapsedSeconds > 0 && byteDelta >= 0) {
+        networkBytesPerSecond = byteDelta / elapsedSeconds;
+      }
+    }
+
+    if (cpuTimes != null) _previousCpuTimes = cpuTimes;
+    if (networkBytes != null) {
+      _previousNetworkBytes = networkBytes;
+      _previousMonitorAt = capturedAt;
+    }
+
+    return DeviceMonitorSnapshot(
+      cpuPercent: cpuPercent,
+      memoryPercent: memoryPercent,
+      networkBytesPerSecond: networkBytesPerSecond,
+      capturedAt: capturedAt,
+    );
   }
 
   Future<void> startLogcat({String? filter}) async {

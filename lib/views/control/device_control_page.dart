@@ -188,9 +188,6 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
                   onDeviceSelected: _handleDeviceChanged,
                   onRefreshDevices: _scanAdbDevices,
                   onToggleTheme: widget.themeController.toggleTheme,
-                  onToggleRotation: _handleToggleRotation,
-                  onToggleScreenVisibility: _handleToggleScreenVisibility,
-                  isScreenVisible: _isScreenVisible,
                   isScanning: _isScanning,
                 ),
 
@@ -257,10 +254,6 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
                                       onRefreshDevices: _scanAdbDevices,
                                       onToggleTheme:
                                           widget.themeController.toggleTheme,
-                                      onToggleRotation: _handleToggleRotation,
-                                      onToggleScreenVisibility:
-                                          _handleToggleScreenVisibility,
-                                      isScreenVisible: _isScreenVisible,
                                       isScanning: _isScanning,
                                     ),
                                     Expanded(
@@ -270,6 +263,10 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
                                         toolsService: _toolsService!,
                                         streamService: _streamService!,
                                         fpsStats: _fpsStatsNotifier,
+                                        onToggleRotation: _handleToggleRotation,
+                                        onToggleScreenVisibility:
+                                            _handleToggleScreenVisibility,
+                                        isScreenVisible: _isScreenVisible,
                                       ),
                                     ),
                                   ],

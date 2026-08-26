@@ -58,6 +58,13 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
       _initCoordinator();
       _submittedViewport = null;
     }
+    if (oldWidget.device.display.rotation != widget.device.display.rotation) {
+      _submittedViewport = null;
+      final viewport = _latestViewport;
+      if (viewport != null) {
+        _scheduleViewportUpdate(viewport);
+      }
+    }
     if (oldWidget.streamService != widget.streamService) {
       widget.fpsStatsNotifier.value = ScreenFpsStats.empty;
       _submittedViewport = null;
@@ -353,6 +360,10 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
                                               frameStream: widget
                                                   .streamService
                                                   .frameStream,
+                                              rotation: widget
+                                                  .device
+                                                  .display
+                                                  .rotation,
                                               placeholder: _buildPlaceholder(
                                                 context,
                                                 state: state,

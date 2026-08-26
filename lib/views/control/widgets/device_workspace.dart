@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -20,6 +21,9 @@ class DeviceWorkspace extends StatefulWidget {
   final DeviceToolsService toolsService;
   final IScreenStreamService streamService;
   final ValueListenable<ScreenFpsStats> fpsStats;
+  final VoidCallback onToggleRotation;
+  final VoidCallback onToggleScreenVisibility;
+  final bool isScreenVisible;
 
   const DeviceWorkspace({
     super.key,
@@ -28,6 +32,9 @@ class DeviceWorkspace extends StatefulWidget {
     required this.toolsService,
     required this.streamService,
     required this.fpsStats,
+    required this.onToggleRotation,
+    required this.onToggleScreenVisibility,
+    required this.isScreenVisible,
   });
 
   @override
@@ -80,11 +87,16 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   final List<String> _packages = [];
   final List<DeviceFileEntry> _files = [];
   StreamSubscription<String>? _logSubscription;
+  Timer? _monitorTimer;
+  DeviceMonitorSnapshot? _monitorSnapshot;
+  final List<double> _cpuHistory = [];
+  final List<double> _memoryHistory = [];
+  final List<double> _networkHistory = [];
+  var _monitorGeneration = 0;
 
   DeviceToolKind _selectedTool = DeviceToolKind.dashboard;
   DeviceInfoSnapshot? _info;
   String _explorerMessage = '';
-  String _toolMessage = '';
   String _portMessage = '';
   String _screenshotMessage = '';
   bool _isExecutingShell = false;
@@ -94,6 +106,8 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   bool _isCopyingScreenshot = false;
   bool _wifiEnabled = true;
   bool _bluetoothEnabled = true;
+  bool _isMonitorEnabled = false;
+  bool _isMonitorLoading = false;
 
   @override
   void initState() {
@@ -104,9 +118,23 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   @override
   void didUpdateWidget(covariant DeviceWorkspace oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.toolsService, widget.toolsService)) {
+    final serviceChanged = !identical(
+      oldWidget.toolsService,
+      widget.toolsService,
+    );
+    final deviceChanged = oldWidget.device.serial != widget.device.serial;
+    if (serviceChanged || deviceChanged) {
       _logSubscription?.cancel();
       _subscribeLogcat();
+      _stopMonitorPolling();
+      _monitorGeneration++;
+      _monitorSnapshot = null;
+      _cpuHistory.clear();
+      _memoryHistory.clear();
+      _networkHistory.clear();
+      _isMonitorLoading = false;
+      widget.toolsService.resetMonitorBaseline();
+      if (_isMonitorEnabled) _startMonitorPolling();
     }
   }
 
@@ -120,8 +148,109 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
     });
   }
 
+  void _handleMonitorToggle(bool enabled) {
+    _stopMonitorPolling();
+    _monitorGeneration++;
+    widget.toolsService.resetMonitorBaseline();
+    setState(() {
+      _isMonitorEnabled = enabled;
+      _isMonitorLoading = false;
+      _monitorSnapshot = null;
+      _cpuHistory.clear();
+      _memoryHistory.clear();
+      _networkHistory.clear();
+    });
+    if (enabled) _startMonitorPolling();
+  }
+
+  void _startMonitorPolling() {
+    if (!mounted || !_isMonitorEnabled) return;
+    _stopMonitorPolling();
+    unawaited(_refreshMonitor());
+    _monitorTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => unawaited(_refreshMonitor()),
+    );
+  }
+
+  void _stopMonitorPolling() {
+    _monitorTimer?.cancel();
+    _monitorTimer = null;
+  }
+
+  Future<void> _refreshMonitor() async {
+    if (!mounted || !_isMonitorEnabled || _isMonitorLoading) return;
+    final generation = _monitorGeneration;
+    setState(() => _isMonitorLoading = true);
+
+    try {
+      final snapshot = await widget.toolsService.readMonitorSnapshot();
+      if (!mounted || generation != _monitorGeneration || !_isMonitorEnabled) {
+        return;
+      }
+      setState(() {
+        _monitorSnapshot = snapshot;
+        _appendMonitorPoint(_cpuHistory, snapshot.cpuPercent, divisor: 100);
+        _appendMonitorPoint(
+          _memoryHistory,
+          snapshot.memoryPercent,
+          divisor: 100,
+        );
+        _appendMonitorPoint(
+          _networkHistory,
+          snapshot.networkBytesPerSecond,
+          clampToUnit: false,
+        );
+      });
+    } finally {
+      if (mounted && generation == _monitorGeneration) {
+        setState(() => _isMonitorLoading = false);
+      }
+    }
+  }
+
+  void _appendMonitorPoint(
+    List<double> history,
+    double? value, {
+    double divisor = 1,
+    bool clampToUnit = true,
+  }) {
+    if (value == null || !value.isFinite) return;
+    final point = value / divisor;
+    history.add(clampToUnit ? point.clamp(0.0, 1.0).toDouble() : point);
+    if (history.length > 20) history.removeAt(0);
+  }
+
+  List<double> _normalizedNetworkHistory() {
+    var maximum = 1.0;
+    for (final value in _networkHistory) {
+      if (value > maximum) maximum = value;
+    }
+    return List<double>.unmodifiable(
+      _networkHistory.map((value) => value / maximum),
+    );
+  }
+
+  String _formatMonitorPercent(double? value) {
+    if (value == null) return '--';
+    return '${value.toStringAsFixed(0)}%';
+  }
+
+  String _formatMonitorRate(double? bytesPerSecond) {
+    if (bytesPerSecond == null) return '--';
+    if (bytesPerSecond >= 1024 * 1024) {
+      return '${(bytesPerSecond / (1024 * 1024)).toStringAsFixed(1)} MB/s';
+    }
+    if (bytesPerSecond >= 1024) {
+      return '${(bytesPerSecond / 1024).toStringAsFixed(1)} KB/s';
+    }
+    return '${bytesPerSecond.toStringAsFixed(0)} B/s';
+  }
+
   @override
   void dispose() {
+    _stopMonitorPolling();
+    _monitorGeneration++;
     _logSubscription?.cancel();
     _clipboardController.dispose();
     _typeInputController.dispose();
@@ -407,7 +536,6 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
 
   void _showMessage(String message) {
     if (!mounted || message.trim().isEmpty) return;
-    setState(() => _toolMessage = message.trim());
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message.trim()),
@@ -424,7 +552,6 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
       child: Column(
         children: [
           _buildDeviceInfoBar(context),
-          _buildModeBar(context),
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
@@ -456,51 +583,109 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   Widget _buildDeviceInfoBar(BuildContext context) {
     final tokens = context.tokens;
     return Container(
-      height: 48,
+      height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: tokens.bgSecondary.withValues(alpha: 0.5),
-        border: Border(bottom: BorderSide(color: tokens.outline)),
+        color: const Color(0xFF090D16).withValues(alpha: 0.95),
+        border: Border(
+          bottom: BorderSide(color: tokens.outline.withValues(alpha: 0.65)),
+        ),
       ),
       child: Row(
         children: [
-          Icon(Icons.smartphone_rounded, size: 17, color: tokens.primary),
-          const SizedBox(width: 8),
-          Text(
-            widget.device.displayName,
-            style: TextStyle(
-              color: tokens.textPrimary,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
+          // 设备型号药丸徽标
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: tokens.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: tokens.primary.withValues(alpha: 0.35)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.smartphone_rounded, size: 14, color: tokens.primary),
+                const SizedBox(width: 6),
+                Text(
+                  widget.device.displayName,
+                  style: TextStyle(
+                    color: tokens.textPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(width: 12),
-          Text(
-            '${widget.device.display.width}×${widget.device.display.height}',
-            style: TextStyle(color: tokens.textSecondary, fontSize: 11),
+          const SizedBox(width: 8),
+
+          // 物理分辨率胶囊
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: tokens.bgSecondary.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: tokens.outline.withValues(alpha: 0.4)),
+            ),
+            child: Text(
+              '${widget.device.display.width}×${widget.device.display.height}',
+              style: TextStyle(
+                color: tokens.textSecondary,
+                fontSize: 11,
+                fontFamily: 'monospace',
+              ),
+            ),
           ),
           const SizedBox(width: 8),
+
+          // FPS 位于分辨率之后，作为左侧信息的最后一项
           ValueListenableBuilder<ScreenFpsStats>(
             valueListenable: widget.fpsStats,
             builder: (context, stats, _) => _buildFpsIndicator(stats, tokens),
           ),
           const Spacer(),
-          Tooltip(
-            message: '复制截屏',
-            child: IconButton(
-              tooltip: '复制截屏',
-              onPressed: _isCopyingScreenshot ? null : _handleCopyScreenshot,
-              icon: const Icon(Icons.content_copy_outlined, size: 17),
-              style: IconButton.styleFrom(
-                foregroundColor: tokens.primary,
-                side: BorderSide(color: tokens.primary.withValues(alpha: 0.7)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
+
+          // 横屏、显隐和复制截屏放在同一组
+          Container(
+            height: 36,
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            decoration: BoxDecoration(
+              color: tokens.bgSecondary.withValues(alpha: 0.46),
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: tokens.outline.withValues(alpha: 0.5)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildInfoActionButton(
+                  tooltip: widget.device.display.isLandscape
+                      ? '切换为竖屏 (0°)'
+                      : '切换为横屏 (90°)',
+                  icon: widget.device.display.isLandscape
+                      ? Icons.stay_current_landscape_rounded
+                      : Icons.stay_current_portrait_rounded,
+                  color: tokens.primary,
+                  onPressed: widget.onToggleRotation,
                 ),
-                padding: const EdgeInsets.all(6),
-                minimumSize: const Size(32, 32),
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
+                _buildInfoActionButton(
+                  tooltip: widget.isScreenVisible ? '隐藏屏幕' : '显示屏幕',
+                  icon: widget.isScreenVisible
+                      ? Icons.visibility_rounded
+                      : Icons.visibility_off_rounded,
+                  color: widget.isScreenVisible
+                      ? tokens.primary
+                      : tokens.textSecondary,
+                  onPressed: widget.onToggleScreenVisibility,
+                ),
+                _buildInfoActionButton(
+                  tooltip: '复制截屏',
+                  icon: Icons.content_copy_outlined,
+                  color: tokens.primary,
+                  onPressed: _isCopyingScreenshot
+                      ? null
+                      : _handleCopyScreenshot,
+                ),
+              ],
             ),
           ),
         ],
@@ -508,74 +693,68 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
     );
   }
 
+  Widget _buildInfoActionButton({
+    required String tooltip,
+    required IconData icon,
+    required Color color,
+    required VoidCallback? onPressed,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: onPressed,
+        icon: Icon(icon, size: 17),
+        style: IconButton.styleFrom(
+          foregroundColor: color,
+          padding: const EdgeInsets.all(6),
+          minimumSize: const Size(32, 32),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          visualDensity: VisualDensity.compact,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
+        ),
+      ),
+    );
+  }
+
   Color _getFpsColor(int fps, AppColorTokens tokens) {
-    if (fps >= 45) return tokens.success;
+    if (fps >= 45) return const Color(0xFF00D591);
     if (fps >= 25) return tokens.warning;
     return tokens.danger;
   }
 
   Widget _buildFpsIndicator(ScreenFpsStats stats, AppColorTokens tokens) {
     final color = _getFpsColor(stats.rendered, tokens);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            'FPS ${stats.rendered}',
-            style: TextStyle(
-              color: color,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'monospace',
+    return SizedBox(
+      width: 76,
+      height: 28,
+      child: Container(
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: color.withValues(alpha: 0.4)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 6,
+              height: 6,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: color),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildModeBar(BuildContext context) {
-    final tokens = context.tokens;
-    return Container(
-      height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: tokens.surface,
-        border: Border(bottom: BorderSide(color: tokens.outline)),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.build_circle_outlined, size: 18, color: tokens.primary),
-          const SizedBox(width: 8),
-          Text(
-            '设备工具箱',
-            style: TextStyle(
-              color: tokens.textPrimary,
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const Spacer(),
-          if (_toolMessage.isNotEmpty)
-            Flexible(
-              child: Text(
-                _toolMessage,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: tokens.textSecondary, fontSize: 11),
+            const SizedBox(width: 5),
+            Text(
+              '${stats.rendered} FPS',
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'monospace',
               ),
             ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -583,7 +762,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   Widget _buildNavigation(BuildContext context) {
     final tokens = context.tokens;
     return Container(
-      color: tokens.surface.withValues(alpha: 0.55),
+      color: const Color(0xFF080C14),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
       child: ListView.separated(
         itemCount: _tools.length,
@@ -597,25 +776,27 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
               borderRadius: BorderRadius.circular(8),
               onTap: () => setState(() => _selectedTool = entry.kind),
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 140),
+                duration: const Duration(milliseconds: 160),
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 10,
+                  horizontal: 10,
+                  vertical: 9,
                 ),
                 decoration: BoxDecoration(
                   color: selected
-                      ? tokens.primary.withValues(alpha: 0.18)
+                      ? tokens.primary.withValues(alpha: 0.15)
                       : Colors.transparent,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: selected ? tokens.primary : Colors.transparent,
+                    color: selected
+                        ? tokens.primary.withValues(alpha: 0.55)
+                        : Colors.transparent,
                   ),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       entry.icon,
-                      size: 18,
+                      size: 16,
                       color: selected ? tokens.primary : tokens.textSecondary,
                     ),
                     const SizedBox(width: 8),
@@ -657,97 +838,666 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   }
 
   Widget _buildDashboard(BuildContext context) {
-    return _toolScroll(context, [
-      _buildCard(
-        context,
-        '导航',
-        Icons.language_outlined,
-        Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 640;
+
+        if (!isWide) {
+          return _toolScroll(context, [
+            _buildQuickControlDeck(context),
+            _buildSystemMonitorCard(context),
+            _buildUrlLauncherCard(context),
+            _buildSmartInputCard(context),
+            _buildClipboardCard(context),
+            _buildShellCard(context),
+            _buildAppManagementCard(context),
+            _buildRemoteDebugCard(context),
+          ]);
+        }
+
+        return _toolScroll(context, [
+          // 方案 B：双列极客仪表盘核心栅格
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 左列：Quick Control Deck + URL Launcher + Smart Input Hub
+              Expanded(
+                flex: 5,
+                child: Column(
+                  children: [
+                    _buildQuickControlDeck(context),
+                    const SizedBox(height: 14),
+                    _buildUrlLauncherCard(context),
+                    const SizedBox(height: 14),
+                    _buildSmartInputCard(context),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
+              // 右列：Real-time System Monitor + Clipboard + Terminal
+              Expanded(
+                flex: 5,
+                child: Column(
+                  children: [
+                    _buildSystemMonitorCard(context),
+                    const SizedBox(height: 14),
+                    _buildClipboardCard(context),
+                    const SizedBox(height: 14),
+                    _buildShellCard(context),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          _buildAppManagementCard(context),
+          const SizedBox(height: 14),
+          _buildRemoteDebugCard(context),
+        ]);
+      },
+    );
+  }
+
+  Widget _buildQuickControlDeck(BuildContext context) {
+    final tokens = context.tokens;
+
+    return _buildModernCard(
+      context: context,
+      title: '快捷控制',
+      subtitle: '硬件按键与屏幕操作',
+      icon: Icons.tune_rounded,
+      accentColor: tokens.primary,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          const gap = 8.0;
+          final buttonSize = math.min(
+            88.0,
+            math.max(0.0, (constraints.maxWidth - gap * 3) / 4),
+          );
+          return SizedBox(
+            height: buttonSize,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                SizedBox(
+                  width: buttonSize,
+                  height: buttonSize,
+                  child: _buildTactileButton(
+                    tooltip: 'Power',
+                    icon: Icons.power_settings_new_rounded,
+                    color: tokens.danger,
+                    onPressed: () =>
+                        widget.controlService.keyPress(DeviceKeyAction.power),
+                  ),
+                ),
+                SizedBox(
+                  width: buttonSize,
+                  height: buttonSize,
+                  child: _buildTactileButton(
+                    tooltip: 'Volume Up',
+                    icon: Icons.volume_up_rounded,
+                    color: tokens.primary,
+                    onPressed: () => widget.controlService.keyPress(
+                      DeviceKeyAction.volumeUp,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: buttonSize,
+                  height: buttonSize,
+                  child: _buildTactileButton(
+                    tooltip: 'Volume Down',
+                    icon: Icons.volume_down_rounded,
+                    color: tokens.primary,
+                    onPressed: () => widget.controlService.keyPress(
+                      DeviceKeyAction.volumeDown,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: buttonSize,
+                  height: buttonSize,
+                  child: _buildTactileButton(
+                    tooltip: 'Rotate Screen',
+                    icon: Icons.screen_rotation_rounded,
+                    color: const Color(0xFF00D591),
+                    onPressed: widget.onToggleRotation,
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSystemMonitorCard(BuildContext context) {
+    final tokens = context.tokens;
+    final snapshot = _monitorSnapshot;
+    final networkPoints = _normalizedNetworkHistory();
+
+    return SizedBox(
+      height: 232,
+      child: _buildModernCard(
+        context: context,
+        title: '实时系统监控',
+        subtitle: _isMonitorEnabled
+            ? (_isMonitorLoading ? '每 5 秒采样 · 正在读取设备数据' : '每 5 秒采样 · CPU、内存与网络')
+            : '监控已关闭 · 按需开启以降低设备性能影响',
+        icon: Icons.show_chart_rounded,
+        accentColor: const Color(0xFF00D591),
+        headerTrailing: Tooltip(
+          message: _isMonitorEnabled ? '关闭系统监控' : '开启系统监控',
+          child: Semantics(
+            label: '实时系统监控',
+            toggled: _isMonitorEnabled,
+            child: Switch(
+              value: _isMonitorEnabled,
+              onChanged: _handleMonitorToggle,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              activeThumbColor: const Color(0xFF00D591),
+              activeTrackColor: const Color(0xFF00D591).withValues(alpha: 0.28),
+              inactiveThumbColor: tokens.textSecondary,
+              inactiveTrackColor: tokens.outline.withValues(alpha: 0.35),
+            ),
+          ),
+        ),
+        child: Column(
           children: [
-            Expanded(
-              child: _buildTextField(
-                context,
-                _urlController,
-                '输入网址，例如 example.com',
-                onSubmitted: (_) => _handleOpenUrl(),
+            _buildMonitorRow(
+              context: context,
+              label: 'CPU',
+              value: _formatMonitorPercent(snapshot?.cpuPercent),
+              color: const Color(0xFF00D591),
+              dataPoints: List<double>.unmodifiable(_cpuHistory),
+            ),
+            const SizedBox(height: 12),
+            _buildMonitorRow(
+              context: context,
+              label: '内存',
+              value: _formatMonitorPercent(snapshot?.memoryPercent),
+              color: tokens.primary,
+              dataPoints: List<double>.unmodifiable(_memoryHistory),
+            ),
+            const SizedBox(height: 12),
+            _buildMonitorRow(
+              context: context,
+              label: '网络',
+              value: _formatMonitorRate(snapshot?.networkBytesPerSecond),
+              color: tokens.warning,
+              dataPoints: networkPoints,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMonitorRow({
+    required BuildContext context,
+    required String label,
+    required String value,
+    required Color color,
+    required List<double> dataPoints,
+  }) {
+    final tokens = context.tokens;
+    return Row(
+      children: [
+        SizedBox(
+          width: 58,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  color: tokens.textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  fontFamily: 'monospace',
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Container(
+            height: 28,
+            decoration: BoxDecoration(
+              color: const Color(0xFF060910),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: tokens.outline.withValues(alpha: 0.3)),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: CustomPaint(
+                painter: _SparklinePainter(color: color, points: dataPoints),
               ),
             ),
-            const SizedBox(width: 8),
-            _buildCompactButton(
-              context,
-              '打开',
-              Icons.open_in_new_rounded,
-              _handleOpenUrl,
-            ),
-          ],
+          ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildUrlLauncherCard(BuildContext context) {
+    final tokens = context.tokens;
+
+    return _buildModernCard(
+      context: context,
+      title: 'URL 与 DeepLink 启动器',
+      subtitle: '快速在真机浏览器中打开网页或 DeepLink',
+      icon: Icons.language_rounded,
+      accentColor: tokens.primary,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _buildTextField(
+                  context,
+                  _urlController,
+                  '输入网址或 DeepLink...',
+                  onSubmitted: (_) => _handleOpenUrl(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              _buildCompactButton(
+                context,
+                '打开',
+                Icons.open_in_new_rounded,
+                _handleOpenUrl,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              _buildPresetBadge(
+                context,
+                Icons.download_rounded,
+                '已下载',
+                'https://github.com',
+              ),
+              _buildPresetBadge(
+                context,
+                Icons.apps_rounded,
+                '应用',
+                'market://details?id=com.tencent.mm',
+              ),
+              _buildPresetBadge(
+                context,
+                Icons.menu_book_rounded,
+                '书籍',
+                'https://m.bilibili.com',
+              ),
+              _buildPresetBadge(
+                context,
+                Icons.check_circle_outline_rounded,
+                '商店',
+                'https://www.baidu.com',
+              ),
+            ],
+          ),
+        ],
       ),
-      _buildCard(
-        context,
-        '硬件物理按键',
-        Icons.power_settings_new_rounded,
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
+    );
+  }
+
+  Widget _buildPresetBadge(
+    BuildContext context,
+    IconData icon,
+    String label,
+    String url,
+  ) {
+    final tokens = context.tokens;
+    return InkWell(
+      borderRadius: BorderRadius.circular(6),
+      onTap: () {
+        _urlController.text = url;
+        _handleOpenUrl();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFF101726),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: tokens.primary.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            _buildActionButton(
-              context,
-              '电源键',
-              Icons.power_settings_new_rounded,
-              () => widget.controlService.keyPress(DeviceKeyAction.power),
-            ),
-            _buildActionButton(
-              context,
-              '音量 +',
-              Icons.volume_up_rounded,
-              () => widget.controlService.keyPress(DeviceKeyAction.volumeUp),
-            ),
-            _buildActionButton(
-              context,
-              '音量 -',
-              Icons.volume_down_rounded,
-              () => widget.controlService.keyPress(DeviceKeyAction.volumeDown),
+            Icon(icon, size: 12, color: tokens.primary),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: tokens.textPrimary,
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
       ),
-      _buildCard(
-        context,
-        '输入法文本注入',
-        Icons.keyboard_alt_outlined,
-        _buildInputActionRow(
-          context,
-          _typeInputController,
-          '输入要发送到真机的内容...',
-          '发送',
-          _handleSendText,
+    );
+  }
+
+  Widget _buildSmartInputCard(BuildContext context) {
+    final tokens = context.tokens;
+
+    return _buildModernCard(
+      context: context,
+      title: '智能输入中心',
+      subtitle: '实时同步文本注入与快捷短语枢纽',
+      icon: Icons.keyboard_alt_outlined,
+      accentColor: const Color(0xFF00D591),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 文本输入框与发送
+          _buildInputActionRow(
+            context,
+            _typeInputController,
+            '实时同步文本注入...',
+            '发送',
+            _handleSendText,
+          ),
+          const SizedBox(height: 10),
+
+          // 方案 B 核心：大面积翡翠绿发光【一键粘贴电脑剪贴板】按钮
+          InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: _handlePasteFromComputer,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    const Color(0xFF00D591).withValues(alpha: 0.16),
+                    const Color(0xFF00B578).withValues(alpha: 0.08),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: const Color(0xFF00D591).withValues(alpha: 0.65),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF00D591).withValues(alpha: 0.15),
+                    blurRadius: 10,
+                    spreadRadius: 1,
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.content_paste_rounded,
+                    size: 16,
+                    color: Color(0xFF00D591),
+                  ),
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Text(
+                      '📋 粘贴电脑剪贴板',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFF00D591),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // 常用快捷短语列表
+          Text(
+            '常用测试短语：',
+            style: TextStyle(
+              color: tokens.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          _buildPhraseSnippetRow(context, '13800000000'),
+          const SizedBox(height: 4),
+          _buildPhraseSnippetRow(context, 'test@example.com'),
+          const SizedBox(height: 4),
+          _buildPhraseSnippetRow(context, 'Hello, 世界！🎉'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPhraseSnippetRow(BuildContext context, String phrase) {
+    final tokens = context.tokens;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0B1019),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: tokens.outline.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              '"$phrase"',
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: tokens.textPrimary,
+                fontSize: 11,
+                fontFamily: 'monospace',
+              ),
+            ),
+          ),
+          InkWell(
+            onTap: () {
+              widget.controlService.typeText(phrase);
+              widget.streamService.triggerImmediateRefresh();
+              _appendTerminalLog('Injected phrase: "$phrase"');
+            },
+            child: Icon(Icons.send_rounded, size: 13, color: tokens.primary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildClipboardCard(BuildContext context) {
+    return _buildModernCard(
+      context: context,
+      title: '高级剪贴板中心',
+      subtitle: '宿主机电脑与真机剪贴板双向极速同步',
+      icon: Icons.content_paste_rounded,
+      accentColor: const Color(0xFF00D591),
+      child: _buildClipboardControls(context),
+    );
+  }
+
+  Widget _buildShellCard(BuildContext context) {
+    final tokens = context.tokens;
+    return _buildModernCard(
+      context: context,
+      title: 'ADB Shell 极速控制台（终端）',
+      subtitle: '直接在真机执行 Linux / Android 命令行',
+      icon: Icons.terminal_rounded,
+      accentColor: tokens.primary,
+      child: _buildShellControls(context),
+    );
+  }
+
+  Widget _buildAppManagementCard(BuildContext context) {
+    final tokens = context.tokens;
+    return _buildModernCard(
+      context: context,
+      title: '应用管理与安装（应用包管理）',
+      subtitle: '安装 APK、读取已装应用、打开系统开发者选项',
+      icon: Icons.apps_outlined,
+      accentColor: tokens.primary,
+      child: _buildAppManagement(context),
+    );
+  }
+
+  Widget _buildRemoteDebugCard(BuildContext context) {
+    final tokens = context.tokens;
+    return _buildModernCard(
+      context: context,
+      title: 'ADB 远程网络调试（无线 ADB）',
+      subtitle: '配置 TCP/IP 端口，支持免 USB 无线投屏控制',
+      icon: Icons.wifi_tethering_outlined,
+      accentColor: tokens.warning,
+      child: _buildRemoteDebug(context),
+    );
+  }
+
+  Widget _buildModernCard({
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color accentColor,
+    Widget? headerTrailing,
+    required Widget child,
+  }) {
+    final tokens = context.tokens;
+    final trailing = headerTrailing;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0B1019), Color(0xFF0E1524)],
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: tokens.outline.withValues(alpha: 0.75)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: accentColor.withValues(alpha: 0.3)),
+                ),
+                child: Icon(icon, size: 15, color: accentColor),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: tokens.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: tokens.textSecondary.withValues(alpha: 0.8),
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (trailing != null) ...[const SizedBox(width: 8), trailing],
+            ],
+          ),
+          const SizedBox(height: 12),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTactileButton({
+    required String tooltip,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      waitDuration: const Duration(milliseconds: 350),
+      child: SizedBox.expand(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: onPressed,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFF161F30), Color(0xFF0F1726)],
+              ),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: color.withValues(alpha: 0.42)),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Semantics(
+              button: true,
+              label: tooltip,
+              child: Center(child: Icon(icon, size: 26, color: color)),
+            ),
+          ),
         ),
       ),
-      _buildCard(
-        context,
-        '剪贴板双向同步',
-        Icons.content_paste_rounded,
-        _buildClipboardControls(context),
-      ),
-      _buildCard(
-        context,
-        'ADB Shell 终端控制台',
-        Icons.terminal_rounded,
-        _buildShellControls(context),
-      ),
-      _buildCard(
-        context,
-        '应用安装与管理',
-        Icons.apps_outlined,
-        _buildAppManagement(context),
-      ),
-      _buildCard(
-        context,
-        'ADB 远程调试',
-        Icons.wifi_tethering_outlined,
-        _buildRemoteDebug(context),
-      ),
-    ]);
+    );
   }
 
   Widget _buildLogs(BuildContext context) {
@@ -1340,6 +2090,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   Widget _buildAppManagement(BuildContext context) {
     final tokens = context.tokens;
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildTextField(context, _apkPathController, '本地 APK 路径'),
         const SizedBox(height: 8),
@@ -1446,6 +2197,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
 
   Widget _buildClipboardControls(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildTextField(context, _clipboardController, '剪贴板文本', maxLines: 2),
         const SizedBox(height: 8),
@@ -1586,10 +2338,10 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
 
   Widget _toolScroll(BuildContext context, List<Widget> children) {
     return ListView(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(18),
       children: [
         for (var i = 0; i < children.length; i++) ...[
-          if (i > 0) const SizedBox(height: 12),
+          if (i > 0) const SizedBox(height: 14),
           children[i],
         ],
       ],
@@ -1605,30 +2357,45 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
     final tokens = context.tokens;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: tokens.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: tokens.outline),
+        color: tokens.surfaceElevated.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: tokens.outline.withValues(alpha: 0.82)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 18,
+            offset: const Offset(0, 7),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, size: 17, color: tokens.primary),
-              const SizedBox(width: 8),
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: tokens.primary.withValues(alpha: 0.11),
+                  borderRadius: BorderRadius.circular(9),
+                ),
+                child: Icon(icon, size: 16, color: tokens.primary),
+              ),
+              const SizedBox(width: 10),
               Text(
                 title,
                 style: TextStyle(
                   color: tokens.textPrimary,
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: FontWeight.w700,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           child,
         ],
       ),
@@ -1658,15 +2425,22 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
         ),
         isDense: true,
         filled: true,
-        fillColor: tokens.bgSecondary,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+        fillColor: tokens.bgSecondary.withValues(alpha: 0.72),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 11,
+        ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(7),
-          borderSide: BorderSide(color: tokens.outline),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: tokens.outline.withValues(alpha: 0.9)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(7),
-          borderSide: BorderSide(color: tokens.outline),
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: tokens.outline.withValues(alpha: 0.9)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide(color: tokens.primary, width: 1.4),
         ),
       ),
     );
@@ -1682,9 +2456,11 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
     return OutlinedButton.icon(
       style: OutlinedButton.styleFrom(
         foregroundColor: tokens.textPrimary,
-        side: BorderSide(color: tokens.outline),
-        padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
+        side: BorderSide(color: tokens.outline.withValues(alpha: 0.92)),
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+        minimumSize: const Size(0, 42),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        overlayColor: tokens.highlight.withValues(alpha: 0.22),
       ),
       onPressed: onPressed,
       icon: Icon(icon, size: 16, color: tokens.primary),
@@ -1773,5 +2549,64 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
         ],
       ),
     );
+  }
+}
+
+class _SparklinePainter extends CustomPainter {
+  final Color color;
+  final List<double> points;
+
+  _SparklinePainter({required this.color, required this.points});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (points.length < 2) return;
+
+    final path = Path();
+    final fillPath = Path();
+    final widthStep = size.width / (points.length - 1);
+
+    for (var i = 0; i < points.length; i++) {
+      final x = i * widthStep;
+      final clamped = points[i].clamp(0.0, 1.0);
+      final y = size.height - (clamped * (size.height - 4) + 2);
+
+      if (i == 0) {
+        path.moveTo(x, y);
+        fillPath.moveTo(x, size.height);
+        fillPath.lineTo(x, y);
+      } else {
+        path.lineTo(x, y);
+        fillPath.lineTo(x, y);
+      }
+    }
+
+    fillPath.lineTo(size.width, size.height);
+    fillPath.close();
+
+    final fillPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [color.withValues(alpha: 0.28), color.withValues(alpha: 0.0)],
+      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..style = PaintingStyle.fill;
+
+    canvas.drawPath(fillPath, fillPaint);
+
+    final strokePaint = Paint()
+      ..color = color
+      ..strokeWidth = 1.6
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    canvas.drawPath(path, strokePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _SparklinePainter oldDelegate) {
+    return oldDelegate.color != color ||
+        !listEquals(oldDelegate.points, points);
   }
 }

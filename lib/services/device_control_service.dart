@@ -211,6 +211,7 @@ class AdbDeviceControlService extends ChangeNotifier
   @override
   void setRotation(int rotation) {
     _session.sendCommand(
+      'settings put system accelerometer_rotation 0 && '
       'settings put system user_rotation ${(rotation ~/ 90)}',
     );
   }

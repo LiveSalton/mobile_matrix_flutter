@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
@@ -21,12 +22,14 @@ class ScreenFpsStats {
 
 class FastScreenRenderer extends StatefulWidget {
   final Stream<Uint8List> frameStream;
+  final int rotation;
   final Widget? placeholder;
   final ValueChanged<ScreenFpsStats>? onFpsChanged;
 
   const FastScreenRenderer({
     super.key,
     required this.frameStream,
+    this.rotation = 0,
     this.placeholder,
     this.onFpsChanged,
   });
@@ -184,7 +187,10 @@ class _FastScreenRendererState extends State<FastScreenRenderer> {
           child: _activeImage != null
               ? RepaintBoundary(
                   child: CustomPaint(
-                    painter: _ImageDirectPainter(image: _activeImage!),
+                    painter: _ImageDirectPainter(
+                      image: _activeImage!,
+                      rotation: widget.rotation,
+                    ),
                   ),
                 )
               : (widget.placeholder ?? const SizedBox.shrink()),
@@ -196,11 +202,12 @@ class _FastScreenRendererState extends State<FastScreenRenderer> {
 
 class _ImageDirectPainter extends CustomPainter {
   final ui.Image image;
+  final int? rotation;
   static final Paint _paint = Paint()
     ..isAntiAlias = false
     ..filterQuality = FilterQuality.low;
 
-  _ImageDirectPainter({required this.image});
+  _ImageDirectPainter({required this.image, required this.rotation});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -210,12 +217,49 @@ class _ImageDirectPainter extends CustomPainter {
       image.width.toDouble(),
       image.height.toDouble(),
     );
-    final dst = Rect.fromLTWH(0, 0, size.width, size.height);
-    canvas.drawImageRect(image, src, dst, _paint);
+    if (size.isEmpty || image.width == 0 || image.height == 0) return;
+
+    final normalizedRotation = (((rotation ?? 0) % 360) + 360) % 360;
+    final shouldRotateSource =
+        (normalizedRotation == 90 || normalizedRotation == 270) !=
+        (image.width >= image.height);
+    final sourceAspect = shouldRotateSource
+        ? image.height / image.width
+        : image.width / image.height;
+    final destinationAspect = size.width / size.height;
+    final destination = destinationAspect > sourceAspect
+        ? Rect.fromLTWH(
+            (size.width - size.height * sourceAspect) / 2,
+            0,
+            size.height * sourceAspect,
+            size.height,
+          )
+        : Rect.fromLTWH(
+            0,
+            (size.height - size.width / sourceAspect) / 2,
+            size.width,
+            size.width / sourceAspect,
+          );
+
+    if (!shouldRotateSource) {
+      canvas.drawImageRect(image, src, destination, _paint);
+      return;
+    }
+
+    canvas.save();
+    canvas.translate(destination.center.dx, destination.center.dy);
+    canvas.rotate(normalizedRotation == 270 ? -math.pi / 2 : math.pi / 2);
+    final rotatedDestination = Rect.fromCenter(
+      center: Offset.zero,
+      width: destination.height,
+      height: destination.width,
+    );
+    canvas.drawImageRect(image, src, rotatedDestination, _paint);
+    canvas.restore();
   }
 
   @override
   bool shouldRepaint(covariant _ImageDirectPainter oldDelegate) {
-    return oldDelegate.image != image;
+    return oldDelegate.image != image || oldDelegate.rotation != rotation;
   }
 }

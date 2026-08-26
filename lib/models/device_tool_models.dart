@@ -60,6 +60,27 @@ class DeviceInfoSnapshot {
   }
 }
 
+class DeviceCpuTimes {
+  final int total;
+  final int idle;
+
+  const DeviceCpuTimes({required this.total, required this.idle});
+}
+
+class DeviceMonitorSnapshot {
+  final double? cpuPercent;
+  final double? memoryPercent;
+  final double? networkBytesPerSecond;
+  final DateTime capturedAt;
+
+  const DeviceMonitorSnapshot({
+    required this.cpuPercent,
+    required this.memoryPercent,
+    required this.networkBytesPerSecond,
+    required this.capturedAt,
+  });
+}
+
 class DevicePortForward {
   final int hostPort;
   final int devicePort;
