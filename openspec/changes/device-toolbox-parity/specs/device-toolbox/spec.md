@@ -20,6 +20,11 @@ Dashboard SHALL 保留现有物理按键、文本注入、剪贴板和 Shell，�
 - **WHEN** 用户在 Dashboard 执行一个有效操作
 - **THEN** 操作通过当前设备的 ADB/STF 服务执行，成功或失败结果在工具箱内可读反馈，不能让后续工具失效
 
+#### Scenario: 配置本机无线 ADB 信息
+
+- **WHEN** 用户点击 ADB 远程网络调试中的“读取本机设备”按钮
+- **THEN** Flutter 扫描本机已连接的 ADB 设备，优先读取当前控制设备的 `_adb-tls-connect` mDNS 地址和动态端口，并将真实地址填入远程调试输入框；读取不到连接端口时显示可读原因，不把配对端口当作连接端口，也不自动中断当前设备连接
+
 #### Scenario: 使用快捷控制面板
 
 - **WHEN** 用户查看或悬停在 Quick Control Deck 的任一硬件控制按钮上

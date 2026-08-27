@@ -137,6 +137,75 @@ class DeviceToolParsers {
     return foundInterface ? total : null;
   }
 
+  static String? parseIpv4Address(String output) {
+    String? firstCandidate;
+    String? preferredCandidate;
+    String? currentInterface;
+
+    for (final rawLine in output.split('\n')) {
+      final line = rawLine.trim();
+      final interfaceMatch = RegExp(r'^\d+:\s*([^:]+):').firstMatch(line);
+      if (interfaceMatch != null) {
+        currentInterface = interfaceMatch.group(1);
+      }
+
+      final sourceMatch = RegExp(
+        r'\bsrc\s+((?:\d{1,3}\.){3}\d{1,3})\b',
+      ).firstMatch(line);
+      final inetMatch = RegExp(
+        r'\binet\s+((?:\d{1,3}\.){3}\d{1,3})\b',
+      ).firstMatch(line);
+      final candidate = sourceMatch?.group(1) ?? inetMatch?.group(1);
+      if (candidate == null || !_isUsableIpv4(candidate)) continue;
+
+      firstCandidate ??= candidate;
+      final interfaceName =
+          RegExp(r'\bdev\s+(\S+)').firstMatch(line)?.group(1) ??
+          currentInterface;
+      if (_isLanInterface(interfaceName)) preferredCandidate = candidate;
+    }
+
+    return preferredCandidate ?? firstCandidate;
+  }
+
+  static String? parseMdnsConnectEndpoint(String output, String serial) {
+    const connectService = '_adb-tls-connect._tcp';
+    for (final rawLine in output.split('\n')) {
+      final fields = rawLine.trim().split(RegExp(r'\s+'));
+      if (fields.length < 3 || fields[1] != connectService) continue;
+
+      final endpoint = fields[2];
+      final matchesDevice = fields[0].contains(serial) || endpoint == serial;
+      final separator = endpoint.lastIndexOf(':');
+      final port = separator > 0
+          ? int.tryParse(endpoint.substring(separator + 1))
+          : null;
+      if (matchesDevice && port != null && port > 0 && port <= 65535) {
+        return endpoint;
+      }
+    }
+    return null;
+  }
+
+  static bool _isUsableIpv4(String value) {
+    final octets = value.split('.').map(int.tryParse).toList();
+    if (octets.length != 4 || octets.any((octet) => octet == null)) {
+      return false;
+    }
+    if (octets.any((octet) => octet! < 0 || octet > 255)) return false;
+    final first = octets[0]!;
+    final second = octets[1]!;
+    return first != 0 && first != 127 && !(first == 169 && second == 254);
+  }
+
+  static bool _isLanInterface(String? interfaceName) {
+    if (interfaceName == null) return false;
+    return RegExp(
+      r'^(wlan|wifi|eth|en)',
+      caseSensitive: false,
+    ).hasMatch(interfaceName);
+  }
+
   static String joinPath(String parent, String child) {
     if (parent.isEmpty || parent == '/') {
       return '/${child.replaceFirst('/', '')}';

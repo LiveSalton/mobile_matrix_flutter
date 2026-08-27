@@ -50,6 +50,8 @@ class _ToolEntry {
 }
 
 class _DeviceWorkspaceState extends State<DeviceWorkspace> {
+  static const _dashboardWideBreakpoint = 640.0;
+
   static const _tools = [
     _ToolEntry(DeviceToolKind.dashboard, 'Dashboard', Icons.dashboard_outlined),
     _ToolEntry(DeviceToolKind.logs, '日志', Icons.article_outlined),
@@ -108,6 +110,8 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   bool _bluetoothEnabled = true;
   bool _isMonitorEnabled = false;
   bool _isMonitorLoading = false;
+  bool _isDiscoveringRemoteDebug = false;
+  String _remoteDebugMessage = '';
 
   @override
   void initState() {
@@ -133,6 +137,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
       _memoryHistory.clear();
       _networkHistory.clear();
       _isMonitorLoading = false;
+      _remoteDebugMessage = '';
       widget.toolsService.resetMonitorBaseline();
       if (_isMonitorEnabled) _startMonitorPolling();
     }
@@ -362,6 +367,38 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
       _remoteAddressController.text,
     );
     _showResult(result);
+  }
+
+  Future<void> _handleDiscoverRemoteDebug() async {
+    if (_isDiscoveringRemoteDebug) return;
+    setState(() {
+      _isDiscoveringRemoteDebug = true;
+      _remoteDebugMessage = '';
+    });
+
+    try {
+      final info = await widget.toolsService.discoverRemoteDebugInfo();
+      if (!mounted) return;
+      if (info.ipAddress != null && info.port != null) {
+        _remoteAddressController.text = info.endpoint;
+      } else {
+        _remoteAddressController.clear();
+      }
+      final selectedName = info.selectedDeviceName ?? '未知设备';
+      setState(() {
+        _remoteDebugMessage =
+            info.error ??
+            '已发现 ${info.connectedDeviceCount} 台设备，已为 $selectedName '
+                '配置 ${info.endpoint}';
+      });
+      _showMessage(_remoteDebugMessage);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _remoteDebugMessage = '读取本机设备失败：$error');
+      _showMessage(_remoteDebugMessage);
+    } finally {
+      if (mounted) setState(() => _isDiscoveringRemoteDebug = false);
+    }
   }
 
   Future<void> _handleStartLogcat() async {
@@ -854,7 +891,8 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   Widget _buildDashboard(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isWide = constraints.maxWidth >= 640;
+        final isWide = constraints.maxWidth >= _dashboardWideBreakpoint;
+        final bottomCards = _buildDashboardBottomCards(context, isWide: isWide);
 
         if (!isWide) {
           return _toolScroll(context, [
@@ -864,8 +902,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
             _buildSmartInputCard(context),
             _buildClipboardCard(context),
             _buildShellCard(context),
-            _buildAppManagementCard(context),
-            _buildRemoteDebugCard(context),
+            bottomCards,
           ]);
         }
 
@@ -904,11 +941,34 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
             ],
           ),
           const SizedBox(height: 14),
-          _buildAppManagementCard(context),
-          const SizedBox(height: 14),
-          _buildRemoteDebugCard(context),
+          bottomCards,
         ]);
       },
+    );
+  }
+
+  Widget _buildDashboardBottomCards(
+    BuildContext context, {
+    required bool isWide,
+  }) {
+    if (isWide) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: _buildAppManagementCard(context)),
+          const SizedBox(width: 14),
+          Expanded(child: _buildRemoteDebugCard(context)),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildAppManagementCard(context),
+        const SizedBox(height: 14),
+        _buildRemoteDebugCard(context),
+      ],
     );
   }
 
@@ -2184,17 +2244,24 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
 
   Widget _buildRemoteDebug(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        _buildTextField(
+          context,
+          _remoteAddressController,
+          '设备地址，例如 192.168.1.8:36997',
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
-            Expanded(
-              child: _buildTextField(
-                context,
-                _remoteAddressController,
-                '设备地址，例如 192.168.1.8:5555',
-              ),
+            _buildCompactButton(
+              context,
+              _isDiscoveringRemoteDebug ? '读取中...' : '读取本机设备',
+              Icons.devices_other_outlined,
+              _isDiscoveringRemoteDebug ? null : _handleDiscoverRemoteDebug,
             ),
-            const SizedBox(width: 8),
             _buildCompactButton(
               context,
               '连接',
@@ -2204,7 +2271,12 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
           ],
         ),
         const SizedBox(height: 8),
-        _buildStatusText(context, '连接后可在设备选择器中使用 ADB 网络设备。'),
+        _buildStatusText(
+          context,
+          _remoteDebugMessage.isEmpty
+              ? '读取本机设备后自动识别无线 ADB 连接端口；连接后可在设备选择器中使用。'
+              : _remoteDebugMessage,
+        ),
       ],
     );
   }

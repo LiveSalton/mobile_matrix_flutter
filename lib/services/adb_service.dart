@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/device_model.dart';
 import '../models/device_tool_models.dart';
+import 'device_tool_parsers.dart';
 
 class StfServiceClipboardClient {
   static const int _setClipboardMessageType = 9;
@@ -765,6 +766,39 @@ class AdbService {
     }
 
     return devices;
+  }
+
+  static Future<String?> findWirelessDebugEndpoint(String serial) async {
+    final adb = await resolveAdbPath();
+    debugPrint('[ADB-REMOTE] mdns lookup start serial=$serial');
+    try {
+      final result = await Process.run(adb, [
+        'mdns',
+        'services',
+      ]).timeout(const Duration(seconds: 5));
+      if (result.exitCode != 0) {
+        debugPrint(
+          '[ADB-REMOTE] mdns lookup failed serial=$serial '
+          'exit=${result.exitCode} stderr=${result.stderr}',
+        );
+        return null;
+      }
+
+      final endpoint = DeviceToolParsers.parseMdnsConnectEndpoint(
+        result.stdout.toString(),
+        serial,
+      );
+      debugPrint(
+        '[ADB-REMOTE] mdns lookup result serial=$serial '
+        'endpoint=${endpoint ?? 'none'}',
+      );
+      return endpoint;
+    } catch (error) {
+      debugPrint(
+        '[ADB-REMOTE] mdns lookup exception serial=$serial error=$error',
+      );
+      return null;
+    }
   }
 
   static Future<Uint8List?> captureScreen(String serial) async {

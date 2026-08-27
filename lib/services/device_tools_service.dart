@@ -180,6 +180,104 @@ class DeviceToolsService extends ChangeNotifier {
     return AdbService.executeHostCommand(['connect', address.trim()]);
   }
 
+  Future<DeviceRemoteDebugInfo> discoverRemoteDebugInfo() async {
+    debugPrint('[ADB-REMOTE] discovery start current=$serial');
+    final devices = await AdbService.getConnectedDevices();
+    if (_isDisposed) {
+      return const DeviceRemoteDebugInfo(
+        connectedDeviceCount: 0,
+        selectedSerial: null,
+        selectedDeviceName: null,
+        ipAddress: null,
+        selectedCurrentDevice: false,
+        error: '设备工具服务已关闭',
+      );
+    }
+
+    if (devices.isEmpty) {
+      final error = AdbService.lastError ?? '本机没有已连接的 ADB 设备';
+      debugPrint('[ADB-REMOTE] discovery failed current=$serial error=$error');
+      return DeviceRemoteDebugInfo(
+        connectedDeviceCount: 0,
+        selectedSerial: null,
+        selectedDeviceName: null,
+        ipAddress: null,
+        selectedCurrentDevice: false,
+        error: error,
+      );
+    }
+
+    final selected = devices.firstWhere(
+      (device) => device.serial == serial,
+      orElse: () => devices.first,
+    );
+    final selectedCurrentDevice = selected.serial == serial;
+
+    final mdnsEndpoint = await AdbService.findWirelessDebugEndpoint(
+      selected.serial,
+    );
+    if (mdnsEndpoint != null) {
+      final separator = mdnsEndpoint.lastIndexOf(':');
+      final port = int.tryParse(mdnsEndpoint.substring(separator + 1));
+      if (separator > 0 && port != null) {
+        final info = DeviceRemoteDebugInfo(
+          connectedDeviceCount: devices.length,
+          selectedSerial: selected.serial,
+          selectedDeviceName: selected.displayName,
+          ipAddress: mdnsEndpoint.substring(0, separator),
+          port: port,
+          selectedCurrentDevice: selectedCurrentDevice,
+        );
+        debugPrint(
+          '[ADB-REMOTE] discovery success selected=${selected.serial} '
+          'address=${info.endpoint} devices=${devices.length} '
+          'current=$selectedCurrentDevice source=mdns-connect',
+        );
+        return info;
+      }
+    }
+
+    var address = DeviceToolParsers.parseIpv4Address(
+      await AdbService.executeShell(selected.serial, 'ip route'),
+    );
+    address ??= DeviceToolParsers.parseIpv4Address(
+      await AdbService.executeShell(selected.serial, 'ip addr show'),
+    );
+
+    if (address == null) {
+      const error = '已发现本机设备，但未读取到可用的无线 IPv4 地址';
+      debugPrint(
+        '[ADB-REMOTE] discovery failed selected=${selected.serial} '
+        'error=$error',
+      );
+      return DeviceRemoteDebugInfo(
+        connectedDeviceCount: devices.length,
+        selectedSerial: selected.serial,
+        selectedDeviceName: selected.displayName,
+        ipAddress: null,
+        port: null,
+        selectedCurrentDevice: selectedCurrentDevice,
+        error: error,
+      );
+    }
+
+    const error = '已读取无线 IPv4，但未发现 ADB 无线连接端口；请在手机“无线调试”中查看“IP 地址和端口”';
+    debugPrint(
+      '[ADB-REMOTE] discovery failed selected=${selected.serial} '
+      'address=$address error=$error',
+    );
+    final info = DeviceRemoteDebugInfo(
+      connectedDeviceCount: devices.length,
+      selectedSerial: selected.serial,
+      selectedDeviceName: selected.displayName,
+      ipAddress: address,
+      port: null,
+      selectedCurrentDevice: selectedCurrentDevice,
+      error: error,
+    );
+    return info;
+  }
+
   Future<DeviceToolResult> createPortForward(
     String hostPort,
     String devicePort,

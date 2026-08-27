@@ -1,16 +1,29 @@
-# 编码约束
+# 编码规范
 
-## 架构与状态
+## 基本原则
 
-- 状态管理采用原生 `ValueNotifier` / `ChangeNotifier` 驱动，局部刷新优先。
-- 异步操作均须处理取消、超时（Timeout）与组件 `mounted` 检查，杜绝内存泄漏。
+- 只修改当前需求必需的文件，禁止顺手重构、全局格式化或提前实现业务。
+- 优先复用现有 Liquid Glass 主题、布局和背景能力。
+- 未实现的平台能力必须明确表现为“尚未接入”，不得假成功或展示虚假状态。
+- Android-only 能力放在平台实现层，共享 Flutter UI 只依赖抽象接口。
 
-## 错误与日志
+## Dart / Flutter
 
-- 外部进程与网络通信（ADB/WebSocket）须完备捕获异常，提供友好降级或重连。
-- 日志使用 `debugPrint` 并携带模块标签（如 `[AdbService]`），发布环境静默。
+- 遵循 `analysis_options.yaml` 与 `flutter_lints`。
+- 文件使用 `lower_snake_case.dart`，类使用 `UpperCamelCase`，成员使用 `lowerCamelCase`。
+- Widget 参数优先使用明确的命名参数；异步回调更新 UI 前检查 `mounted`。
+- 不在 `build` 中执行 I/O、权限请求或一次性副作用。
+- 用户可见文案必须通过 `L10n` 访问。
+- 页面颜色、字体和间距优先来自现有主题语义令牌。
 
-## 接口与安全
+## 平台与敏感配置
 
-- 设备端命令注入须严格转义 Shell 特殊字符，防范命令注入。
-- 公共接口严格面向抽象（如 `IDeviceControlService`、`IScreenStreamService`），便于单测与解耦。
+- 权限必须由已实现的真实能力驱动，不预先声明相册、摄像头、麦克风或存储权限。
+- 签名、第三方服务配置、密钥和本地路径不得硬编码或提交。
+- 当前 `com.hello.usbcamera` 是临时非发布身份，上架前需单独确认正式标识与签名。
+
+## 变更治理
+
+- 有进行中的 OpenSpec change 时，代码、配置、资源或行为修改必须同步相应工件。
+- 未经用户明确要求，不构建、编译或发布。
+- 不主动新增或修改测试代码；运行验收由用户执行。

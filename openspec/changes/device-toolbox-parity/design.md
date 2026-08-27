@@ -19,6 +19,8 @@ Web 设备工具分为 Dashboard、Logs、Screenshots、Automation、File Explor
 - `DeviceControlService`：继续负责现有触控、文本注入、剪贴板同步、基础物理按键和设备画面刷新，不吸收新的工具业务。
 - 响应式安全：Real-time System Monitor 使用稳定的固定高度；监控标题、动态数据和剪贴板快捷文案允许省略；窄右栏的 AppHeader 切换为紧凑设备选择器，所有 Row 均不得把内容溢出到可视区域外。
 - 中文界面：Dashboard 卡片标题、说明和可见操作文案统一使用中文；高级剪贴板中心的输入框与按钮组使用同一条左侧基线，英文仅保留 URL、DeepLink、ADB、Shell 等必要技术名词及快捷控制悬停提示。
+- ADB 远程网络调试：Dashboard 底部应用管理与远程调试卡片作为 `_toolScroll` 的同一个响应式 item，在与上方 Dashboard 栅格一致的 `640px` 宽屏断点下使用 `Row + Expanded` 各占一半，窄窗口自动上下排列并禁止横向溢出；远程调试提供“读取本机设备”按钮，扫描本机 ADB 设备并优先读取 `_adb-tls-connect` mDNS 动态端口，自动配置真实 `地址:端口`，不把 `_adb-tls-pairing` 配对端口当作连接端口，不自动执行 `tcpip` 或断开当前投屏链路。
+- 截图复制：截屏链路记录按钮、ADB、PNG 字节数和剪贴板写入阶段；macOS 直接写入系统原生 PNG 图片剪贴板，临时文件只存在于系统临时目录并在写入后删除，不保存到桌面。
 
 ## Web 到 Flutter 映射
 

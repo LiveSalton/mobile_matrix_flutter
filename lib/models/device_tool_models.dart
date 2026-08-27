@@ -81,6 +81,34 @@ class DeviceMonitorSnapshot {
   });
 }
 
+class DeviceRemoteDebugInfo {
+  final int connectedDeviceCount;
+  final String? selectedSerial;
+  final String? selectedDeviceName;
+  final String? ipAddress;
+  final int? port;
+  final bool selectedCurrentDevice;
+  final String? error;
+
+  const DeviceRemoteDebugInfo({
+    required this.connectedDeviceCount,
+    required this.selectedSerial,
+    required this.selectedDeviceName,
+    required this.ipAddress,
+    this.port,
+    required this.selectedCurrentDevice,
+    this.error,
+  });
+
+  bool get success => error == null && ipAddress != null;
+
+  String get endpoint {
+    if (ipAddress == null) return '';
+    final port = this.port;
+    return port == null ? ipAddress! : '$ipAddress:$port';
+  }
+}
+
 class DevicePortForward {
   final int hostPort;
   final int devicePort;
