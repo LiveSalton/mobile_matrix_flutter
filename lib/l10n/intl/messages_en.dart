@@ -39,7 +39,9 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m8(error) => "Failed to read local devices: ${error}";
 
-  static String m9(count) => "Loaded ${count} third-party apps";
+  static String m9(error) => "STF Lite runtime failed to start: ${error}";
+
+  static String m10(count) => "Loaded ${count} third-party apps";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -298,6 +300,46 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "special_keys": MessageLookupByLibrary.simpleMessage("Special Keys"),
     "start": MessageLookupByLibrary.simpleMessage("Start"),
+    "stf_lite_runtime_not_ready": MessageLookupByLibrary.simpleMessage(
+      "STF Lite runtime is not ready",
+    ),
+    "stf_lite_runtime_start_failed": m9,
+    "stf_lite_runtime_unavailable": MessageLookupByLibrary.simpleMessage(
+      "STF Lite runtime resources are not configured; set the sidecar and resource directory",
+    ),
+    "stf_lite_screen_closed": MessageLookupByLibrary.simpleMessage(
+      "STF Lite screen connection closed; retrying",
+    ),
+    "stf_lite_screen_connecting": MessageLookupByLibrary.simpleMessage(
+      "Connecting to the STF screen stream...",
+    ),
+    "stf_lite_screen_connection_error": MessageLookupByLibrary.simpleMessage(
+      "STF Lite screen connection error; retrying",
+    ),
+    "stf_lite_screen_disconnected": MessageLookupByLibrary.simpleMessage(
+      "STF screen connection disconnected",
+    ),
+    "stf_lite_screen_interrupted": MessageLookupByLibrary.simpleMessage(
+      "STF Lite screen connection interrupted; retrying",
+    ),
+    "stf_lite_screen_paused": MessageLookupByLibrary.simpleMessage(
+      "STF screen stream paused",
+    ),
+    "stf_lite_screen_reconnecting": MessageLookupByLibrary.simpleMessage(
+      "STF Lite screen connection lost; resolving the service again",
+    ),
+    "stf_lite_screen_service_unavailable": MessageLookupByLibrary.simpleMessage(
+      "STF screen service unavailable",
+    ),
+    "stf_lite_screen_session_missing": MessageLookupByLibrary.simpleMessage(
+      "STF Lite screen session not found; retrying",
+    ),
+    "stf_lite_screen_waiting": MessageLookupByLibrary.simpleMessage(
+      "Waiting for the first STF screen frame...",
+    ),
+    "stf_lite_sidecar_exited": MessageLookupByLibrary.simpleMessage(
+      "STF Lite sidecar exited",
+    ),
     "stop": MessageLookupByLibrary.simpleMessage("Stop"),
     "storage": MessageLookupByLibrary.simpleMessage("Storage"),
     "store": MessageLookupByLibrary.simpleMessage("Store"),
@@ -321,7 +363,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "system_settings": MessageLookupByLibrary.simpleMessage("System Settings"),
     "system_version": MessageLookupByLibrary.simpleMessage("System Version"),
     "temperature": MessageLookupByLibrary.simpleMessage("Temperature"),
-    "third_party_apps_loaded": m9,
+    "third_party_apps_loaded": m10,
     "toggle_theme": MessageLookupByLibrary.simpleMessage(
       "Switch theme (Liquid Blue / Rose Glow)",
     ),

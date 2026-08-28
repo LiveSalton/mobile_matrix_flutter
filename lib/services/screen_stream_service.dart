@@ -5,6 +5,14 @@ import 'adb_service.dart';
 
 enum StreamState { connecting, streaming, paused, error, disconnected }
 
+enum ScreenStreamErrorCode {
+  sessionMissing,
+  connectionError,
+  interrupted,
+  closed,
+  disconnected,
+}
+
 class ScreenViewport {
   final double logicalWidth;
   final double logicalHeight;
@@ -84,6 +92,7 @@ abstract class IScreenStreamService extends ChangeNotifier {
   Stream<Uint8List> get frameStream;
   StreamState get state;
   String? get errorMessage => null;
+  ScreenStreamErrorCode? get errorCode => null;
   void startStream();
   void stopStream();
   void setStreamEnabled(bool enabled);
@@ -100,6 +109,7 @@ class StfMinicapStreamService extends IScreenStreamService {
 
   StreamState _state = StreamState.disconnected;
   String? _errorMessage;
+  ScreenStreamErrorCode? _errorCode;
   final StreamController<Uint8List> _streamController =
       StreamController<Uint8List>.broadcast();
   WebSocket? _ws;
@@ -135,6 +145,9 @@ class StfMinicapStreamService extends IScreenStreamService {
   String? get errorMessage => _errorMessage;
 
   @override
+  ScreenStreamErrorCode? get errorCode => _errorCode;
+
+  @override
   void startStream() {
     if (_isDisposed ||
         _state == StreamState.connecting ||
@@ -159,6 +172,7 @@ class StfMinicapStreamService extends IScreenStreamService {
 
       _ws = socket;
       _errorMessage = null;
+      _errorCode = null;
       _lastSentWidth = null;
       _lastSentHeight = null;
       _setState(_isEnabled ? StreamState.streaming : StreamState.paused);
@@ -192,11 +206,11 @@ class StfMinicapStreamService extends IScreenStreamService {
           if (kDebugMode) {
             debugPrint('[StfMinicapStream] Error: $err');
           }
-          _scheduleReconnect('STF 屏幕连接中断，正在重试');
+          _scheduleReconnect(ScreenStreamErrorCode.interrupted);
         },
         onDone: () {
           if (!_isDisposed && !_isStoppedManually) {
-            _scheduleReconnect('STF 屏幕连接已关闭，正在重试');
+            _scheduleReconnect(ScreenStreamErrorCode.closed);
           }
         },
         cancelOnError: true,
@@ -205,7 +219,7 @@ class StfMinicapStreamService extends IScreenStreamService {
       if (kDebugMode) {
         debugPrint('[StfMinicapStream] Connect failed: $e, will retry');
       }
-      _scheduleReconnect('无法连接 STF 屏幕服务，正在重试');
+      _scheduleReconnect(ScreenStreamErrorCode.connectionError);
     }
   }
 
@@ -214,13 +228,14 @@ class StfMinicapStreamService extends IScreenStreamService {
     notifyListeners();
   }
 
-  void _scheduleReconnect(String message) {
+  void _scheduleReconnect(ScreenStreamErrorCode code) {
     if (_isDisposed || _isStoppedManually) return;
     _wsSubscription?.cancel();
     _wsSubscription = null;
     _ws?.close();
     _ws = null;
-    _errorMessage = message;
+    _errorMessage = null;
+    _errorCode = code;
     _setState(StreamState.error);
 
     if (!_isDisposed && !_isStoppedManually) {
@@ -301,6 +316,7 @@ class StfMinicapStreamService extends IScreenStreamService {
     _wsSubscription = null;
     _ws?.close();
     _ws = null;
+    _errorCode = ScreenStreamErrorCode.disconnected;
     _setState(StreamState.disconnected);
   }
 
@@ -329,12 +345,12 @@ class SmartScreenStreamService extends IScreenStreamService {
   Timer? _resolutionRetryTimer;
   StreamState _state = StreamState.connecting;
   String? _errorMessage;
+  ScreenStreamErrorCode? _errorCode;
   ScreenViewport? _lastViewport;
   bool _isEnabled = true;
   bool _isResolving = false;
   bool _isDisposed = false;
   bool _isStarted = true;
-  bool _preferInitialStreamUrl = true;
   bool _recoveryScheduled = false;
 
   SmartScreenStreamService({
@@ -355,39 +371,26 @@ class SmartScreenStreamService extends IScreenStreamService {
   @override
   String? get errorMessage => _activeService?.errorMessage ?? _errorMessage;
 
-  Future<void> _resolveStfStream({bool forceResolve = false}) async {
+  @override
+  ScreenStreamErrorCode? get errorCode =>
+      _activeService?.errorCode ?? _errorCode;
+
+  Future<void> _resolveStfStream() async {
     if (!_isStarted || _isDisposed || _isResolving || _activeService != null) {
       return;
     }
     _isResolving = true;
     _state = StreamState.connecting;
     _errorMessage = null;
+    _errorCode = null;
     notifyListeners();
 
     try {
-      var wsUrl = forceResolve || !_preferInitialStreamUrl
-          ? null
-          : initialStreamUrl?.trim();
-      if (wsUrl == null || wsUrl.isEmpty) {
-        _preferInitialStreamUrl = false;
-        final port = await AdbService.resolveDeviceScreenPort(serial);
-        if (port != null && port > 0) {
-          wsUrl = 'ws://127.0.0.1:$port';
-          if (kDebugMode) {
-            debugPrint(
-              '[SmartScreenStream:$serial] resolved STF screen port $port',
-            );
-          }
-        } else if (kDebugMode) {
-          debugPrint(
-            '[SmartScreenStream:$serial] STF screen port is unavailable',
-          );
-        }
-      }
+      final wsUrl = initialStreamUrl?.trim();
 
       if (_isDisposed || !_isStarted) return;
       if (wsUrl == null || wsUrl.isEmpty) {
-        _setResolutionError();
+        _setResolutionError(ScreenStreamErrorCode.sessionMissing);
         return;
       }
 
@@ -402,20 +405,25 @@ class SmartScreenStreamService extends IScreenStreamService {
       if (kDebugMode) {
         debugPrint('[SmartScreenStream] STF address resolution failed: $error');
       }
-      if (!_isDisposed) _setResolutionError();
+      if (!_isDisposed) {
+        _setResolutionError(ScreenStreamErrorCode.connectionError);
+      }
     } finally {
       _isResolving = false;
     }
   }
 
-  void _setResolutionError([String message = '未找到当前设备的 STF 屏幕服务，正在重试']) {
+  void _setResolutionError([
+    ScreenStreamErrorCode code = ScreenStreamErrorCode.sessionMissing,
+  ]) {
     _state = StreamState.error;
-    _errorMessage = message;
+    _errorMessage = null;
+    _errorCode = code;
     notifyListeners();
     _resolutionRetryTimer?.cancel();
     _resolutionRetryTimer = Timer(const Duration(seconds: 2), () {
       _resolutionRetryTimer = null;
-      unawaited(_resolveStfStream(forceResolve: true));
+      unawaited(_resolveStfStream());
     });
   }
 
@@ -443,7 +451,7 @@ class SmartScreenStreamService extends IScreenStreamService {
 
     final service = _activeService;
     if (service != null && service.state == StreamState.error) {
-      final message = service.errorMessage ?? 'STF 屏幕连接已断开，正在重新解析服务';
+      final code = service.errorCode ?? ScreenStreamErrorCode.connectionError;
       if (!_recoveryScheduled) {
         _recoveryScheduled = true;
         scheduleMicrotask(() {
@@ -454,7 +462,7 @@ class SmartScreenStreamService extends IScreenStreamService {
             return;
           }
           _detachActiveService();
-          _setResolutionError(message);
+          _setResolutionError(code);
         });
       }
       return;
@@ -496,6 +504,7 @@ class SmartScreenStreamService extends IScreenStreamService {
     _resolutionRetryTimer = null;
     _activeService?.stopStream();
     _state = StreamState.disconnected;
+    _errorCode = ScreenStreamErrorCode.disconnected;
     notifyListeners();
   }
 

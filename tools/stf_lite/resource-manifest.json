@@ -1,0 +1,32 @@
+{
+  "stfVersion": "3.7.9",
+  "minicapVersion": "2.7.3",
+  "minitouchVersion": "1.3.0",
+  "stfServiceVersion": "2.5.5",
+  "resourceLayout": {
+    "minicapPrebuilt": "minicap-prebuilt/prebuilt",
+    "minitouchPrebuilt": "minitouch-prebuilt/prebuilt",
+    "stfServiceApk": "STFService/STFService.apk",
+    "inputBridge": "input_bridge/stf-input-bridge.dex.jar",
+    "hostNode": "bin/node",
+    "hostAdb": "bin/adb"
+  },
+  "requiredCapabilities": [
+    "adb-device-discovery",
+    "minicap-screen-stream",
+    "minitouch-touch-input",
+    "persistent-adb-input-bridge",
+    "stfservice-clipboard"
+  ],
+  "excludedCapabilities": [
+    "web-ui",
+    "authentication",
+    "groups-engine",
+    "processor",
+    "poorxy",
+    "storage",
+    "rethinkdb",
+    "docker",
+    "colima"
+  ]
+}

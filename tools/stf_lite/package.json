@@ -1,0 +1,13 @@
+{
+  "name": "mobile-matrix-stf-lite",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Minimal single-machine STF device runtime for Mobile Matrix",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/main.js"
+  }
+}

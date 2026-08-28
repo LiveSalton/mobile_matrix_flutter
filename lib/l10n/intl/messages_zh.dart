@@ -39,7 +39,9 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m8(error) => "读取本机设备失败：${error}";
 
-  static String m9(count) => "已读取 ${count} 个第三方应用";
+  static String m9(error) => "STF Lite 运行时启动失败：${error}";
+
+  static String m10(count) => "已读取 ${count} 个第三方应用";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -244,6 +246,46 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "special_keys": MessageLookupByLibrary.simpleMessage("特殊按键"),
     "start": MessageLookupByLibrary.simpleMessage("启动"),
+    "stf_lite_runtime_not_ready": MessageLookupByLibrary.simpleMessage(
+      "STF Lite 运行时尚未就绪",
+    ),
+    "stf_lite_runtime_start_failed": m9,
+    "stf_lite_runtime_unavailable": MessageLookupByLibrary.simpleMessage(
+      "STF Lite 运行时资源未配置，请配置 sidecar 与资源目录",
+    ),
+    "stf_lite_screen_closed": MessageLookupByLibrary.simpleMessage(
+      "STF Lite 屏幕连接已关闭，正在重试",
+    ),
+    "stf_lite_screen_connecting": MessageLookupByLibrary.simpleMessage(
+      "正在连接 STF 屏幕流...",
+    ),
+    "stf_lite_screen_connection_error": MessageLookupByLibrary.simpleMessage(
+      "STF Lite 屏幕连接异常，正在重试",
+    ),
+    "stf_lite_screen_disconnected": MessageLookupByLibrary.simpleMessage(
+      "STF 屏幕连接已断开",
+    ),
+    "stf_lite_screen_interrupted": MessageLookupByLibrary.simpleMessage(
+      "STF Lite 屏幕连接中断，正在重试",
+    ),
+    "stf_lite_screen_paused": MessageLookupByLibrary.simpleMessage(
+      "STF 屏幕流已暂停",
+    ),
+    "stf_lite_screen_reconnecting": MessageLookupByLibrary.simpleMessage(
+      "STF Lite 屏幕连接已断开，正在重新解析服务",
+    ),
+    "stf_lite_screen_service_unavailable": MessageLookupByLibrary.simpleMessage(
+      "STF 屏幕服务不可用",
+    ),
+    "stf_lite_screen_session_missing": MessageLookupByLibrary.simpleMessage(
+      "未找到 STF Lite 屏幕会话，正在重试",
+    ),
+    "stf_lite_screen_waiting": MessageLookupByLibrary.simpleMessage(
+      "等待 STF 屏幕首帧...",
+    ),
+    "stf_lite_sidecar_exited": MessageLookupByLibrary.simpleMessage(
+      "STF Lite sidecar 已退出",
+    ),
     "stop": MessageLookupByLibrary.simpleMessage("停止"),
     "storage": MessageLookupByLibrary.simpleMessage("存储"),
     "store": MessageLookupByLibrary.simpleMessage("商店"),
@@ -259,7 +301,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "system_settings": MessageLookupByLibrary.simpleMessage("系统设置"),
     "system_version": MessageLookupByLibrary.simpleMessage("系统版本"),
     "temperature": MessageLookupByLibrary.simpleMessage("温度"),
-    "third_party_apps_loaded": m9,
+    "third_party_apps_loaded": m10,
     "toggle_theme": MessageLookupByLibrary.simpleMessage("切换流光主题 (液态蓝 / 玫瑰流光)"),
     "uninstall": MessageLookupByLibrary.simpleMessage("卸载"),
     "unknown": MessageLookupByLibrary.simpleMessage("未知"),

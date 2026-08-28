@@ -1303,6 +1303,146 @@ class L10n {
       args: [],
     );
   }
+
+  /// `STF Lite 运行时资源未配置，请配置 sidecar 与资源目录`
+  String get stf_lite_runtime_unavailable {
+    return Intl.message(
+      'STF Lite 运行时资源未配置，请配置 sidecar 与资源目录',
+      name: 'stf_lite_runtime_unavailable',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `STF Lite 运行时尚未就绪`
+  String get stf_lite_runtime_not_ready {
+    return Intl.message(
+      'STF Lite 运行时尚未就绪',
+      name: 'stf_lite_runtime_not_ready',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `STF Lite 运行时启动失败：{error}`
+  String stf_lite_runtime_start_failed(Object error) {
+    return Intl.message(
+      'STF Lite 运行时启动失败：$error',
+      name: 'stf_lite_runtime_start_failed',
+      desc: '',
+      args: [error],
+    );
+  }
+
+  /// `STF Lite sidecar 已退出`
+  String get stf_lite_sidecar_exited {
+    return Intl.message(
+      'STF Lite sidecar 已退出',
+      name: 'stf_lite_sidecar_exited',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `等待 STF 屏幕首帧...`
+  String get stf_lite_screen_waiting {
+    return Intl.message(
+      '等待 STF 屏幕首帧...',
+      name: 'stf_lite_screen_waiting',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `STF 屏幕流已暂停`
+  String get stf_lite_screen_paused {
+    return Intl.message(
+      'STF 屏幕流已暂停',
+      name: 'stf_lite_screen_paused',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `STF 屏幕服务不可用`
+  String get stf_lite_screen_service_unavailable {
+    return Intl.message(
+      'STF 屏幕服务不可用',
+      name: 'stf_lite_screen_service_unavailable',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `STF 屏幕连接已断开`
+  String get stf_lite_screen_disconnected {
+    return Intl.message(
+      'STF 屏幕连接已断开',
+      name: 'stf_lite_screen_disconnected',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `正在连接 STF 屏幕流...`
+  String get stf_lite_screen_connecting {
+    return Intl.message(
+      '正在连接 STF 屏幕流...',
+      name: 'stf_lite_screen_connecting',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `未找到 STF Lite 屏幕会话，正在重试`
+  String get stf_lite_screen_session_missing {
+    return Intl.message(
+      '未找到 STF Lite 屏幕会话，正在重试',
+      name: 'stf_lite_screen_session_missing',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `STF Lite 屏幕连接异常，正在重试`
+  String get stf_lite_screen_connection_error {
+    return Intl.message(
+      'STF Lite 屏幕连接异常，正在重试',
+      name: 'stf_lite_screen_connection_error',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `STF Lite 屏幕连接中断，正在重试`
+  String get stf_lite_screen_interrupted {
+    return Intl.message(
+      'STF Lite 屏幕连接中断，正在重试',
+      name: 'stf_lite_screen_interrupted',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `STF Lite 屏幕连接已关闭，正在重试`
+  String get stf_lite_screen_closed {
+    return Intl.message(
+      'STF Lite 屏幕连接已关闭，正在重试',
+      name: 'stf_lite_screen_closed',
+      desc: '',
+      args: [],
+    );
+  }
+
+  /// `STF Lite 屏幕连接已断开，正在重新解析服务`
+  String get stf_lite_screen_reconnecting {
+    return Intl.message(
+      'STF Lite 屏幕连接已断开，正在重新解析服务',
+      name: 'stf_lite_screen_reconnecting',
+      desc: '',
+      args: [],
+    );
+  }
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<L10n> {

@@ -591,7 +591,13 @@ class AdbService {
     if (_resolvedAdbPath != null) return _resolvedAdbPath!;
 
     final home = Platform.environment['HOME'] ?? '';
+    final configured = Platform.environment['MOBILE_MATRIX_ADB'];
+    final executable = File(Platform.resolvedExecutable);
+    final bundled =
+        '${executable.parent.parent.path}/Resources/stf-lite/bin/adb';
     final candidates = [
+      if (configured != null && configured.trim().isNotEmpty) configured,
+      bundled,
       if (home.isNotEmpty) '$home/Library/Android/sdk/platform-tools/adb',
       if (home.isNotEmpty) '$home/Android/Sdk/platform-tools/adb',
       '/opt/homebrew/bin/adb',
@@ -613,38 +619,6 @@ class AdbService {
 
     _resolvedAdbPath = 'adb';
     return 'adb';
-  }
-
-  static Future<int?> resolveDeviceScreenPort(String serial) async {
-    try {
-      final psRes = await Process.run('ps', [
-        '-axww',
-        '-o',
-        'command=',
-      ]).timeout(const Duration(seconds: 2));
-      if (psRes.exitCode == 0) {
-        final stdout = psRes.stdout.toString();
-        final lines = LineSplitter.split(stdout);
-        final serialArgument = RegExp(
-          r'--serial(?:=|\s+)' + RegExp.escape(serial) + r'(?:\s|$)',
-        );
-        for (final line in lines) {
-          if (line.toLowerCase().contains('stf') &&
-              serialArgument.hasMatch(line)) {
-            final match = RegExp(
-              r'--screen-port(?:=|\s+)(\d+)',
-            ).firstMatch(line);
-            if (match != null) {
-              final port = int.tryParse(match.group(1)!);
-              if (port != null && port > 0) {
-                return port;
-              }
-            }
-          }
-        }
-      }
-    } catch (_) {}
-    return null;
   }
 
   static Future<List<DeviceModel>> getConnectedDevices() async {

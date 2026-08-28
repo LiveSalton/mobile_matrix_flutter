@@ -8,6 +8,7 @@ import '../../../services/device_control_service.dart';
 import '../../../services/scaling_coordinator.dart';
 import '../../../services/screen_stream_service.dart';
 import '../../../theme/app_theme.dart';
+import '../../../l10n/l10n.dart';
 import 'fast_screen_renderer.dart';
 
 class DeviceScreenStage extends StatefulWidget {
@@ -37,6 +38,7 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
   late ScalingCoordinator _coordinator;
   Offset? _touchPosition;
   bool _isPointerDown = false;
+  int _pointerMoveCount = 0;
   bool _isLongPressActive = false;
   Timer? _longPressVisualTimer;
   ScreenViewport? _latestViewport;
@@ -156,8 +158,17 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
 
     setState(() {
       _isPointerDown = true;
+      _pointerMoveCount = 0;
       _touchPosition = event.localPosition;
     });
+
+    if (kDebugMode) {
+      debugPrint(
+        '[DeviceInput:${widget.device.serial}] down '
+        'local=${event.localPosition} render=$renderRect '
+        'normalized=$norm rotation=${widget.device.display.rotation}',
+      );
+    }
 
     widget.controlService.touchDown(contact: 0, xP: norm.xP, yP: norm.yP);
     widget.controlService.touchCommit();
@@ -179,7 +190,16 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
 
     setState(() {
       _touchPosition = event.localPosition;
+      _pointerMoveCount += 1;
     });
+
+    if (kDebugMode && (_pointerMoveCount == 1 || _pointerMoveCount % 10 == 0)) {
+      debugPrint(
+        '[DeviceInput:${widget.device.serial}] move '
+        'count=$_pointerMoveCount local=${event.localPosition} '
+        'normalized=$norm',
+      );
+    }
 
     widget.controlService.touchMove(contact: 0, xP: norm.xP, yP: norm.yP);
     widget.controlService.touchCommit();
@@ -195,6 +215,13 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
       _isLongPressActive = false;
       _touchPosition = null;
     });
+
+    if (kDebugMode) {
+      debugPrint(
+        '[DeviceInput:${widget.device.serial}] up '
+        'moves=$_pointerMoveCount local=${event.localPosition}',
+      );
+    }
 
     unawaited(_finishPointerGesture());
   }
@@ -370,6 +397,9 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
                                                 errorMessage: widget
                                                     .streamService
                                                     .errorMessage,
+                                                errorCode: widget
+                                                    .streamService
+                                                    .errorCode,
                                               ),
                                               onFpsChanged: _handleFpsChanged,
                                             ),
@@ -380,6 +410,9 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
                                                 errorMessage: widget
                                                     .streamService
                                                     .errorMessage,
+                                                errorCode: widget
+                                                    .streamService
+                                                    .errorCode,
                                               ),
                                           ],
                                         );
@@ -500,16 +533,19 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
     BuildContext context, {
     required StreamState state,
     String? errorMessage,
+    ScreenStreamErrorCode? errorCode,
   }) {
     final tokens = context.tokens;
     final isError = state == StreamState.error;
     final isPaused = state == StreamState.paused;
+    final strings = L10n.of(context);
     final label = switch (state) {
-      StreamState.streaming => '等待 STF 屏幕首帧...',
-      StreamState.paused => 'STF 屏幕流已暂停',
-      StreamState.error => errorMessage ?? 'STF 屏幕服务不可用',
-      StreamState.disconnected => 'STF 屏幕连接已断开',
-      StreamState.connecting => '正在连接 STF 屏幕流...',
+      StreamState.streaming => strings.stf_lite_screen_waiting,
+      StreamState.paused => strings.stf_lite_screen_paused,
+      StreamState.error =>
+        errorMessage ?? _localizedStreamError(strings, errorCode),
+      StreamState.disconnected => strings.stf_lite_screen_disconnected,
+      StreamState.connecting => strings.stf_lite_screen_connecting,
     };
 
     return Stack(
@@ -570,15 +606,18 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
     BuildContext context, {
     required StreamState state,
     String? errorMessage,
+    ScreenStreamErrorCode? errorCode,
   }) {
     final tokens = context.tokens;
     final isError = state == StreamState.error;
     final isConnecting = state == StreamState.connecting;
+    final strings = L10n.of(context);
     final label = switch (state) {
-      StreamState.connecting => '正在连接 STF 屏幕流...',
-      StreamState.paused => 'STF 屏幕流已暂停',
-      StreamState.error => errorMessage ?? 'STF 屏幕服务不可用',
-      StreamState.disconnected => 'STF 屏幕连接已断开',
+      StreamState.connecting => strings.stf_lite_screen_connecting,
+      StreamState.paused => strings.stf_lite_screen_paused,
+      StreamState.error =>
+        errorMessage ?? _localizedStreamError(strings, errorCode),
+      StreamState.disconnected => strings.stf_lite_screen_disconnected,
       StreamState.streaming => '',
     };
     return ColoredBox(
@@ -627,6 +666,20 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
         ),
       ),
     );
+  }
+
+  String _localizedStreamError(L10n strings, ScreenStreamErrorCode? errorCode) {
+    return switch (errorCode) {
+      ScreenStreamErrorCode.sessionMissing =>
+        strings.stf_lite_screen_session_missing,
+      ScreenStreamErrorCode.connectionError =>
+        strings.stf_lite_screen_connection_error,
+      ScreenStreamErrorCode.interrupted => strings.stf_lite_screen_interrupted,
+      ScreenStreamErrorCode.closed => strings.stf_lite_screen_closed,
+      ScreenStreamErrorCode.disconnected =>
+        strings.stf_lite_screen_disconnected,
+      null => strings.stf_lite_screen_service_unavailable,
+    };
   }
 
   Widget _buildNavigationBar(BuildContext context) {

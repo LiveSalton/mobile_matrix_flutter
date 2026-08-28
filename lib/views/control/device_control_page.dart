@@ -7,7 +7,9 @@ import '../../services/adb_service.dart';
 import '../../services/device_control_service.dart';
 import '../../services/device_tools_service.dart';
 import '../../services/screen_stream_service.dart';
+import '../../services/stf_lite_runtime_service.dart';
 import '../../theme/app_theme.dart';
+import '../../l10n/l10n.dart';
 import 'widgets/app_header.dart';
 import 'widgets/device_screen_stage.dart';
 import 'widgets/device_workspace.dart';
@@ -37,11 +39,17 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
   IDeviceControlService? _controlService;
   DeviceToolsService? _toolsService;
   IScreenStreamService? _streamService;
+  final StfLiteRuntimeService _stfLiteRuntime = StfLiteRuntimeService();
 
   @override
   void initState() {
     super.initState();
+    _stfLiteRuntime.addListener(_handleRuntimeChanged);
     _scanAdbDevices();
+  }
+
+  void _handleRuntimeChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _scanAdbDevices() async {
@@ -52,18 +60,40 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
 
     try {
       final adbPath = await AdbService.resolveAdbPath();
+      final runtimeStarted = await _stfLiteRuntime.start();
+      final stfSessions = runtimeStarted
+          ? await _stfLiteRuntime.getSessions()
+          : const <StfLiteSessionInfo>[];
       final realDevices = await AdbService.getConnectedDevices();
+      final sessionsBySerial = <String, StfLiteSessionInfo>{
+        for (final session in stfSessions) session.serial: session,
+      };
+      final devices = realDevices
+          .map((device) {
+            final session = sessionsBySerial[device.serial];
+            if (session == null) return device;
+            final display = device.display.copyWith(
+              width: session.width > 0 ? session.width : null,
+              height: session.height > 0 ? session.height : null,
+              rotation: session.rotation,
+              streamUrl: session.screenUrl,
+            );
+            return device.copyWith(display: display);
+          })
+          .toList(growable: false);
 
       if (mounted) {
         setState(() {
           _adbPathInfo = adbPath;
-          _devices = realDevices;
-          _scanErrorInfo = AdbService.lastError;
+          _devices = devices;
+          _scanErrorInfo =
+              AdbService.lastError ??
+              (runtimeStarted ? null : _localizedRuntimeError(context));
 
-          if (realDevices.isNotEmpty) {
-            final match = realDevices.firstWhere(
+          if (devices.isNotEmpty) {
+            final match = devices.firstWhere(
               (d) => d.serial == _currentDevice?.serial,
-              orElse: () => realDevices.first,
+              orElse: () => devices.first,
             );
             _setupDeviceServices(match);
           } else {
@@ -81,7 +111,7 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _scanErrorInfo = '检测异常: $e';
+          _scanErrorInfo = '${L10n.of(context).remote_debug_read_failed}: $e';
         });
       }
     } finally {
@@ -100,10 +130,9 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
     _toolsService?.dispose();
 
     _currentDevice = device;
-    _controlService = AdbDeviceControlService(
+    _controlService = StfLiteDeviceControlService(
       serial: device.serial,
-      realWidth: device.display.width,
-      realHeight: device.display.height,
+      runtime: _stfLiteRuntime,
     );
     _toolsService = DeviceToolsService(serial: device.serial);
 
@@ -116,6 +145,22 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
     );
   }
 
+  String? _localizedRuntimeError(BuildContext context) {
+    final strings = L10n.of(context);
+    return switch (_stfLiteRuntime.errorCode) {
+      StfLiteRuntimeErrorCode.resourcesUnavailable =>
+        strings.stf_lite_runtime_unavailable,
+      StfLiteRuntimeErrorCode.startupFailed =>
+        strings.stf_lite_runtime_start_failed(
+          _stfLiteRuntime.errorMessage ?? strings.stf_lite_runtime_not_ready,
+        ),
+      StfLiteRuntimeErrorCode.runtimeNotReady =>
+        strings.stf_lite_runtime_not_ready,
+      StfLiteRuntimeErrorCode.sidecarExited => strings.stf_lite_sidecar_exited,
+      null => _stfLiteRuntime.errorMessage,
+    };
+  }
+
   @override
   void dispose() {
     _keyboardFocusNode.dispose();
@@ -123,6 +168,8 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
     _controlService?.dispose();
     _toolsService?.dispose();
     _streamService?.dispose();
+    _stfLiteRuntime.removeListener(_handleRuntimeChanged);
+    _stfLiteRuntime.dispose();
     super.dispose();
   }
 
@@ -166,6 +213,7 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
   Widget build(BuildContext context) {
     final tokens = context.tokens;
     final hasReadyDevice =
+        _stfLiteRuntime.isAvailable &&
         _currentDevice != null &&
         _controlService != null &&
         _streamService != null &&
