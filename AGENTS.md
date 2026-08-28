@@ -3,6 +3,7 @@
 ## 项目概览
 基于 Flutter 构建的桌面端 Android 多设备矩阵控制工作台。
 
+
 ## 最高门禁
 
 - **AI 不得改动 `AGENTS.md`；仅可按用户要求提供修改建议。**
@@ -25,3 +26,4 @@
 ## 参考项目
 路径相对项目根目录；缺失时询问用户。
 - 参照项目：`../mobile-matrix`
+- usb-camera-cli： `../usb-camera-cli`

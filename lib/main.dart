@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'l10n/l10n.dart';
 import 'theme/app_theme.dart';
 import 'views/control/device_control_page.dart';
 
@@ -36,11 +38,18 @@ class _MobileMatrixAppState extends State<MobileMatrixApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Mobile Matrix',
       debugShowCheckedModeBanner: false,
+      onGenerateTitle: (context) => L10n.of(context).app_name,
+      localizationsDelegates: const [
+        L10n.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ],
+      supportedLocales: const [Locale('en'), Locale('zh')],
+      locale: const Locale('zh'),
       theme: AppTheme.buildTheme(_themeController.currentTheme),
       home: DeviceControlPage(themeController: _themeController),
     );
   }
 }
-

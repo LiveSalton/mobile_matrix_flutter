@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../l10n/l10n.dart';
 import '../../../models/device_model.dart';
 import '../../../theme/app_theme.dart';
 
@@ -39,18 +40,18 @@ class AppHeader extends StatelessWidget {
     }
   }
 
-  String _getStatusText(DeviceConnectionStatus status) {
+  String _getStatusText(DeviceConnectionStatus status, L10n strings) {
     switch (status) {
       case DeviceConnectionStatus.available:
-        return '已连接 · 可控制';
+        return strings.device_connected_controllable;
       case DeviceConnectionStatus.using:
-        return '正在控制 (ADB)';
+        return strings.device_controlling;
       case DeviceConnectionStatus.busy:
-        return '设备正被占用';
+        return strings.device_busy;
       case DeviceConnectionStatus.disconnected:
-        return '连接已断开';
+        return strings.device_disconnected;
       case DeviceConnectionStatus.unauthorized:
-        return '未授权 (请在手机勾选信任)';
+        return strings.device_unauthorized;
     }
   }
 
@@ -69,6 +70,7 @@ class AppHeader extends StatelessWidget {
     AppColorTokens tokens, {
     required String logoAsset,
     required bool showBrand,
+    required L10n strings,
   }) {
     final hasDevice = availableDevices.isNotEmpty && currentDevice != null;
 
@@ -93,7 +95,7 @@ class AppHeader extends StatelessWidget {
         Expanded(
           child: hasDevice
               ? PopupMenuButton<DeviceModel>(
-                  tooltip: '切换设备',
+                  tooltip: strings.switch_device,
                   offset: const Offset(0, 42),
                   color: tokens.bgSecondary,
                   shape: RoundedRectangleBorder(
@@ -181,7 +183,7 @@ class AppHeader extends StatelessWidget {
                   ),
                 )
               : Text(
-                  '未检测到 USB 真机连接',
+                  strings.no_usb_device,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: tokens.warning,
@@ -193,7 +195,7 @@ class AppHeader extends StatelessWidget {
         const SizedBox(width: 4),
         IconButton(
           style: _iconButtonStyle(tokens),
-          tooltip: '重新扫描 ADB 真机设备',
+          tooltip: strings.rescan_adb_devices,
           icon: isScanning
               ? SizedBox(
                   width: 16,
@@ -213,7 +215,7 @@ class AppHeader extends StatelessWidget {
         const Spacer(),
         IconButton(
           style: _iconButtonStyle(tokens),
-          tooltip: '切换流光主题 (液态蓝 / 玫瑰流光)',
+          tooltip: strings.toggle_theme,
           icon: Icon(Icons.palette_outlined, size: 20, color: tokens.primary),
           onPressed: onToggleTheme,
         ),
@@ -224,6 +226,7 @@ class AppHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final strings = L10n.of(context);
     final logoAsset = currentTheme == AppThemeType.roseGlow
         ? 'assets/branding/mobile-matrix-128-rose.png'
         : 'assets/branding/mobile-matrix-128.png';
@@ -250,6 +253,7 @@ class AppHeader extends StatelessWidget {
               tokens,
               logoAsset: logoAsset,
               showBrand: showBrand,
+              strings: strings,
             );
           }
 
@@ -302,7 +306,7 @@ class AppHeader extends StatelessWidget {
                 // 设备选择下拉与状态
                 if (availableDevices.isNotEmpty && currentDevice != null)
                   PopupMenuButton<DeviceModel>(
-                    tooltip: '切换设备',
+                    tooltip: strings.switch_device,
                     offset: const Offset(0, 42),
                     color: tokens.bgSecondary,
                     shape: RoundedRectangleBorder(
@@ -394,7 +398,7 @@ class AppHeader extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            _getStatusText(currentDevice!.status),
+                            _getStatusText(currentDevice!.status, strings),
                             style: TextStyle(
                               color: tokens.textSecondary,
                               fontSize: 12,
@@ -431,7 +435,7 @@ class AppHeader extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '未检测到 USB 真机连接',
+                          strings.no_usb_device,
                           style: TextStyle(
                             color: tokens.warning,
                             fontSize: 12,
@@ -447,7 +451,7 @@ class AppHeader extends StatelessWidget {
                 // 刷新设备扫描按钮
                 IconButton(
                   style: _iconButtonStyle(tokens),
-                  tooltip: '重新扫描 ADB 真机设备',
+                  tooltip: strings.rescan_adb_devices,
                   icon: isScanning
                       ? SizedBox(
                           width: 16,
@@ -470,7 +474,7 @@ class AppHeader extends StatelessWidget {
                 // 主题切换按钮
                 IconButton(
                   style: _iconButtonStyle(tokens),
-                  tooltip: '切换流光主题 (液态蓝 / 玫瑰流光)',
+                  tooltip: strings.toggle_theme,
                   icon: Icon(
                     Icons.palette_outlined,
                     size: 20,

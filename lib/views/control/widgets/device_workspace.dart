@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../l10n/l10n.dart';
 import '../../../models/device_model.dart';
 import '../../../models/device_tool_models.dart';
 import '../../../services/device_control_service.dart';
@@ -52,18 +53,40 @@ class _ToolEntry {
 class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   static const _dashboardWideBreakpoint = 640.0;
 
-  static const _tools = [
-    _ToolEntry(DeviceToolKind.dashboard, 'Dashboard', Icons.dashboard_outlined),
-    _ToolEntry(DeviceToolKind.logs, '日志', Icons.article_outlined),
+  L10n get _strings => L10n.current;
+
+  List<_ToolEntry> _tools(L10n strings) => [
+    _ToolEntry(
+      DeviceToolKind.dashboard,
+      strings.dashboard,
+      Icons.dashboard_outlined,
+    ),
+    _ToolEntry(DeviceToolKind.logs, strings.logs, Icons.article_outlined),
     _ToolEntry(
       DeviceToolKind.screenshots,
-      '截屏',
+      strings.screenshots,
       Icons.screenshot_monitor_outlined,
     ),
-    _ToolEntry(DeviceToolKind.automation, '自动化', Icons.tune_rounded),
-    _ToolEntry(DeviceToolKind.explorer, '文件管理', Icons.folder_open_outlined),
-    _ToolEntry(DeviceToolKind.advanced, '高级功能', Icons.extension_outlined),
-    _ToolEntry(DeviceToolKind.info, '设备信息', Icons.info_outline_rounded),
+    _ToolEntry(
+      DeviceToolKind.automation,
+      strings.automation,
+      Icons.tune_rounded,
+    ),
+    _ToolEntry(
+      DeviceToolKind.explorer,
+      strings.file_management,
+      Icons.folder_open_outlined,
+    ),
+    _ToolEntry(
+      DeviceToolKind.advanced,
+      strings.advanced_features,
+      Icons.extension_outlined,
+    ),
+    _ToolEntry(
+      DeviceToolKind.info,
+      strings.device_info,
+      Icons.info_outline_rounded,
+    ),
   ];
 
   final TextEditingController _clipboardController = TextEditingController();
@@ -279,7 +302,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
     final sent = await widget.controlService.typeText(text);
     if (sent) widget.streamService.triggerImmediateRefresh();
     _typeInputController.clear();
-    _appendTerminalLog('Commit Text: "$text"');
+    _appendTerminalLog(_strings.commit_text_log(text));
   }
 
   Future<void> _handleSetClipboard() async {
@@ -287,21 +310,25 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
     if (text.isEmpty) return;
     final pasted = await widget.controlService.pasteText(text);
     if (pasted) widget.streamService.triggerImmediateRefresh();
-    _appendTerminalLog('Clipboard Set: "$text"');
+    _appendTerminalLog(_strings.clipboard_set_log(text));
   }
 
   Future<void> _handlePasteFromComputer() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final text = data?.text;
     if (text == null || text.isEmpty) {
-      _showMessage('电脑剪贴板当前为空');
+      _showMessage(_strings.computer_clipboard_empty);
       return;
     }
     _clipboardController.text = text;
     final pasted = await widget.controlService.pasteText(text);
     if (pasted) widget.streamService.triggerImmediateRefresh();
-    _appendTerminalLog('Pasted from computer clipboard: "$text"');
-    _showMessage(pasted ? '已将电脑剪贴板内容注入手机' : '注入手机失败');
+    _appendTerminalLog(_strings.pasted_clipboard_log(text));
+    _showMessage(
+      pasted
+          ? _strings.clipboard_pasted_to_device
+          : _strings.clipboard_paste_failed,
+    );
   }
 
   Future<void> _handleGetClipboard() async {
@@ -352,7 +379,10 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
               .where((line) => line.isNotEmpty),
         );
     });
-    _showResult(result, successMessage: '已读取 ${_packages.length} 个第三方应用');
+    _showResult(
+      result,
+      successMessage: _strings.third_party_apps_loaded(_packages.length),
+    );
   }
 
   Future<void> _handleUninstallPackage() async {
@@ -384,17 +414,22 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
       } else {
         _remoteAddressController.clear();
       }
-      final selectedName = info.selectedDeviceName ?? '未知设备';
+      final selectedName = info.selectedDeviceName ?? _strings.unknown_device;
       setState(() {
         _remoteDebugMessage =
             info.error ??
-            '已发现 ${info.connectedDeviceCount} 台设备，已为 $selectedName '
-                '配置 ${info.endpoint}';
+            _strings.remote_debug_discovered(
+              info.connectedDeviceCount,
+              selectedName,
+              info.endpoint,
+            );
       });
       _showMessage(_remoteDebugMessage);
     } catch (error) {
       if (!mounted) return;
-      setState(() => _remoteDebugMessage = '读取本机设备失败：$error');
+      setState(
+        () => _remoteDebugMessage = _strings.remote_debug_read_failed(error),
+      );
       _showMessage(_remoteDebugMessage);
     } finally {
       if (mounted) setState(() => _isDiscoveringRemoteDebug = false);
@@ -404,23 +439,23 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   Future<void> _handleStartLogcat() async {
     await widget.toolsService.startLogcat(filter: _logFilterController.text);
     if (mounted) setState(() => _isLogcatRunning = true);
-    _showMessage('logcat 已启动');
+    _showMessage(_strings.logcat_started);
   }
 
   Future<void> _handleStopLogcat() async {
     await widget.toolsService.stopLogcat();
     if (mounted) setState(() => _isLogcatRunning = false);
-    _showMessage('logcat 已停止');
+    _showMessage(_strings.logcat_stopped);
   }
 
   Future<void> _handleCopyLogs() async {
     final text = _filteredLogs.join('\n');
     if (text.isEmpty) {
-      _showMessage('当前没有可复制的日志');
+      _showMessage(_strings.no_logs_to_copy);
       return;
     }
     await Clipboard.setData(ClipboardData(text: text));
-    _showMessage('日志已复制到剪贴板');
+    _showMessage(_strings.logs_copied);
   }
 
   Future<void> _handleCopyScreenshot() async {
@@ -439,7 +474,9 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
       debugPrint(
         '[SCREEN-CAPTURE] button completed serial=${widget.device.serial}',
       );
-      if (mounted) setState(() => _screenshotMessage = '已复制 PNG 到系统图片剪贴板');
+      if (mounted) {
+        setState(() => _screenshotMessage = _strings.screenshot_copied);
+      }
     } catch (error, stackTrace) {
       debugPrint(
         '[SCREEN-CAPTURE] button failed '
@@ -495,7 +532,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
           DeviceToolParsers.parseDirectoryListing(result.output, target),
         );
       _explorerMessage = result.success
-          ? '${_files.length} 个项目'
+          ? _strings.file_count(_files.length)
           : result.message;
     });
   }
@@ -511,12 +548,12 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   Future<void> _handlePullFile(DeviceFileEntry entry) async {
     final destination = _pullDestinationController.text.trim();
     if (destination.isEmpty) {
-      _showMessage('请先填写本地目标路径');
+      _showMessage(_strings.local_destination_required);
       return;
     }
     _showResult(
       await widget.toolsService.pullFile(entry.path, destination),
-      successMessage: '文件已拉取到 $destination',
+      successMessage: _strings.file_pulled(destination),
     );
   }
 
@@ -551,19 +588,20 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   }
 
   Future<void> _handleReboot() async {
+    final strings = _strings;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('重启设备'),
-        content: const Text('确定要重启当前设备吗？'),
+        title: Text(strings.restart_device),
+        content: Text(strings.restart_confirmation),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(strings.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('重启'),
+            child: Text(strings.restart),
           ),
         ],
       ),
@@ -633,6 +671,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
 
   Widget _buildDeviceInfoBar(BuildContext context) {
     final tokens = context.tokens;
+    final strings = L10n.of(context);
     return Container(
       height: 52,
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -710,8 +749,8 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
               children: [
                 _buildInfoActionButton(
                   tooltip: widget.device.display.isLandscape
-                      ? '切换为竖屏 (0°)'
-                      : '切换为横屏 (90°)',
+                      ? strings.switch_to_portrait
+                      : strings.switch_to_landscape,
                   icon: widget.device.display.isLandscape
                       ? Icons.stay_current_landscape_rounded
                       : Icons.stay_current_portrait_rounded,
@@ -719,7 +758,9 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
                   onPressed: widget.onToggleRotation,
                 ),
                 _buildInfoActionButton(
-                  tooltip: widget.isScreenVisible ? '隐藏屏幕' : '显示屏幕',
+                  tooltip: widget.isScreenVisible
+                      ? strings.hide_screen
+                      : strings.show_screen,
                   icon: widget.isScreenVisible
                       ? Icons.visibility_rounded
                       : Icons.visibility_off_rounded,
@@ -729,7 +770,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
                   onPressed: widget.onToggleScreenVisibility,
                 ),
                 _buildInfoActionButton(
-                  tooltip: '复制截屏',
+                  tooltip: strings.copy_screenshot,
                   icon: Icons.content_copy_outlined,
                   color: tokens.primary,
                   onPressed: _isCopyingScreenshot
@@ -812,14 +853,16 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
 
   Widget _buildNavigation(BuildContext context) {
     final tokens = context.tokens;
+    final strings = L10n.of(context);
+    final tools = _tools(strings);
     return Container(
       color: const Color(0xFF080C14),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
       child: ListView.separated(
-        itemCount: _tools.length,
+        itemCount: tools.length,
         separatorBuilder: (_, _) => const SizedBox(height: 4),
         itemBuilder: (context, index) {
-          final entry = _tools[index];
+          final entry = tools[index];
           final selected = entry.kind == _selectedTool;
           return Tooltip(
             message: entry.label,
@@ -892,7 +935,6 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth >= _dashboardWideBreakpoint;
-        final bottomCards = _buildDashboardBottomCards(context, isWide: isWide);
 
         if (!isWide) {
           return _toolScroll(context, [
@@ -902,83 +944,61 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
             _buildSmartInputCard(context),
             _buildClipboardCard(context),
             _buildShellCard(context),
-            bottomCards,
+            _buildAppManagementCard(context),
+            _buildRemoteDebugCard(context),
           ]);
         }
 
-        return _toolScroll(context, [
-          // 方案 B：双列极客仪表盘核心栅格
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 左列：Quick Control Deck + URL Launcher + Smart Input Hub
-              Expanded(
-                flex: 5,
-                child: Column(
-                  children: [
-                    _buildQuickControlDeck(context),
-                    const SizedBox(height: 14),
-                    _buildUrlLauncherCard(context),
-                    const SizedBox(height: 14),
-                    _buildSmartInputCard(context),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 14),
-              // 右列：Real-time System Monitor + Clipboard + Terminal
-              Expanded(
-                flex: 5,
-                child: Column(
-                  children: [
-                    _buildSystemMonitorCard(context),
-                    const SizedBox(height: 14),
-                    _buildClipboardCard(context),
-                    const SizedBox(height: 14),
-                    _buildShellCard(context),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          bottomCards,
-        ]);
+        return _toolScroll(context, [_buildDashboardColumns(context)]);
       },
     );
   }
 
-  Widget _buildDashboardBottomCards(
-    BuildContext context, {
-    required bool isWide,
-  }) {
-    if (isWide) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(child: _buildAppManagementCard(context)),
-          const SizedBox(width: 14),
-          Expanded(child: _buildRemoteDebugCard(context)),
-        ],
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+  Widget _buildDashboardColumns(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildAppManagementCard(context),
-        const SizedBox(height: 14),
-        _buildRemoteDebugCard(context),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildQuickControlDeck(context),
+              const SizedBox(height: 14),
+              _buildUrlLauncherCard(context),
+              const SizedBox(height: 14),
+              _buildSmartInputCard(context),
+              const SizedBox(height: 14),
+              _buildAppManagementCard(context),
+            ],
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildSystemMonitorCard(context),
+              const SizedBox(height: 14),
+              _buildClipboardCard(context),
+              const SizedBox(height: 14),
+              _buildShellCard(context),
+              const SizedBox(height: 14),
+              _buildRemoteDebugCard(context),
+            ],
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildQuickControlDeck(BuildContext context) {
     final tokens = context.tokens;
+    final strings = L10n.of(context);
 
     return _buildModernCard(
       context: context,
-      title: '快捷控制',
-      subtitle: '硬件按键与屏幕操作',
+      title: strings.quick_control,
+      subtitle: strings.hardware_controls,
       icon: Icons.tune_rounded,
       accentColor: tokens.primary,
       child: LayoutBuilder(
@@ -997,7 +1017,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
                   width: buttonSize,
                   height: buttonSize,
                   child: _buildTactileButton(
-                    tooltip: 'Power',
+                    tooltip: strings.power,
                     icon: Icons.power_settings_new_rounded,
                     color: tokens.danger,
                     onPressed: () =>
@@ -1008,7 +1028,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
                   width: buttonSize,
                   height: buttonSize,
                   child: _buildTactileButton(
-                    tooltip: 'Volume Up',
+                    tooltip: strings.volume_up,
                     icon: Icons.volume_up_rounded,
                     color: tokens.primary,
                     onPressed: () => widget.controlService.keyPress(
@@ -1020,7 +1040,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
                   width: buttonSize,
                   height: buttonSize,
                   child: _buildTactileButton(
-                    tooltip: 'Volume Down',
+                    tooltip: strings.volume_down,
                     icon: Icons.volume_down_rounded,
                     color: tokens.primary,
                     onPressed: () => widget.controlService.keyPress(
@@ -1032,7 +1052,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
                   width: buttonSize,
                   height: buttonSize,
                   child: _buildTactileButton(
-                    tooltip: 'Rotate Screen',
+                    tooltip: strings.rotate_screen,
                     icon: Icons.screen_rotation_rounded,
                     color: const Color(0xFF00D591),
                     onPressed: widget.onToggleRotation,
@@ -1048,6 +1068,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
 
   Widget _buildSystemMonitorCard(BuildContext context) {
     final tokens = context.tokens;
+    final strings = L10n.of(context);
     final snapshot = _monitorSnapshot;
     final networkPoints = _normalizedNetworkHistory();
 
@@ -1055,16 +1076,20 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
       height: 232,
       child: _buildModernCard(
         context: context,
-        title: '实时系统监控',
+        title: strings.system_monitor,
         subtitle: _isMonitorEnabled
-            ? (_isMonitorLoading ? '每 5 秒采样 · 正在读取设备数据' : '每 5 秒采样 · CPU、内存与网络')
-            : '监控已关闭 · 按需开启以降低设备性能影响',
+            ? (_isMonitorLoading
+                  ? strings.monitor_reading
+                  : strings.monitor_sampling)
+            : strings.monitor_disabled,
         icon: Icons.show_chart_rounded,
         accentColor: const Color(0xFF00D591),
         headerTrailing: Tooltip(
-          message: _isMonitorEnabled ? '关闭系统监控' : '开启系统监控',
+          message: _isMonitorEnabled
+              ? strings.close_system_monitor
+              : strings.open_system_monitor,
           child: Semantics(
-            label: '实时系统监控',
+            label: strings.system_monitor_accessibility,
             toggled: _isMonitorEnabled,
             child: Switch(
               value: _isMonitorEnabled,
@@ -1081,7 +1106,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
           children: [
             _buildMonitorRow(
               context: context,
-              label: 'CPU',
+              label: strings.cpu,
               value: _formatMonitorPercent(snapshot?.cpuPercent),
               color: const Color(0xFF00D591),
               dataPoints: List<double>.unmodifiable(_cpuHistory),
@@ -1089,7 +1114,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
             const SizedBox(height: 12),
             _buildMonitorRow(
               context: context,
-              label: '内存',
+              label: strings.memory,
               value: _formatMonitorPercent(snapshot?.memoryPercent),
               color: tokens.primary,
               dataPoints: List<double>.unmodifiable(_memoryHistory),
@@ -1097,7 +1122,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
             const SizedBox(height: 12),
             _buildMonitorRow(
               context: context,
-              label: '网络',
+              label: strings.network,
               value: _formatMonitorRate(snapshot?.networkBytesPerSecond),
               color: tokens.warning,
               dataPoints: networkPoints,
@@ -1167,11 +1192,12 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
 
   Widget _buildUrlLauncherCard(BuildContext context) {
     final tokens = context.tokens;
+    final strings = L10n.of(context);
 
     return _buildModernCard(
       context: context,
-      title: 'URL 与 DeepLink 启动器',
-      subtitle: '快速在真机浏览器中打开网页或 DeepLink',
+      title: strings.url_deeplink_launcher,
+      subtitle: strings.url_deeplink_subtitle,
       icon: Icons.language_rounded,
       accentColor: tokens.primary,
       child: Column(
@@ -1183,14 +1209,14 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
                 child: _buildTextField(
                   context,
                   _urlController,
-                  '输入网址或 DeepLink...',
+                  strings.url_deeplink_hint,
                   onSubmitted: (_) => _handleOpenUrl(),
                 ),
               ),
               const SizedBox(width: 8),
               _buildCompactButton(
                 context,
-                '打开',
+                strings.open,
                 Icons.open_in_new_rounded,
                 _handleOpenUrl,
               ),
@@ -1204,25 +1230,25 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
               _buildPresetBadge(
                 context,
                 Icons.download_rounded,
-                '已下载',
+                strings.downloaded,
                 'https://github.com',
               ),
               _buildPresetBadge(
                 context,
                 Icons.apps_rounded,
-                '应用',
+                strings.apps,
                 'market://details?id=com.tencent.mm',
               ),
               _buildPresetBadge(
                 context,
                 Icons.menu_book_rounded,
-                '书籍',
+                strings.books,
                 'https://m.bilibili.com',
               ),
               _buildPresetBadge(
                 context,
                 Icons.check_circle_outline_rounded,
-                '商店',
+                strings.store,
                 'https://www.baidu.com',
               ),
             ],
@@ -1273,11 +1299,12 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
 
   Widget _buildSmartInputCard(BuildContext context) {
     final tokens = context.tokens;
+    final strings = L10n.of(context);
 
     return _buildModernCard(
       context: context,
-      title: '智能输入中心',
-      subtitle: '实时同步文本注入与快捷短语枢纽',
+      title: strings.smart_input_hub,
+      subtitle: strings.smart_input_subtitle,
       icon: Icons.keyboard_alt_outlined,
       accentColor: const Color(0xFF00D591),
       child: Column(
@@ -1287,8 +1314,8 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
           _buildInputActionRow(
             context,
             _typeInputController,
-            '实时同步文本注入...',
-            '发送',
+            strings.realtime_text_hint,
+            strings.send,
             _handleSendText,
           ),
           const SizedBox(height: 10),
@@ -1330,7 +1357,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(
-                      '📋 粘贴电脑剪贴板',
+                      strings.paste_computer_clipboard,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
@@ -1349,7 +1376,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
 
           // 常用快捷短语列表
           Text(
-            '常用测试短语：',
+            strings.common_test_phrases,
             style: TextStyle(
               color: tokens.textSecondary,
               fontSize: 11,
@@ -1357,11 +1384,11 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
             ),
           ),
           const SizedBox(height: 6),
-          _buildPhraseSnippetRow(context, '13800000000'),
+          _buildPhraseSnippetRow(context, strings.sample_phone),
           const SizedBox(height: 4),
-          _buildPhraseSnippetRow(context, 'test@example.com'),
+          _buildPhraseSnippetRow(context, strings.sample_email),
           const SizedBox(height: 4),
-          _buildPhraseSnippetRow(context, 'Hello, 世界！🎉'),
+          _buildPhraseSnippetRow(context, strings.sample_greeting),
         ],
       ),
     );
@@ -1369,6 +1396,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
 
   Widget _buildPhraseSnippetRow(BuildContext context, String phrase) {
     final tokens = context.tokens;
+    final strings = L10n.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -1393,7 +1421,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
             onTap: () {
               widget.controlService.typeText(phrase);
               widget.streamService.triggerImmediateRefresh();
-              _appendTerminalLog('Injected phrase: "$phrase"');
+              _appendTerminalLog(strings.injected_phrase_log(phrase));
             },
             child: Icon(Icons.send_rounded, size: 13, color: tokens.primary),
           ),
@@ -1403,10 +1431,11 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   }
 
   Widget _buildClipboardCard(BuildContext context) {
+    final strings = L10n.of(context);
     return _buildModernCard(
       context: context,
-      title: '高级剪贴板中心',
-      subtitle: '宿主机电脑与真机剪贴板双向极速同步',
+      title: strings.advanced_clipboard_hub,
+      subtitle: strings.clipboard_subtitle,
       icon: Icons.content_paste_rounded,
       accentColor: const Color(0xFF00D591),
       child: _buildClipboardControls(context),
@@ -1415,10 +1444,11 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
 
   Widget _buildShellCard(BuildContext context) {
     final tokens = context.tokens;
+    final strings = L10n.of(context);
     return _buildModernCard(
       context: context,
-      title: 'ADB Shell 极速控制台（终端）',
-      subtitle: '直接在真机执行 Linux / Android 命令行',
+      title: strings.adb_shell_title,
+      subtitle: strings.adb_shell_subtitle,
       icon: Icons.terminal_rounded,
       accentColor: tokens.primary,
       child: _buildShellControls(context),
@@ -1427,10 +1457,11 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
 
   Widget _buildAppManagementCard(BuildContext context) {
     final tokens = context.tokens;
+    final strings = L10n.of(context);
     return _buildModernCard(
       context: context,
-      title: '应用管理与安装（应用包管理）',
-      subtitle: '安装 APK、读取已装应用、打开系统开发者选项',
+      title: strings.app_management_title,
+      subtitle: strings.app_management_subtitle,
       icon: Icons.apps_outlined,
       accentColor: tokens.primary,
       child: _buildAppManagement(context),
@@ -1439,10 +1470,11 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
 
   Widget _buildRemoteDebugCard(BuildContext context) {
     final tokens = context.tokens;
+    final strings = L10n.of(context);
     return _buildModernCard(
       context: context,
-      title: 'ADB 远程网络调试（无线 ADB）',
-      subtitle: '配置 TCP/IP 端口，支持免 USB 无线投屏控制',
+      title: strings.remote_debug_title,
+      subtitle: strings.remote_debug_subtitle,
       icon: Icons.wifi_tethering_outlined,
       accentColor: tokens.warning,
       child: _buildRemoteDebug(context),
@@ -1576,11 +1608,12 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
 
   Widget _buildLogs(BuildContext context) {
     final tokens = context.tokens;
+    final strings = L10n.of(context);
     final logs = _filteredLogs;
     return _toolScroll(context, [
       _buildCard(
         context,
-        'Logcat 日志',
+        strings.logcat_logs,
         Icons.article_outlined,
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1592,7 +1625,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
               children: [
                 _buildCompactButton(
                   context,
-                  _isLogcatRunning ? '停止' : '启动',
+                  _isLogcatRunning ? strings.stop : strings.start,
                   _isLogcatRunning
                       ? Icons.stop_circle_outlined
                       : Icons.play_circle_outline,
@@ -1600,13 +1633,13 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
                 ),
                 _buildCompactButton(
                   context,
-                  '清空',
+                  strings.clear,
                   Icons.delete_sweep_outlined,
                   () => setState(() => _logLines.clear()),
                 ),
                 _buildCompactButton(
                   context,
-                  '复制',
+                  strings.copy,
                   Icons.copy_outlined,
                   _handleCopyLogs,
                 ),
@@ -1615,7 +1648,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
                   child: _buildTextField(
                     context,
                     _logFilterController,
-                    '过滤关键词',
+                    strings.filter_keywords,
                     onChanged: (_) => setState(() {}),
                   ),
                 ),
@@ -1635,7 +1668,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
               ),
               child: logs.isEmpty
                   ? Text(
-                      '# 启动 logcat 后显示设备日志',
+                      strings.logcat_waiting,
                       style: TextStyle(
                         color: tokens.textSecondary,
                         fontSize: 12,
@@ -1663,15 +1696,16 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
 
   Widget _buildScreenshots(BuildContext context) {
     final tokens = context.tokens;
+    final strings = L10n.of(context);
     return _toolScroll(context, [
       _buildCard(
         context,
-        '设备截图',
+        strings.device_screenshot,
         Icons.screenshot_monitor_outlined,
         Row(
           children: [
             Tooltip(
-              message: '复制截屏到系统图片剪贴板',
+              message: strings.screenshot_copy_tooltip,
               child: IconButton.filledTonal(
                 onPressed: _handleCopyScreenshot,
                 icon: const Icon(Icons.content_copy_rounded),
@@ -1681,7 +1715,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
             Expanded(
               child: Text(
                 _screenshotMessage.isEmpty
-                    ? '截取当前设备画面并复制到粘贴板，不保存桌面文件。'
+                    ? strings.screenshot_status
                     : _screenshotMessage,
                 style: TextStyle(color: tokens.textSecondary, fontSize: 12),
               ),
@@ -1693,10 +1727,11 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   }
 
   Widget _buildAutomation(BuildContext context) {
+    final strings = L10n.of(context);
     return _toolScroll(context, [
       _buildCard(
         context,
-        '设备设置',
+        strings.device_settings,
         Icons.tune_rounded,
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1706,19 +1741,19 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
               children: [
                 _buildCompactButton(
                   context,
-                  '静音',
+                  strings.silent,
                   Icons.volume_off_outlined,
                   () => _handleRingerMode(DeviceRingerMode.silent),
                 ),
                 _buildCompactButton(
                   context,
-                  '振动',
+                  strings.vibrate,
                   Icons.vibration_outlined,
                   () => _handleRingerMode(DeviceRingerMode.vibrate),
                 ),
                 _buildCompactButton(
                   context,
-                  '响铃',
+                  strings.ring,
                   Icons.notifications_active_outlined,
                   () => _handleRingerMode(DeviceRingerMode.normal),
                 ),
@@ -1727,19 +1762,19 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
             const SizedBox(height: 8),
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Wi‑Fi'),
+              title: Text(strings.wifi),
               value: _wifiEnabled,
               onChanged: _handleWifi,
             ),
             SwitchListTile.adaptive(
               contentPadding: EdgeInsets.zero,
-              title: const Text('蓝牙'),
+              title: Text(strings.bluetooth),
               value: _bluetoothEnabled,
               onChanged: _handleBluetooth,
             ),
             _buildCompactButton(
               context,
-              '清理蓝牙配对设备',
+              strings.clear_bluetooth_bonds,
               Icons.bluetooth_disabled_outlined,
               () async =>
                   _showResult(await widget.toolsService.clearBluetoothBonds()),
@@ -1749,11 +1784,11 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
       ),
       _buildCard(
         context,
-        '应用商店账号',
+        strings.store_account,
         Icons.account_circle_outlined,
         Column(
           children: [
-            _buildTextField(context, _accountController, '账号名称'),
+            _buildTextField(context, _accountController, strings.account_name),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -1761,33 +1796,33 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
               children: [
                 _buildCompactButton(
                   context,
-                  '查看账号',
+                  strings.view_accounts,
                   Icons.visibility_outlined,
                   () async =>
                       _showResult(await widget.toolsService.getStoreAccounts()),
                 ),
                 _buildCompactButton(
                   context,
-                  '检查',
+                  strings.check,
                   Icons.search_rounded,
                   _handleAccountCheck,
                 ),
                 _buildCompactButton(
                   context,
-                  '移除',
+                  strings.remove,
                   Icons.person_remove_outlined,
                   _handleAccountRemove,
                 ),
                 _buildCompactButton(
                   context,
-                  '添加账号',
+                  strings.add_account,
                   Icons.person_add_outlined,
                   () async =>
                       _showResult(await widget.toolsService.addStoreAccount()),
                 ),
                 _buildCompactButton(
                   context,
-                  '打开应用商店',
+                  strings.open_app_store,
                   Icons.storefront_outlined,
                   () async =>
                       _showResult(await widget.toolsService.openAppStore()),
@@ -1802,17 +1837,18 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
 
   Widget _buildExplorer(BuildContext context) {
     final tokens = context.tokens;
+    final strings = L10n.of(context);
     return _toolScroll(context, [
       _buildCard(
         context,
-        '文件浏览器',
+        strings.file_browser,
         Icons.folder_open_outlined,
         Column(
           children: [
             Row(
               children: [
                 IconButton(
-                  tooltip: '上级目录',
+                  tooltip: strings.parent_directory,
                   onPressed: _handleExplorerUp,
                   icon: const Icon(Icons.arrow_upward_rounded),
                 ),
@@ -1820,14 +1856,14 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
                   child: _buildTextField(
                     context,
                     _explorerPathController,
-                    '设备路径',
+                    strings.device_path,
                     onSubmitted: (_) => _handleListDirectory(),
                   ),
                 ),
                 const SizedBox(width: 8),
                 _buildCompactButton(
                   context,
-                  '进入',
+                  strings.enter,
                   Icons.arrow_forward_rounded,
                   _handleListDirectory,
                 ),
@@ -1838,7 +1874,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
               alignment: Alignment.centerLeft,
               child: Text(
                 _explorerMessage.isEmpty
-                    ? '输入 /sdcard 或其他设备路径'
+                    ? strings.device_path_hint
                     : _explorerMessage,
                 style: TextStyle(color: tokens.textSecondary, fontSize: 11),
               ),
@@ -1855,7 +1891,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
                   : _files.isEmpty
                   ? Center(
                       child: Text(
-                        '暂无目录内容',
+                        strings.no_directory_content,
                         style: TextStyle(
                           color: tokens.textSecondary,
                           fontSize: 12,
@@ -1890,7 +1926,9 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
                             ),
                           ),
                           subtitle: Text(
-                            file.isDirectory ? '目录' : '${file.size} B',
+                            file.isDirectory
+                                ? strings.directory
+                                : strings.file_size_bytes(file.size),
                             style: TextStyle(
                               color: tokens.textSecondary,
                               fontSize: 10,
@@ -1902,7 +1940,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
                           trailing: file.isDirectory
                               ? null
                               : IconButton(
-                                  tooltip: '拉取文件',
+                                  tooltip: strings.pull_file,
                                   onPressed: () => _handlePullFile(file),
                                   icon: const Icon(
                                     Icons.download_outlined,
@@ -1917,7 +1955,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
             _buildTextField(
               context,
               _pullDestinationController,
-              '文件拉取目标路径（本地）',
+              strings.local_file_pull_path,
             ),
           ],
         ),
@@ -1926,30 +1964,35 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   }
 
   Widget _buildAdvanced(BuildContext context) {
+    final strings = L10n.of(context);
     return _toolScroll(context, [
       _buildCard(
         context,
-        '特殊按键',
+        strings.special_keys,
         Icons.keyboard_command_key_outlined,
         _buildAdvancedKeys(context),
       ),
       _buildCard(
         context,
-        '端口转发',
+        strings.port_forwarding,
         Icons.compare_arrows_outlined,
         Column(
           children: [
             Row(
               children: [
                 Expanded(
-                  child: _buildTextField(context, _hostPortController, '本地端口'),
+                  child: _buildTextField(
+                    context,
+                    _hostPortController,
+                    strings.local_port,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: _buildTextField(
                     context,
                     _devicePortController,
-                    '设备端口',
+                    strings.device_port,
                   ),
                 ),
               ],
@@ -1960,19 +2003,19 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
               children: [
                 _buildCompactButton(
                   context,
-                  '创建',
+                  strings.create,
                   Icons.add_link_rounded,
                   _handleCreateForward,
                 ),
                 _buildCompactButton(
                   context,
-                  '移除',
+                  strings.remove,
                   Icons.link_off_rounded,
                   _handleRemoveForward,
                 ),
                 _buildCompactButton(
                   context,
-                  '查看',
+                  strings.view,
                   Icons.list_alt_outlined,
                   _handleTestForward,
                 ),
@@ -1987,11 +2030,11 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
       ),
       _buildCard(
         context,
-        '设备维护',
+        strings.device_maintenance,
         Icons.build_outlined,
         _buildCompactButton(
           context,
-          '重启设备',
+          strings.restart_device,
           Icons.restart_alt_rounded,
           _handleReboot,
         ),
@@ -2000,15 +2043,16 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   }
 
   Widget _buildInfo(BuildContext context) {
+    final strings = L10n.of(context);
     if (_info == null && !_isLoading) {
       return _toolScroll(context, [
         _buildCard(
           context,
-          '设备信息',
+          strings.device_info,
           Icons.info_outline_rounded,
           _buildCompactButton(
             context,
-            '读取设备信息',
+            strings.read_device_info,
             Icons.refresh_rounded,
             _handleLoadInfo,
           ),
@@ -2019,7 +2063,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
     return _toolScroll(context, [
       _buildCard(
         context,
-        '设备信息',
+        strings.device_info,
         Icons.info_outline_rounded,
         _isLoading
             ? const Center(
@@ -2034,48 +2078,56 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
                     alignment: Alignment.centerLeft,
                     child: _buildCompactButton(
                       context,
-                      '刷新',
+                      strings.refresh,
                       Icons.refresh_rounded,
                       _handleLoadInfo,
                     ),
                   ),
                   const SizedBox(height: 10),
-                  _buildInfoGroup(context, '硬件', {
-                    '制造商': info?.value('manufacturer') ?? '未知',
-                    '型号': info?.value('model') ?? '未知',
-                    '产品': info?.value('product') ?? '未知',
-                    '序列号': info?.value('serial') ?? widget.device.serial,
+                  _buildInfoGroup(context, strings.hardware, {
+                    strings.manufacturer:
+                        info?.value('manufacturer') ?? strings.unknown,
+                    strings.model: info?.value('model') ?? strings.unknown,
+                    strings.product: info?.value('product') ?? strings.unknown,
+                    strings.serial_number:
+                        info?.value('serial') ?? widget.device.serial,
                   }),
-                  _buildInfoGroup(context, '平台', {
-                    'Android': info?.value('android') ?? '未知',
-                    'SDK': info?.value('sdk') ?? '未知',
-                    'ABI': info?.value('abi') ?? '未知',
+                  _buildInfoGroup(context, strings.platform, {
+                    strings.android: info?.value('android') ?? strings.unknown,
+                    strings.sdk: info?.value('sdk') ?? strings.unknown,
+                    strings.abi: info?.value('abi') ?? strings.unknown,
                   }),
-                  _buildInfoGroup(context, '显示', {
-                    '分辨率': info?.value('display') ?? '未知',
-                    '密度': info?.value('density') ?? '未知',
+                  _buildInfoGroup(context, strings.display, {
+                    strings.resolution:
+                        info?.value('display') ?? strings.unknown,
+                    strings.density: info?.value('density') ?? strings.unknown,
                     'FPS': widget.device.display.fps.toStringAsFixed(0),
                   }),
-                  _buildInfoGroup(context, '电池', {
-                    '电量': info?.value('batteryLevel') == '未知'
-                        ? '未知'
+                  _buildInfoGroup(context, strings.battery, {
+                    strings.battery_level:
+                        info?.value('batteryLevel') == strings.unknown
+                        ? strings.unknown
                         : '${info?.value('batteryLevel')}%',
-                    '状态': info?.value('batteryStatus') ?? '未知',
-                    '温度': info?.value('batteryTemperature') == '未知'
-                        ? '未知'
+                    strings.battery_status:
+                        info?.value('batteryStatus') ?? strings.unknown,
+                    strings.temperature:
+                        info?.value('batteryTemperature') == strings.unknown
+                        ? strings.unknown
                         : '${info?.value('batteryTemperature')} / 10 °C',
                   }),
-                  _buildInfoGroup(context, '网络 / SIM', {
-                    'IP': info?.value('network') ?? '未知',
-                    '运营商': info?.value('carrier') ?? '未知',
-                    'SIM 国家': info?.value('simCountry') ?? '未知',
-                    'IMEI': info?.value('imei') ?? '未知',
+                  _buildInfoGroup(context, strings.network_sim, {
+                    strings.ip: info?.value('network') ?? strings.unknown,
+                    strings.carrier: info?.value('carrier') ?? strings.unknown,
+                    strings.sim_country:
+                        info?.value('simCountry') ?? strings.unknown,
+                    strings.imei: info?.value('imei') ?? strings.unknown,
                   }),
-                  _buildInfoGroup(context, 'CPU / 内存', {
-                    'CPU': info?.value('cpuName') ?? '未知',
-                    '核心数': info?.value('cpuCores') ?? '未知',
-                    '内存': info?.value('memory') ?? '未知',
-                    '存储': info?.value('storage') ?? '未知',
+                  _buildInfoGroup(context, strings.cpu_memory, {
+                    strings.cpu: info?.value('cpuName') ?? strings.unknown,
+                    strings.core_count:
+                        info?.value('cpuCores') ?? strings.unknown,
+                    strings.memory: info?.value('memory') ?? strings.unknown,
+                    strings.storage: info?.value('storage') ?? strings.unknown,
                   }),
                 ],
               ),
@@ -2084,15 +2136,28 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   }
 
   Widget _buildAdvancedKeys(BuildContext context) {
+    final strings = L10n.of(context);
     final actions = <(String, IconData, DeviceKeyAction)>[
-      ('相机', Icons.camera_alt_outlined, DeviceKeyAction.camera),
-      ('搜索', Icons.search_rounded, DeviceKeyAction.search),
-      ('切换输入法', Icons.language_rounded, DeviceKeyAction.switchCharset),
-      ('静音', Icons.volume_off_outlined, DeviceKeyAction.mute),
-      ('后退', Icons.skip_previous_rounded, DeviceKeyAction.mediaPrevious),
-      ('播放/暂停', Icons.play_arrow_rounded, DeviceKeyAction.mediaPlayPause),
-      ('停止', Icons.stop_rounded, DeviceKeyAction.mediaStop),
-      ('前进', Icons.skip_next_rounded, DeviceKeyAction.mediaNext),
+      (strings.camera, Icons.camera_alt_outlined, DeviceKeyAction.camera),
+      (strings.search, Icons.search_rounded, DeviceKeyAction.search),
+      (
+        strings.switch_input_method,
+        Icons.language_rounded,
+        DeviceKeyAction.switchCharset,
+      ),
+      (strings.silent, Icons.volume_off_outlined, DeviceKeyAction.mute),
+      (
+        strings.back,
+        Icons.skip_previous_rounded,
+        DeviceKeyAction.mediaPrevious,
+      ),
+      (
+        strings.play_pause,
+        Icons.play_arrow_rounded,
+        DeviceKeyAction.mediaPlayPause,
+      ),
+      (strings.stop, Icons.stop_rounded, DeviceKeyAction.mediaStop),
+      (strings.next, Icons.skip_next_rounded, DeviceKeyAction.mediaNext),
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2163,35 +2228,36 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
 
   Widget _buildAppManagement(BuildContext context) {
     final tokens = context.tokens;
+    final strings = L10n.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildTextField(context, _apkPathController, '本地 APK 路径'),
+        _buildTextField(context, _apkPathController, strings.apk_path_hint),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           children: [
             _buildCompactButton(
               context,
-              '安装 APK',
+              strings.install_apk,
               Icons.file_download_outlined,
               _handleInstallApk,
             ),
             _buildCompactButton(
               context,
-              '读取应用',
+              strings.read_apps,
               Icons.refresh_rounded,
               _handleListPackages,
             ),
             _buildCompactButton(
               context,
-              '系统设置',
+              strings.system_settings,
               Icons.settings_outlined,
               () async => _showResult(await widget.toolsService.openSettings()),
             ),
             _buildCompactButton(
               context,
-              '开发者设置',
+              strings.developer_settings,
               Icons.developer_mode_outlined,
               () async =>
                   _showResult(await widget.toolsService.openDeveloperOptions()),
@@ -2202,12 +2268,16 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
         Row(
           children: [
             Expanded(
-              child: _buildTextField(context, _packageController, '应用包名'),
+              child: _buildTextField(
+                context,
+                _packageController,
+                strings.package_name_hint,
+              ),
             ),
             const SizedBox(width: 8),
             _buildCompactButton(
               context,
-              '卸载',
+              strings.uninstall,
               Icons.delete_outline_rounded,
               _handleUninstallPackage,
             ),
@@ -2243,13 +2313,14 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   }
 
   Widget _buildRemoteDebug(BuildContext context) {
+    final strings = L10n.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildTextField(
           context,
           _remoteAddressController,
-          '设备地址，例如 192.168.1.8:36997',
+          strings.remote_address_hint,
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -2258,13 +2329,15 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
           children: [
             _buildCompactButton(
               context,
-              _isDiscoveringRemoteDebug ? '读取中...' : '读取本机设备',
+              _isDiscoveringRemoteDebug
+                  ? strings.reading
+                  : strings.read_local_device,
               Icons.devices_other_outlined,
               _isDiscoveringRemoteDebug ? null : _handleDiscoverRemoteDebug,
             ),
             _buildCompactButton(
               context,
-              '连接',
+              strings.connect,
               Icons.link_rounded,
               _handleRemoteDebug,
             ),
@@ -2274,7 +2347,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
         _buildStatusText(
           context,
           _remoteDebugMessage.isEmpty
-              ? '读取本机设备后自动识别无线 ADB 连接端口；连接后可在设备选择器中使用。'
+              ? strings.remote_debug_hint
               : _remoteDebugMessage,
         ),
       ],
@@ -2282,10 +2355,16 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   }
 
   Widget _buildClipboardControls(BuildContext context) {
+    final strings = L10n.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildTextField(context, _clipboardController, '剪贴板文本', maxLines: 2),
+        _buildTextField(
+          context,
+          _clipboardController,
+          strings.clipboard_text_hint,
+          maxLines: 2,
+        ),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -2293,19 +2372,19 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
           children: [
             _buildCompactButton(
               context,
-              '粘贴电脑剪贴板',
+              strings.paste_computer_clipboard,
               Icons.paste_rounded,
               _handlePasteFromComputer,
             ),
             _buildCompactButton(
               context,
-              '读取手机',
+              strings.read_phone,
               Icons.download_rounded,
               _handleGetClipboard,
             ),
             _buildCompactButton(
               context,
-              '写入手机',
+              strings.write_phone,
               Icons.upload_rounded,
               _handleSetClipboard,
             ),
@@ -2317,6 +2396,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
 
   Widget _buildShellControls(BuildContext context) {
     final tokens = context.tokens;
+    final strings = L10n.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2327,10 +2407,10 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
             _buildCommandChip(
               context,
               'getprop ro.build.version.release',
-              '系统版本',
+              strings.system_version,
             ),
-            _buildCommandChip(context, 'wm size', '屏幕分辨率'),
-            _buildCommandChip(context, 'ip addr show', '网络 IP'),
+            _buildCommandChip(context, 'wm size', strings.screen_resolution),
+            _buildCommandChip(context, 'ip addr show', strings.network_ip),
           ],
         ),
         const SizedBox(height: 10),
@@ -2340,14 +2420,14 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
               child: _buildTextField(
                 context,
                 _shellInputController,
-                '输入 Shell 命令',
+                strings.shell_command_hint,
                 onSubmitted: (_) => _handleExecuteShell(),
               ),
             ),
             const SizedBox(width: 8),
             _buildCompactButton(
               context,
-              '执行',
+              strings.execute,
               Icons.play_arrow_rounded,
               _isExecutingShell ? null : _handleExecuteShell,
             ),
@@ -2365,7 +2445,7 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
           ),
           child: _terminalLogs.isEmpty
               ? Text(
-                  '# 等待执行命令...',
+                  strings.shell_waiting,
                   style: TextStyle(
                     color: tokens.textSecondary,
                     fontSize: 11,
