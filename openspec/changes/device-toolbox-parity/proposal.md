@@ -6,10 +6,11 @@ Flutter 桌面端当前的设备工具箱只覆盖物理按键、文本注入、
 
 ## What Changes
 
-- 增加 Dashboard、Logs、Screenshots、Automation、File Explorer、Advanced、Info 七组工具入口。
+- 增加 Dashboard、Logs、Automation、File Explorer、Advanced、Info 六组工具入口。
 - 新增独立的设备工具服务，集中处理 ADB 命令、logcat 进程、文件操作、端口转发和设备信息读取。
 - 将 Web 端有明确设备行为的功能映射到桌面 ADB；网页内 JavaScript 和 VNC 不纳入桌面端。
 - 将设备工具箱改为可滚动、响应式的导航布局，窗口达到既有最小尺寸时不产生越界。
+- 移除 Flutter 工具箱中的独立 Screenshots 入口，截图复制仅保留设备信息栏中的快捷图标；Automation 的 Wi‑Fi、蓝牙开关提升为设备信息栏快捷操作。
 
 ## Scope Boundary
 

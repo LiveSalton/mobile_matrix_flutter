@@ -230,29 +230,241 @@ function findInputBridge(root) {
   ])
 }
 
-function mapKeyCode(key) {
-  const keyCodes = {
-    back: 4,
-    home: 3,
-    menu: 82,
-    app_switch: 187,
-    power: 26,
-    volume_up: 24,
-    volume_down: 25,
-    enter: 66,
-    delete: 67,
-    tab: 61,
-    escape: 111,
-    dpad_up: 19,
-    dpad_down: 20,
-    dpad_left: 21,
-    dpad_right: 22,
-    camera: 27,
-    search: 84,
-    mute: 91,
+const CANONICAL_KEY_CODES = Object.freeze({
+  '0': 7,
+  '1': 8,
+  '2': 9,
+  '3': 10,
+  '4': 11,
+  '5': 12,
+  '6': 13,
+  '7': 14,
+  '8': 15,
+  '9': 16,
+  a: 29,
+  b: 30,
+  c: 31,
+  d: 32,
+  e: 33,
+  f: 34,
+  g: 35,
+  h: 36,
+  i: 37,
+  j: 38,
+  k: 39,
+  l: 40,
+  m: 41,
+  n: 42,
+  o: 43,
+  p: 44,
+  q: 45,
+  r: 46,
+  s: 47,
+  t: 48,
+  u: 49,
+  v: 50,
+  w: 51,
+  x: 52,
+  y: 53,
+  z: 54,
+  soft_left: 1,
+  soft_right: 2,
+  home: 3,
+  back: 4,
+  call: 5,
+  endcall: 6,
+  clear: 28,
+  camera: 27,
+  power: 26,
+  volume_up: 24,
+  volume_down: 25,
+  enter: 66,
+  del: 67,
+  tab: 61,
+  space: 62,
+  sym: 63,
+  escape: 111,
+  forward_del: 112,
+  dpad_up: 19,
+  dpad_down: 20,
+  dpad_left: 21,
+  dpad_right: 22,
+  dpad_center: 23,
+  menu: 82,
+  app_switch: 187,
+  search: 84,
+  mute: 91,
+  volume_mute: 164,
+  page_up: 92,
+  page_down: 93,
+  move_home: 122,
+  move_end: 123,
+  insert: 124,
+  switch_charset: 95,
+  minus: 69,
+  equals: 70,
+  comma: 55,
+  period: 56,
+  semicolon: 74,
+  slash: 76,
+  backslash: 73,
+  grave: 68,
+  left_bracket: 71,
+  right_bracket: 72,
+  apostrophe: 75,
+  at: 77,
+  plus: 81,
+  pound: 18,
+  shift_left: 59,
+  shift_right: 60,
+  ctrl_left: 113,
+  ctrl_right: 114,
+  alt_left: 57,
+  alt_right: 58,
+  meta_left: 117,
+  meta_right: 118,
+  function: 119,
+  sysrq: 120,
+  caps_lock: 115,
+  scroll_lock: 116,
+  num_lock: 143,
+  f1: 131,
+  f2: 132,
+  f3: 133,
+  f4: 134,
+  f5: 135,
+  f6: 136,
+  f7: 137,
+  f8: 138,
+  f9: 139,
+  f10: 140,
+  f11: 141,
+  f12: 142,
+  media_rewind: 89,
+  media_previous: 88,
+  media_play: 126,
+  media_play_pause: 85,
+  media_pause: 127,
+  media_stop: 86,
+  media_next: 87,
+  media_fast_forward: 90,
+  media_record: 130,
+  numpad_0: 144,
+  numpad_1: 145,
+  numpad_2: 146,
+  numpad_3: 147,
+  numpad_4: 148,
+  numpad_5: 149,
+  numpad_6: 150,
+  numpad_7: 151,
+  numpad_8: 152,
+  numpad_9: 153,
+  numpad_divide: 154,
+  numpad_multiply: 155,
+  numpad_subtract: 156,
+  numpad_add: 157,
+  numpad_dot: 158,
+  numpad_comma: 159,
+  numpad_enter: 160,
+  numpad_equals: 161,
+})
+
+const KEY_ALIASES = Object.freeze({
+  delete: 'del',
+  backspace: 'del',
+  forward_delete: 'forward_del',
+  esc: 'escape',
+  up: 'dpad_up',
+  down: 'dpad_down',
+  left: 'dpad_left',
+  right: 'dpad_right',
+  arrow_up: 'dpad_up',
+  arrow_down: 'dpad_down',
+  arrow_left: 'dpad_left',
+  arrow_right: 'dpad_right',
+  pageup: 'page_up',
+  pagedown: 'page_down',
+  home_key: 'move_home',
+  end_key: 'move_end',
+  dash: 'minus',
+  subtract: 'minus',
+  equal_sign: 'equals',
+  open_bracket: 'left_bracket',
+  close_bracket: 'right_bracket',
+  single_quote: 'apostrophe',
+  grave_accent: 'grave',
+  volume_mute_key: 'volume_mute',
+  ctrl: 'ctrl_left',
+  control: 'ctrl_left',
+  shift: 'shift_left',
+  alt: 'alt_left',
+  meta: 'meta_left',
+  app_switcher: 'app_switch',
+  numpad_decimal: 'numpad_dot',
+  decimal_point: 'numpad_dot',
+  multiply: 'numpad_multiply',
+  add: 'numpad_add',
+  divide: 'numpad_divide',
+  numpad_subtract: 'numpad_subtract',
+})
+
+function normalizeKeyName(key) {
+  if (typeof key !== 'string') return null
+  const name = key.trim().toLowerCase().replace(/[\s-]+/g, '_')
+  if (!name) return null
+  const canonical = KEY_ALIASES[name] || name
+  return Object.prototype.hasOwnProperty.call(CANONICAL_KEY_CODES, canonical) ? canonical : null
+}
+
+function resolveKey(key) {
+  if (typeof key === 'number' && Number.isInteger(key) && key > 0 && key <= 300) {
+    return {canonicalKey: String(key), keyCode: key}
   }
-  if (Number.isInteger(Number(key))) return Number(key)
-  return keyCodes[String(key || '').toLowerCase()] || null
+  if (typeof key === 'string' && /^\d+$/.test(key.trim())) {
+    const numeric = Number(key.trim())
+    if (numeric > 0 && numeric <= 300) return {canonicalKey: String(numeric), keyCode: numeric}
+  }
+  const canonicalKey = normalizeKeyName(key)
+  if (!canonicalKey) return null
+  return {canonicalKey, keyCode: CANONICAL_KEY_CODES[canonicalKey]}
+}
+
+function normalizeKeyAction(action) {
+  const normalized = String(action || '').trim().toLowerCase()
+  return ['down', 'up', 'press'].includes(normalized) ? normalized : null
+}
+
+function normalizeModifiers(modifiers) {
+  const input = modifiers && typeof modifiers === 'object' ? modifiers : {}
+  return {
+    shift: input.shift === true,
+    ctrl: input.ctrl === true,
+    alt: input.alt === true,
+    meta: input.meta === true,
+    sym: input.sym === true,
+    function: input.function === true,
+    capsLock: input.capsLock === true,
+    scrollLock: input.scrollLock === true,
+    numLock: input.numLock === true,
+  }
+}
+
+function androidMetaState(modifiers) {
+  const metaBits = {
+    shift: 0x1,
+    alt: 0x2,
+    sym: 0x4,
+    function: 0x8,
+    ctrl: 0x1000,
+    meta: 0x10000,
+    capsLock: 0x100000,
+    numLock: 0x200000,
+    scrollLock: 0x400000,
+  }
+  return Object.entries(metaBits).reduce(
+    (state, [name, bit]) => state | (modifiers[name] ? bit : 0),
+    0,
+  )
 }
 
 function encodeVarint(value) {
@@ -285,6 +497,33 @@ function encodeSetClipboardFrame(requestId, text) {
     protoVarintField(1, requestId),
     protoVarintField(2, 9),
     protoBytesField(3, request),
+  ])
+  return Buffer.concat([encodeVarint(envelope.length), envelope])
+}
+
+function encodeKeyEventFrame(action, keyCode, modifiers) {
+  const event = action === 'down' ? 0 : action === 'up' ? 1 : 2
+  const fields = [
+    protoVarintField(1, event),
+    protoVarintField(2, keyCode),
+  ]
+  const modifierFields = [
+    ['shift', 3],
+    ['ctrl', 4],
+    ['alt', 5],
+    ['meta', 6],
+    ['sym', 7],
+    ['function', 8],
+    ['capsLock', 9],
+    ['scrollLock', 10],
+    ['numLock', 11],
+  ]
+  for (const [name, field] of modifierFields) {
+    if (modifiers[name]) fields.push(protoVarintField(field, 1))
+  }
+  const envelope = Buffer.concat([
+    protoVarintField(2, 2),
+    protoBytesField(3, Buffer.concat(fields)),
   ])
   return Buffer.concat([encodeVarint(envelope.length), envelope])
 }
@@ -463,6 +702,14 @@ class DeviceSession {
     this.screenPort = null
     this.touchPort = null
     this.servicePort = null
+    this.agentPort = null
+    this.agentSocket = null
+    this.agentProcess = null
+    this.agentStartPromise = null
+    this.stfServiceReady = false
+    this.stfServicePath = null
+    this.stfServiceStartPromise = null
+    this.serviceRequestId = 0
     this.width = 0
     this.height = 0
     this.inputWidth = 0
@@ -478,6 +725,10 @@ class DeviceSession {
     this.stfServiceApk = null
     this.inputBridgeJar = null
     this.inputBridgeProcess = null
+    this.inputBridgeStartPromise = null
+    this.inputBridgeBuffer = ''
+    this.inputKeyRequests = new Map()
+    this.inputKeySequence = 0
     this.remoteRoot = `/data/local/tmp/mobile-matrix-stf-lite-${crypto.createHash('sha1').update(this.serial).digest('hex').slice(0, 12)}`
     this.present = true
   }
@@ -790,19 +1041,32 @@ class DeviceSession {
     })
   }
 
-  async _startInputBridge() {
-    if (!this.inputBridgeJar) return false
+  _startInputBridge() {
+    if (!this.inputBridgeJar) return Promise.resolve(false)
+    if (this.inputBridgeProcess && this.inputBridgeProcess.exitCode === null) {
+      return Promise.resolve(true)
+    }
+    if (this.inputBridgeStartPromise) return this.inputBridgeStartPromise
+    this.inputBridgeStartPromise = this._launchInputBridge().finally(() => {
+      this.inputBridgeStartPromise = null
+    })
+    return this.inputBridgeStartPromise
+  }
+
+  async _launchInputBridge() {
     const command = `CLASSPATH=${this.remoteRoot}/stf-input-bridge.dex.jar app_process /system/bin StfInputBridge`
-    const process = spawn(this.runtime.adbPath, ['-s', this.serial, 'shell', command], {
+    const child = spawn(this.runtime.adbPath, ['-s', this.serial, 'shell', command], {
       stdio: ['pipe', 'pipe', 'pipe'],
     })
-    this.inputBridgeProcess = process
-    this.processes.add(process)
-    process.stdout.on('data', data => this._logChild('input-bridge', data))
-    process.stderr.on('data', data => this._logChild('input-bridge', data))
-    process.once('exit', (code, signal) => {
-      this.processes.delete(process)
-      if (this.inputBridgeProcess === process) {
+    this.inputBridgeProcess = child
+    this.inputBridgeBuffer = ''
+    this.processes.add(child)
+    child.stdout.on('data', data => this._readInputBridge(data))
+    child.stderr.on('data', data => this._logChild('input-bridge', data))
+    child.once('exit', (code, signal) => {
+      this.processes.delete(child)
+      this._failPendingInputKeys(this._stageError('control', 'ADB input bridge exited'))
+      if (this.inputBridgeProcess === child) {
         this.inputBridgeProcess = null
         if (this.touchMode === 'adb-input-bridge') {
           this.touchMode = 'adb-input'
@@ -817,13 +1081,55 @@ class DeviceSession {
       })
     })
     await new Promise(resolve => setTimeout(resolve, 150))
-    if (process.exitCode !== null || process.stdin.destroyed || process.stdin.writableEnded) {
-      if (this.inputBridgeProcess === process) this.inputBridgeProcess = null
-      this.processes.delete(process)
-      process.kill('SIGTERM')
+    if (child.exitCode !== null || child.stdin.destroyed || child.stdin.writableEnded) {
+      if (this.inputBridgeProcess === child) this.inputBridgeProcess = null
+      this.processes.delete(child)
+      child.kill('SIGTERM')
       return false
     }
     return true
+  }
+
+  _readInputBridge(chunk) {
+    this.inputBridgeBuffer += chunk.toString('utf8')
+    const lines = this.inputBridgeBuffer.split(/\r?\n/)
+    this.inputBridgeBuffer = lines.pop() || ''
+    for (const line of lines) {
+      const trimmed = line.trim()
+      if (!trimmed) continue
+      const parts = trimmed.split(/\s+/)
+      if (parts[0] !== 'KEY_RESULT' || parts.length < 3) {
+        this._logChild('input-bridge', trimmed)
+        continue
+      }
+      const requestId = parts[1]
+      const pending = this.inputKeyRequests.get(requestId)
+      if (!pending) {
+        log('debug', 'input bridge returned an unknown key request', {
+          serial: serialForLog(this.serial),
+          requestId,
+        })
+        continue
+      }
+      clearTimeout(pending.timeout)
+      this.inputKeyRequests.delete(requestId)
+      const success = parts[2].toLowerCase() === 'true'
+      log('debug', 'ADB input bridge key result', {
+        serial: serialForLog(this.serial),
+        requestId,
+        success,
+        error: success ? null : parts.slice(3).join(' ') || 'inject_rejected',
+      })
+      pending.resolve(success)
+    }
+  }
+
+  _failPendingInputKeys(error) {
+    for (const [requestId, pending] of this.inputKeyRequests) {
+      clearTimeout(pending.timeout)
+      pending.reject(error)
+      this.inputKeyRequests.delete(requestId)
+    }
   }
 
   _readTouchBanner(chunk) {
@@ -946,13 +1252,28 @@ class DeviceSession {
       client.sendText(JSON.stringify({success: false, error: 'Invalid control JSON'}))
       return
     }
-    this.control(payload).catch(error => {
+    this.control(payload).then(result => {
+      if (payload.type === 'key') {
+        client.sendText(JSON.stringify(result))
+      }
+    }).catch(error => {
       log('warn', 'persistent control failed', {
         serial: serialForLog(this.serial),
         type: payload.type,
+        requestId: payload.id || null,
         error: this._publicError(error),
       })
-      client.sendText(JSON.stringify({success: false, type: payload.type, error: this._publicError(error)}))
+      if (payload.type === 'key') {
+        client.sendText(JSON.stringify({
+          success: false,
+          serial: this.serial,
+          id: payload.id || null,
+          type: 'key',
+          action: payload.action || null,
+          key: payload.key ?? null,
+          error: this._publicError(error),
+        }))
+      }
     })
   }
 
@@ -983,12 +1304,8 @@ class DeviceSession {
         case 'gestureStop':
           this.gestures.clear()
           return true
-        case 'key': {
-          const keyCode = mapKeyCode(payload.key)
-          if (keyCode === null) throw this._stageError('control', `Unsupported key: ${payload.key}`)
-          await this._shell(`input keyevent ${keyCode}`)
-          return true
-        }
+        case 'key':
+          return this._handleKeyControl(payload)
         case 'rotation': {
           const rotation = Math.max(0, Math.min(3, Number(payload.rotation) || 0))
           this.rotation = rotation * 90
@@ -1002,6 +1319,188 @@ class DeviceSession {
     const next = this.touchQueue.then(operation)
     this.touchQueue = next.catch(() => {})
     return next
+  }
+
+  _nextInputKeyId() {
+    this.inputKeySequence += 1
+    return `key-${serialForLog(this.serial)}-${this.inputKeySequence}`
+  }
+
+  async _handleKeyControl(payload) {
+    const startedAt = Date.now()
+    const requestId = String(payload.id || this._nextInputKeyId())
+    const action = normalizeKeyAction(payload.action)
+    const resolved = resolveKey(payload.key)
+    const modifiers = normalizeModifiers(payload.modifiers)
+    if (!action) {
+      return this._keyResult({
+        success: false,
+        id: requestId,
+        action: payload.action || null,
+        canonicalKey: null,
+        transport: 'none',
+        error: 'Unsupported key action',
+      }, startedAt)
+    }
+    if (!resolved) {
+      return this._keyResult({
+        success: false,
+        id: requestId,
+        action,
+        canonicalKey: null,
+        transport: 'none',
+        error: `Unsupported key: ${payload.key}`,
+      }, startedAt)
+    }
+
+    const base = {
+      id: requestId,
+      action,
+      canonicalKey: resolved.canonicalKey,
+      keyCode: resolved.keyCode,
+    }
+    try {
+      if (this.inputBridgeJar) {
+        try {
+          if (await this._startInputBridge()) {
+            const injected = await this._writeInputBridgeKey(
+              requestId,
+              action,
+              resolved.keyCode,
+              androidMetaState(modifiers),
+            )
+            return this._keyResult({
+              ...base,
+              success: injected,
+              transport: 'input-bridge',
+              acknowledged: injected,
+              error: injected ? null : 'Device rejected key event',
+            }, startedAt)
+          }
+        } catch (error) {
+          log('warn', 'input bridge key event unavailable', {
+            serial: serialForLog(this.serial),
+            id: requestId,
+            canonicalKey: resolved.canonicalKey,
+            action,
+            error: this._publicError(error),
+          })
+          if (error && error.code === 'input_bridge_timeout') {
+            return this._keyResult({
+              ...base,
+              success: false,
+              transport: 'input-bridge',
+              acknowledged: false,
+              error: this._publicError(error),
+            }, startedAt)
+          }
+        }
+      }
+
+      if (this.stfServiceApk) {
+        await this._sendStfServiceKeyEvent(
+          requestId,
+          action,
+          resolved.keyCode,
+          modifiers,
+        )
+        return this._keyResult({
+          ...base,
+          success: true,
+          transport: 'stfservice',
+          acknowledged: false,
+        }, startedAt)
+      }
+
+      if (action === 'press') {
+        await this._shell(`input keyevent ${resolved.keyCode}`)
+        return this._keyResult({
+          ...base,
+          success: true,
+          transport: 'adb-shell',
+          acknowledged: false,
+        }, startedAt)
+      }
+      return this._keyResult({
+        ...base,
+        success: false,
+        transport: 'none',
+        error: 'No continuous key event transport is available',
+      }, startedAt)
+    } catch (error) {
+      return this._keyResult({
+        ...base,
+        success: false,
+        transport: 'none',
+        error: this._publicError(error),
+      }, startedAt)
+    }
+  }
+
+  _keyResult(result, startedAt) {
+    const response = {
+      success: result.success === true,
+      serial: this.serial,
+      id: result.id,
+      type: 'key',
+      action: result.action,
+      key: result.canonicalKey,
+      keyCode: result.keyCode ?? null,
+      transport: result.transport,
+      acknowledged: result.acknowledged === true,
+      elapsedMs: Math.max(0, Date.now() - startedAt),
+    }
+    if (result.error) response.error = result.error
+    log(response.success ? 'debug' : 'warn', 'keyboard event result', {
+      serial: serialForLog(this.serial),
+      requestId: response.id,
+      canonicalKey: response.key,
+      action: response.action,
+      transport: response.transport,
+      success: response.success,
+      elapsedMs: response.elapsedMs,
+      error: response.error || null,
+    })
+    return response
+  }
+
+  _writeInputBridgeKey(requestId, action, keyCode, metaState) {
+    const child = this.inputBridgeProcess
+    if (!child || child.exitCode !== null || child.stdin.destroyed || child.stdin.writableEnded) {
+      return Promise.reject(this._stageError('control', 'ADB input bridge is unavailable'))
+    }
+    const safeId = requestId.replace(/\s+/g, '_')
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this.inputKeyRequests.delete(safeId)
+        const error = this._stageError('control', 'ADB input bridge key event timeout')
+        error.code = 'input_bridge_timeout'
+        reject(error)
+      }, 3000)
+      this.inputKeyRequests.set(safeId, {resolve, reject, timeout})
+      const command = `KEY ${safeId} ${action.toUpperCase()} ${keyCode} ${metaState} 0\n`
+      try {
+        child.stdin.write(command, error => {
+          if (!error) return
+          const pending = this.inputKeyRequests.get(safeId)
+          if (!pending) return
+          clearTimeout(pending.timeout)
+          this.inputKeyRequests.delete(safeId)
+          pending.reject(this._stageError('control', `ADB input bridge write failed: ${error.message}`))
+        })
+        log('debug', 'ADB input bridge key request', {
+          serial: serialForLog(this.serial),
+          requestId: safeId,
+          action,
+          keyCode,
+          metaState,
+        })
+      } catch (error) {
+        clearTimeout(timeout)
+        this.inputKeyRequests.delete(safeId)
+        reject(this._stageError('control', `ADB input bridge write failed: ${error.message}`))
+      }
+    })
   }
 
   _touchX(value) {
@@ -1172,27 +1671,7 @@ class DeviceSession {
 
   async clipboard(text) {
     if (typeof text !== 'string' || text.length === 0) throw this._stageError('clipboard', 'Clipboard text is empty')
-    if (!this.stfServiceApk) throw this._stageError('clipboard', 'STFService.apk resource is missing')
-    const installed = await this._shell('pm path jp.co.cyberagent.stf')
-    if (!installed.includes('package:')) {
-      try {
-        await execFileAsync(this.runtime.adbPath, ['-s', this.serial, 'install', '-r', this.stfServiceApk], {timeout: 65000})
-      } catch (_) {
-        throw this._stageError('clipboard', 'Unable to install STFService on the device')
-      }
-    }
-    const start = await execFileAsync(this.runtime.adbPath, [
-      '-s', this.serial, 'shell', 'am', 'start-foreground-service',
-      '--user', '0', '-a', 'jp.co.cyberagent.stf.ACTION_START',
-      '-n', 'jp.co.cyberagent.stf/.Service',
-    ], {timeout: 10000}).catch(() => null)
-    if (!start || /^error/i.test(`${start.stdout}${start.stderr}`.trim())) {
-      await execFileAsync(this.runtime.adbPath, [
-        '-s', this.serial, 'shell', 'am', 'startservice',
-        '--user', '0', '-a', 'jp.co.cyberagent.stf.ACTION_START',
-        '-n', 'jp.co.cyberagent.stf/.Service',
-      ], {timeout: 10000})
-    }
+    await this._ensureStfService()
     const port = await this._forward('localabstract:stfservice')
     this.servicePort = port
     try {
@@ -1204,6 +1683,114 @@ class DeviceSession {
       await this._removeForward(port)
       this.servicePort = null
     }
+  }
+
+  _ensureStfService() {
+    if (!this.stfServiceApk) {
+      return Promise.reject(this._stageError('clipboard', 'STFService.apk resource is missing'))
+    }
+    if (this.stfServiceReady && this.stfServicePath) return Promise.resolve(this.stfServicePath)
+    if (this.stfServiceStartPromise) return this.stfServiceStartPromise
+    this.stfServiceStartPromise = (async () => {
+      let installed = await this._shell('pm path jp.co.cyberagent.stf')
+      if (!installed.includes('package:')) {
+        try {
+          await execFileAsync(this.runtime.adbPath, ['-s', this.serial, 'install', '-r', this.stfServiceApk], {timeout: 65000})
+        } catch (_) {
+          throw this._stageError('clipboard', 'Unable to install STFService on the device')
+        }
+        installed = await this._shell('pm path jp.co.cyberagent.stf')
+      }
+      const pathMatch = /package:(\S+)/.exec(installed)
+      if (!pathMatch) throw this._stageError('clipboard', 'STFService package path is unavailable')
+      const start = await execFileAsync(this.runtime.adbPath, [
+        '-s', this.serial, 'shell', 'am', 'start-foreground-service',
+        '--user', '0', '-a', 'jp.co.cyberagent.stf.ACTION_START',
+        '-n', 'jp.co.cyberagent.stf/.Service',
+      ], {timeout: 10000}).catch(() => null)
+      if (!start || /^error/i.test(`${start.stdout}${start.stderr}`.trim())) {
+        await execFileAsync(this.runtime.adbPath, [
+          '-s', this.serial, 'shell', 'am', 'startservice',
+          '--user', '0', '-a', 'jp.co.cyberagent.stf.ACTION_START',
+          '-n', 'jp.co.cyberagent.stf/.Service',
+        ], {timeout: 10000})
+      }
+      this.stfServicePath = pathMatch[1]
+      this.stfServiceReady = true
+      return this.stfServicePath
+    })().finally(() => {
+      this.stfServiceStartPromise = null
+    })
+    return this.stfServiceStartPromise
+  }
+
+  async _ensureStfAgent() {
+    await this._ensureStfService()
+    if (this.agentSocket && !this.agentSocket.destroyed) return this.agentSocket
+    if (this.agentStartPromise) return this.agentStartPromise
+    this.agentStartPromise = (async () => {
+      const command = `export CLASSPATH='${this.stfServicePath}'; exec app_process /system/bin 'jp.co.cyberagent.stf.Agent'`
+      const child = spawn(this.runtime.adbPath, ['-s', this.serial, 'shell', command], {
+        stdio: ['ignore', 'pipe', 'pipe'],
+      })
+      this.agentProcess = child
+      this.processes.add(child)
+      child.stdout.on('data', data => this._logChild('stf-agent', data))
+      child.stderr.on('data', data => this._logChild('stf-agent', data))
+      child.once('exit', (code, signal) => {
+        this.processes.delete(child)
+        if (this.agentProcess === child) this.agentProcess = null
+        if (this.agentSocket) this.agentSocket.destroy()
+        this.agentSocket = null
+        log('debug', 'device component exited', {
+          serial: serialForLog(this.serial),
+          component: 'stf-agent',
+          code,
+          signal,
+        })
+      })
+      const port = await this._forward('localabstract:stfagent')
+      this.agentPort = port
+      const socket = await this._connectLocal(port)
+      this.agentSocket = socket
+      socket.on('data', data => this._logChild('stf-agent', data))
+      socket.on('error', () => {
+        if (this.agentSocket === socket) this.agentSocket = null
+      })
+      socket.on('close', () => {
+        if (this.agentSocket === socket) this.agentSocket = null
+      })
+      log('debug', 'STF agent control channel ready', {
+        serial: serialForLog(this.serial),
+        transport: 'stfservice',
+      })
+      return socket
+    })().finally(() => {
+      this.agentStartPromise = null
+    })
+    return this.agentStartPromise
+  }
+
+  async _sendStfServiceKeyEvent(requestId, action, keyCode, modifiers) {
+    const socket = await this._ensureStfAgent()
+    const wireId = (this.serviceRequestId++ % 0xFFFFFF) + 1
+    await new Promise((resolve, reject) => {
+      try {
+        socket.write(encodeKeyEventFrame(action, keyCode, modifiers), error => {
+          if (error) reject(this._stageError('control', `STFService key event write failed: ${error.message}`))
+          else resolve()
+        })
+      } catch (error) {
+        reject(this._stageError('control', `STFService key event write failed: ${error.message}`))
+      }
+    })
+    log('debug', 'STFService key event sent', {
+      serial: serialForLog(this.serial),
+      requestId,
+      wireId,
+      action,
+      keyCode,
+    })
   }
 
   _requestClipboard(socket, text) {
@@ -1268,6 +1855,9 @@ class DeviceSession {
   }
 
   async _closeDeviceChannels() {
+    this._failPendingInputKeys(this._stageError('control', 'Device session closed'))
+    if (this.agentSocket) this.agentSocket.destroy()
+    if (this.agentProcess) this.agentProcess.kill('SIGTERM')
     if (this.screenSocket) this.screenSocket.destroy()
     if (this.touchSocket) this.touchSocket.destroy()
     this.screenSocket = null
@@ -1275,9 +1865,12 @@ class DeviceSession {
     this.touchReady = false
     this.touchProcess = null
     this.inputBridgeProcess = null
+    this.agentSocket = null
+    this.agentProcess = null
     this.screenBuffer = Buffer.alloc(0)
     this.screenHeaderLength = null
     this.touchBuffer = Buffer.alloc(0)
+    this.inputBridgeBuffer = ''
     for (const process of this.processes) process.kill('SIGTERM')
     this.processes.clear()
     const forwards = Array.from(this.forwards)
@@ -1285,6 +1878,9 @@ class DeviceSession {
     this.screenPort = null
     this.touchPort = null
     this.servicePort = null
+    this.agentPort = null
+    this.stfServiceReady = false
+    this.stfServicePath = null
     try {
       await this._shell(`rm -rf ${this.remoteRoot}`)
     } catch (_) {}
@@ -1416,7 +2012,9 @@ class Runtime {
       if (request.method === 'POST' && route.action === 'control') {
         const payload = await readJson(request)
         const result = await route.session.control(payload)
-        sendJson(response, 200, {success: result !== false})
+        sendJson(response, 200, result && typeof result === 'object'
+          ? result
+          : {success: result !== false})
         return
       }
       if (request.method === 'POST' && route.action === 'clipboard') {

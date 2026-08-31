@@ -73,7 +73,6 @@ class MessageLookup extends MessageLookupByLibrary {
     "battery": MessageLookupByLibrary.simpleMessage("Battery"),
     "battery_level": MessageLookupByLibrary.simpleMessage("Battery level"),
     "battery_status": MessageLookupByLibrary.simpleMessage("Status"),
-    "bluetooth": MessageLookupByLibrary.simpleMessage("Bluetooth"),
     "books": MessageLookupByLibrary.simpleMessage("Books"),
     "camera": MessageLookupByLibrary.simpleMessage("Camera"),
     "cancel": MessageLookupByLibrary.simpleMessage("Cancel"),
@@ -137,16 +136,21 @@ class MessageLookup extends MessageLookupByLibrary {
       "Enter /sdcard or another device path",
     ),
     "device_port": MessageLookupByLibrary.simpleMessage("Device port"),
-    "device_screenshot": MessageLookupByLibrary.simpleMessage(
-      "Device Screenshot",
-    ),
     "device_settings": MessageLookupByLibrary.simpleMessage("Device Settings"),
     "device_unauthorized": MessageLookupByLibrary.simpleMessage(
       "Unauthorized (approve trust on the phone)",
     ),
     "directory": MessageLookupByLibrary.simpleMessage("Directory"),
+    "disable_bluetooth": MessageLookupByLibrary.simpleMessage(
+      "Disable Bluetooth",
+    ),
+    "disable_wifi": MessageLookupByLibrary.simpleMessage("Disable Wi‑Fi"),
     "display": MessageLookupByLibrary.simpleMessage("Display"),
     "downloaded": MessageLookupByLibrary.simpleMessage("Downloaded"),
+    "enable_bluetooth": MessageLookupByLibrary.simpleMessage(
+      "Enable Bluetooth",
+    ),
+    "enable_wifi": MessageLookupByLibrary.simpleMessage("Enable Wi‑Fi"),
     "enter": MessageLookupByLibrary.simpleMessage("Enter"),
     "execute": MessageLookupByLibrary.simpleMessage("Execute"),
     "file_browser": MessageLookupByLibrary.simpleMessage("File Browser"),
@@ -274,13 +278,6 @@ class MessageLookup extends MessageLookupByLibrary {
     "screenshot_copied": MessageLookupByLibrary.simpleMessage(
       "PNG copied to the system image clipboard",
     ),
-    "screenshot_copy_tooltip": MessageLookupByLibrary.simpleMessage(
-      "Copy screenshot to the system image clipboard",
-    ),
-    "screenshot_status": MessageLookupByLibrary.simpleMessage(
-      "Capture the current device screen and copy it to the clipboard; no desktop file is saved.",
-    ),
-    "screenshots": MessageLookupByLibrary.simpleMessage("Screenshots"),
     "sdk": MessageLookupByLibrary.simpleMessage("SDK"),
     "search": MessageLookupByLibrary.simpleMessage("Search"),
     "send": MessageLookupByLibrary.simpleMessage("Send"),
@@ -384,7 +381,6 @@ class MessageLookup extends MessageLookupByLibrary {
     "view_accounts": MessageLookupByLibrary.simpleMessage("View accounts"),
     "volume_down": MessageLookupByLibrary.simpleMessage("Volume Down"),
     "volume_up": MessageLookupByLibrary.simpleMessage("Volume Up"),
-    "wifi": MessageLookupByLibrary.simpleMessage("Wi‑Fi"),
     "write_phone": MessageLookupByLibrary.simpleMessage("Write to phone"),
   };
 }

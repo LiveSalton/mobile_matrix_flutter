@@ -71,7 +71,6 @@ class MessageLookup extends MessageLookupByLibrary {
     "battery": MessageLookupByLibrary.simpleMessage("电池"),
     "battery_level": MessageLookupByLibrary.simpleMessage("电量"),
     "battery_status": MessageLookupByLibrary.simpleMessage("状态"),
-    "bluetooth": MessageLookupByLibrary.simpleMessage("蓝牙"),
     "books": MessageLookupByLibrary.simpleMessage("书籍"),
     "camera": MessageLookupByLibrary.simpleMessage("相机"),
     "cancel": MessageLookupByLibrary.simpleMessage("取消"),
@@ -117,14 +116,17 @@ class MessageLookup extends MessageLookupByLibrary {
       "输入 /sdcard 或其他设备路径",
     ),
     "device_port": MessageLookupByLibrary.simpleMessage("设备端口"),
-    "device_screenshot": MessageLookupByLibrary.simpleMessage("设备截图"),
     "device_settings": MessageLookupByLibrary.simpleMessage("设备设置"),
     "device_unauthorized": MessageLookupByLibrary.simpleMessage(
       "未授权 (请在手机勾选信任)",
     ),
     "directory": MessageLookupByLibrary.simpleMessage("目录"),
+    "disable_bluetooth": MessageLookupByLibrary.simpleMessage("关闭蓝牙"),
+    "disable_wifi": MessageLookupByLibrary.simpleMessage("关闭 Wi‑Fi"),
     "display": MessageLookupByLibrary.simpleMessage("显示"),
     "downloaded": MessageLookupByLibrary.simpleMessage("已下载"),
+    "enable_bluetooth": MessageLookupByLibrary.simpleMessage("开启蓝牙"),
+    "enable_wifi": MessageLookupByLibrary.simpleMessage("开启 Wi‑Fi"),
     "enter": MessageLookupByLibrary.simpleMessage("进入"),
     "execute": MessageLookupByLibrary.simpleMessage("执行"),
     "file_browser": MessageLookupByLibrary.simpleMessage("文件浏览器"),
@@ -224,13 +226,6 @@ class MessageLookup extends MessageLookupByLibrary {
     "screenshot_copied": MessageLookupByLibrary.simpleMessage(
       "已复制 PNG 到系统图片剪贴板",
     ),
-    "screenshot_copy_tooltip": MessageLookupByLibrary.simpleMessage(
-      "复制截屏到系统图片剪贴板",
-    ),
-    "screenshot_status": MessageLookupByLibrary.simpleMessage(
-      "截取当前设备画面并复制到粘贴板，不保存桌面文件。",
-    ),
-    "screenshots": MessageLookupByLibrary.simpleMessage("截屏"),
     "sdk": MessageLookupByLibrary.simpleMessage("SDK"),
     "search": MessageLookupByLibrary.simpleMessage("搜索"),
     "send": MessageLookupByLibrary.simpleMessage("发送"),
@@ -320,7 +315,6 @@ class MessageLookup extends MessageLookupByLibrary {
     "view_accounts": MessageLookupByLibrary.simpleMessage("查看账号"),
     "volume_down": MessageLookupByLibrary.simpleMessage("Volume Down"),
     "volume_up": MessageLookupByLibrary.simpleMessage("Volume Up"),
-    "wifi": MessageLookupByLibrary.simpleMessage("Wi‑Fi"),
     "write_phone": MessageLookupByLibrary.simpleMessage("写入手机"),
   };
 }

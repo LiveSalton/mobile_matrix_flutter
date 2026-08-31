@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'adb_service.dart';
+import '../models/device_key_event.dart';
 import 'stf_lite_runtime_service.dart';
 
 enum DeviceKeyAction {
@@ -76,9 +77,19 @@ abstract class IDeviceControlService {
   });
   Future<void> touchUp({required int contact});
   void touchCommit();
-  void rawKeyDown(String keyName);
-  void rawKeyUp(String keyName);
-  void rawKeyPress(String keyName);
+  Future<bool> sendKeyEvent(DeviceKeyEvent event);
+  Future<bool> rawKeyDown(
+    String keyName, {
+    DeviceKeyModifiers modifiers = DeviceKeyModifiers.none,
+  });
+  Future<bool> rawKeyUp(
+    String keyName, {
+    DeviceKeyModifiers modifiers = DeviceKeyModifiers.none,
+  });
+  Future<bool> rawKeyPress(
+    String keyName, {
+    DeviceKeyModifiers modifiers = DeviceKeyModifiers.none,
+  });
   void keyPress(DeviceKeyAction key);
   Future<bool> typeText(String text);
   Future<bool> pasteText(String text);
@@ -200,30 +211,54 @@ class StfLiteDeviceControlService extends ChangeNotifier
   }
 
   @override
-  void rawKeyDown(String keyName) {
-    _sendControl(<String, dynamic>{
-      'type': 'key',
-      'action': 'down',
-      'key': keyName,
-    });
+  Future<bool> sendKeyEvent(DeviceKeyEvent event) {
+    if (event.serial != serial) return Future<bool>.value(false);
+    return _enqueueControl(event.toJson());
   }
 
   @override
-  void rawKeyUp(String keyName) {
-    _sendControl(<String, dynamic>{
-      'type': 'key',
-      'action': 'up',
-      'key': keyName,
-    });
+  Future<bool> rawKeyDown(
+    String keyName, {
+    DeviceKeyModifiers modifiers = DeviceKeyModifiers.none,
+  }) {
+    return sendKeyEvent(
+      DeviceKeyEvent(
+        serial: serial,
+        action: DeviceKeyInputAction.down,
+        canonicalKey: keyName,
+        modifiers: modifiers,
+      ),
+    );
   }
 
   @override
-  void rawKeyPress(String keyName) {
-    _sendControl(<String, dynamic>{
-      'type': 'key',
-      'action': 'press',
-      'key': keyName,
-    });
+  Future<bool> rawKeyUp(
+    String keyName, {
+    DeviceKeyModifiers modifiers = DeviceKeyModifiers.none,
+  }) {
+    return sendKeyEvent(
+      DeviceKeyEvent(
+        serial: serial,
+        action: DeviceKeyInputAction.up,
+        canonicalKey: keyName,
+        modifiers: modifiers,
+      ),
+    );
+  }
+
+  @override
+  Future<bool> rawKeyPress(
+    String keyName, {
+    DeviceKeyModifiers modifiers = DeviceKeyModifiers.none,
+  }) {
+    return sendKeyEvent(
+      DeviceKeyEvent(
+        serial: serial,
+        action: DeviceKeyInputAction.press,
+        canonicalKey: keyName,
+        modifiers: modifiers,
+      ),
+    );
   }
 
   @override
@@ -336,18 +371,58 @@ class MockDeviceControlService extends ChangeNotifier
   }
 
   @override
-  void rawKeyDown(String keyName) {
-    _logAction('rawKeyDown: $keyName');
+  Future<bool> sendKeyEvent(DeviceKeyEvent event) async {
+    if (event.serial != serial) return false;
+    _logAction(
+      'key ${event.action.wireName}: ${event.canonicalKey} '
+      'modifiers=${event.modifiers.toJson()}',
+    );
+    return true;
   }
 
   @override
-  void rawKeyUp(String keyName) {
-    _logAction('rawKeyUp: $keyName');
+  Future<bool> rawKeyDown(
+    String keyName, {
+    DeviceKeyModifiers modifiers = DeviceKeyModifiers.none,
+  }) {
+    return sendKeyEvent(
+      DeviceKeyEvent(
+        serial: serial,
+        action: DeviceKeyInputAction.down,
+        canonicalKey: keyName,
+        modifiers: modifiers,
+      ),
+    );
   }
 
   @override
-  void rawKeyPress(String keyName) {
-    _logAction('rawKeyPress: $keyName');
+  Future<bool> rawKeyUp(
+    String keyName, {
+    DeviceKeyModifiers modifiers = DeviceKeyModifiers.none,
+  }) {
+    return sendKeyEvent(
+      DeviceKeyEvent(
+        serial: serial,
+        action: DeviceKeyInputAction.up,
+        canonicalKey: keyName,
+        modifiers: modifiers,
+      ),
+    );
+  }
+
+  @override
+  Future<bool> rawKeyPress(
+    String keyName, {
+    DeviceKeyModifiers modifiers = DeviceKeyModifiers.none,
+  }) {
+    return sendKeyEvent(
+      DeviceKeyEvent(
+        serial: serial,
+        action: DeviceKeyInputAction.press,
+        canonicalKey: keyName,
+        modifiers: modifiers,
+      ),
+    );
   }
 
   @override

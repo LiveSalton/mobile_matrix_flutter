@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../models/device_model.dart';
+import '../../../models/device_key_event.dart';
 import '../../../services/android_keyboard_mapper.dart';
 import '../../../services/device_control_service.dart';
 import '../../../services/scaling_coordinator.dart';
@@ -253,6 +254,40 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
     widget.streamService.triggerImmediateRefresh();
   }
 
+  void _dispatchKeyResult(Future<bool> request) {
+    unawaited(
+      request
+          .then<void>((success) {
+            if (kDebugMode && !success) {
+              debugPrint(
+                '[DeviceInput:${widget.device.serial}] key event rejected',
+              );
+            }
+          })
+          .catchError((Object error) {
+            if (kDebugMode) {
+              debugPrint(
+                '[DeviceInput:${widget.device.serial}] key event failed: $error',
+              );
+            }
+          }),
+    );
+  }
+
+  DeviceKeyModifiers _keyboardModifiers() {
+    final keyboard = HardwareKeyboard.instance;
+    final lockModes = keyboard.lockModesEnabled;
+    return DeviceKeyModifiers(
+      shift: keyboard.isShiftPressed,
+      ctrl: keyboard.isControlPressed,
+      alt: keyboard.isAltPressed,
+      meta: keyboard.isMetaPressed,
+      capsLock: lockModes.contains(KeyboardLockMode.capsLock),
+      scrollLock: lockModes.contains(KeyboardLockMode.scrollLock),
+      numLock: lockModes.contains(KeyboardLockMode.numLock),
+    );
+  }
+
   Future<void> _pasteDesktopClipboard() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final text = data?.text;
@@ -297,17 +332,32 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
     if (event is KeyDownEvent || event is KeyRepeatEvent) {
       final keyName = AndroidKeyboardMapper.keyNameFor(event);
       if (keyName == null) return KeyEventResult.ignored;
-      widget.controlService.rawKeyDown(keyName);
+      _dispatchKeyResult(
+        widget.controlService.rawKeyDown(
+          keyName,
+          modifiers: _keyboardModifiers(),
+        ),
+      );
       return KeyEventResult.handled;
     }
 
     if (event is KeyUpEvent) {
       if (AndroidKeyboardMapper.isCharsetSwitch(event)) {
-        widget.controlService.rawKeyPress(AndroidKeyboardMapper.switchCharset);
+        _dispatchKeyResult(
+          widget.controlService.rawKeyPress(
+            AndroidKeyboardMapper.switchCharset,
+            modifiers: _keyboardModifiers(),
+          ),
+        );
       } else {
         final keyName = AndroidKeyboardMapper.keyNameFor(event);
         if (keyName == null) return KeyEventResult.ignored;
-        widget.controlService.rawKeyUp(keyName);
+        _dispatchKeyResult(
+          widget.controlService.rawKeyUp(
+            keyName,
+            modifiers: _keyboardModifiers(),
+          ),
+        );
       }
       widget.streamService.triggerImmediateRefresh();
       return KeyEventResult.handled;

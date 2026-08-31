@@ -1,14 +1,6 @@
 import 'dart:typed_data';
 
-enum DeviceToolKind {
-  dashboard,
-  logs,
-  screenshots,
-  automation,
-  explorer,
-  advanced,
-  info,
-}
+enum DeviceToolKind { dashboard, logs, automation, explorer, advanced, info }
 
 enum DeviceRingerMode { silent, vibrate, normal }
 

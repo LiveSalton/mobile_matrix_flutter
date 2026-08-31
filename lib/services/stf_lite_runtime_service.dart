@@ -15,6 +15,10 @@ enum StfLiteRuntimeErrorCode {
   sidecarExited,
 }
 
+class _PendingKeyRequest {
+  final Completer<bool> completer = Completer<bool>();
+}
+
 class StfLiteSessionInfo {
   final String serial;
   final String model;
@@ -79,6 +83,9 @@ class StfLiteRuntimeService extends ChangeNotifier {
   final Map<String, Future<WebSocket?>> _controlSocketConnections =
       <String, Future<WebSocket?>>{};
   final Map<String, DateTime> _controlSocketRetryAfter = <String, DateTime>{};
+  final Map<String, _PendingKeyRequest> _pendingKeyRequests =
+      <String, _PendingKeyRequest>{};
+  int _controlRequestSequence = 0;
   StfLiteRuntimeState _state = StfLiteRuntimeState.stopped;
   String? _errorMessage;
   StfLiteRuntimeErrorCode? _errorCode;
@@ -186,13 +193,24 @@ class StfLiteRuntimeService extends ChangeNotifier {
   }
 
   Future<bool> sendControl(String serial, Map<String, dynamic> payload) async {
+    final isKeyEvent = payload['type'] == 'key';
+    final requestPayload = isKeyEvent
+        ? <String, dynamic>{
+            ...payload,
+            'id': payload['id'] ?? _nextControlRequestId(serial),
+          }
+        : payload;
     final socket = await _ensureControlSocket(serial);
     if (socket != null) {
       try {
-        socket.add(jsonEncode(payload));
+        if (isKeyEvent) {
+          return await _sendKeyOverSocket(serial, socket, requestPayload);
+        }
+        socket.add(jsonEncode(requestPayload));
         return true;
       } catch (error) {
         _dropControlSocket(serial, socket, error: error);
+        if (isKeyEvent && error is TimeoutException) return false;
       }
     }
 
@@ -202,9 +220,40 @@ class StfLiteRuntimeService extends ChangeNotifier {
     final response = await _request(
       'POST',
       _sessionUri(serial, 'control'),
-      payload: payload,
+      payload: requestPayload,
     );
     return (jsonDecode(response) as Map<String, dynamic>)['success'] == true;
+  }
+
+  String _nextControlRequestId(String serial) {
+    _controlRequestSequence += 1;
+    final safeSerial = serial.replaceAll(RegExp(r'[^A-Za-z0-9_.:-]'), '_');
+    return 'flutter-key-$safeSerial-$_controlRequestSequence';
+  }
+
+  String _pendingKeyRequestId(String serial, String id) => '$serial\u0000$id';
+
+  Future<bool> _sendKeyOverSocket(
+    String serial,
+    WebSocket socket,
+    Map<String, dynamic> payload,
+  ) async {
+    final id = payload['id']?.toString();
+    if (id == null || id.isEmpty) return false;
+    final pendingId = _pendingKeyRequestId(serial, id);
+    final pending = _PendingKeyRequest();
+    _pendingKeyRequests[pendingId] = pending;
+    try {
+      socket.add(jsonEncode(payload));
+      return await pending.completer.future.timeout(
+        const Duration(seconds: 4),
+        onTimeout: () {
+          throw TimeoutException('STF Lite key event response timed out');
+        },
+      );
+    } finally {
+      _pendingKeyRequests.remove(pendingId);
+    }
   }
 
   Future<bool> ensureControlChannel(String serial) async {
@@ -249,6 +298,9 @@ class StfLiteRuntimeService extends ChangeNotifier {
         (event) {
           if (kDebugMode && event is String) {
             debugPrint('[StfLiteControl:$serial] sidecar message=$event');
+          }
+          if (event is String) {
+            _resolveKeyResponse(serial, event);
           }
         },
         onError: (Object error) {
@@ -297,12 +349,50 @@ class StfLiteRuntimeService extends ChangeNotifier {
   void _dropControlSocket(String serial, WebSocket socket, {Object? error}) {
     if (!identical(_controlSockets[serial], socket)) return;
     _controlSockets.remove(serial);
+    _failPendingKeyRequests(serial);
     _controlSocketRetryAfter[serial] = DateTime.now().add(
       const Duration(milliseconds: 250),
     );
     if (kDebugMode && error != null) {
       debugPrint('[StfLiteControl:$serial] persistent channel closed: $error');
     }
+  }
+
+  void _resolveKeyResponse(String serial, String event) {
+    Map<String, dynamic> response;
+    try {
+      final decoded = jsonDecode(event);
+      if (decoded is! Map<String, dynamic>) return;
+      response = decoded;
+    } catch (_) {
+      return;
+    }
+    if (response['type'] != 'key') return;
+    final id = response['id']?.toString();
+    if (id == null || id.isEmpty) return;
+    final pending = _pendingKeyRequests[_pendingKeyRequestId(serial, id)];
+    if (pending == null || pending.completer.isCompleted) return;
+    pending.completer.complete(response['success'] == true);
+  }
+
+  void _failPendingKeyRequests(String serial) {
+    final prefix = '$serial\u0000';
+    final ids = _pendingKeyRequests.keys
+        .where((key) => key.startsWith(prefix))
+        .toList(growable: false);
+    for (final id in ids) {
+      final pending = _pendingKeyRequests.remove(id);
+      if (pending != null && !pending.completer.isCompleted) {
+        pending.completer.complete(false);
+      }
+    }
+  }
+
+  void _failAllPendingKeyRequests() {
+    for (final pending in _pendingKeyRequests.values) {
+      if (!pending.completer.isCompleted) pending.completer.complete(false);
+    }
+    _pendingKeyRequests.clear();
   }
 
   Future<bool> setClipboard(String serial, String text) async {
@@ -319,6 +409,10 @@ class StfLiteRuntimeService extends ChangeNotifier {
     _controlSockets.clear();
     _controlSocketConnections.clear();
     _controlSocketRetryAfter.clear();
+    for (final pending in _pendingKeyRequests.values) {
+      if (!pending.completer.isCompleted) pending.completer.complete(false);
+    }
+    _pendingKeyRequests.clear();
     for (final socket in controlSockets) {
       await socket.close();
     }
@@ -414,6 +508,7 @@ class StfLiteRuntimeService extends ChangeNotifier {
     if (_isDisposed || !identical(_process, process)) return;
     _process = null;
     _baseUri = null;
+    _failAllPendingKeyRequests();
     _setState(
       StfLiteRuntimeState.error,
       'sidecar exited with code $exitCode',
@@ -425,6 +520,7 @@ class StfLiteRuntimeService extends ChangeNotifier {
     final process = _process;
     _process = null;
     _baseUri = null;
+    _failAllPendingKeyRequests();
     if (process == null) return;
     process.kill(ProcessSignal.sigterm);
     try {

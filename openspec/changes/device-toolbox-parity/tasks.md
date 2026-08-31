@@ -16,8 +16,8 @@
 
 ## Flutter 界面
 
-- [x] 2.6 将 DeviceWorkspace 改为七组工具导航 + 单内容区，保留现有 Dashboard 功能。
-- [x] 2.7 接入 Logs、Screenshots、Automation 和 File Explorer 工具状态与操作反馈。
+- [x] 2.6 将 DeviceWorkspace 改为六组工具导航 + 单内容区，保留现有 Dashboard 功能。
+- [x] 2.7 接入 Logs、Automation 和 File Explorer 工具状态与操作反馈。
 - [x] 2.8 接入 Advanced、Info、应用管理和远程调试界面，移除所有群控入口。
 - [x] 2.9 让 DeviceControlPage 创建、切换和销毁 DeviceToolsService。
 - [x] 2.10 在最小窗口和窄内容区使用滚动/Wrap/Expanded，避免固定宽高越界。
@@ -37,6 +37,7 @@
 - [x] 2.24 将 Dashboard 底部应用管理与 ADB 远程调试卡片按半宽顺排，并增加读取本机 ADB 设备、发现 `_adb-tls-connect` 动态端口和自动填充真实 `地址:端口` 的操作。
 - [x] 2.25 重构 Dashboard 响应式卡片列表，将底部双卡片作为 `_toolScroll` 的单个响应式 item，并按项目 L10n 规范整理页面用户可见硬编码文案。
 - [x] 2.26 重构 Dashboard 为双列独立卡片流，消除由不等高列造成的空白区域；宽屏每列半宽，窄屏合并为单列滚动。
+- [x] 2.27 移除 DeviceWorkspace 独立截屏工具入口和页面，仅保留设备信息栏的复制截屏快捷图标；将 Wi‑Fi、蓝牙快捷开关移动到同一操作组。
 
 ## 验证
 
@@ -47,4 +48,4 @@
 ## 用户验收
 
 - [ ] 4.1 在已连接 Android 真机上逐项验证 ADB 操作、logcat、文件拉取、端口转发、设备信息和截图图片剪贴板。
-- [ ] 4.2 在 `1120×760` 最小窗口和实际桌面主题下检查七组工具的视觉布局与拖动窗口稳定性。
+- [ ] 4.2 在 `1120×760` 最小窗口和实际桌面主题下检查六组工具的视觉布局与拖动窗口稳定性。

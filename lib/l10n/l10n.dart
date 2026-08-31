@@ -69,11 +69,6 @@ class L10n {
     return Intl.message('日志', name: 'logs', desc: '', args: []);
   }
 
-  /// `截屏`
-  String get screenshots {
-    return Intl.message('截屏', name: 'screenshots', desc: '', args: []);
-  }
-
   /// `自动化`
   String get automation {
     return Intl.message('自动化', name: 'automation', desc: '', args: []);
@@ -287,6 +282,46 @@ class L10n {
   /// `显示屏幕`
   String get show_screen {
     return Intl.message('显示屏幕', name: 'show_screen', desc: '', args: []);
+  }
+
+  /// `开启 Wi‑Fi`
+  String get enable_wifi {
+    return Intl.message(
+      '开启 Wi‑Fi',
+      name: 'enable_wifi',
+      desc: '设备信息栏 Wi‑Fi 快捷操作启用提示',
+      args: [],
+    );
+  }
+
+  /// `关闭 Wi‑Fi`
+  String get disable_wifi {
+    return Intl.message(
+      '关闭 Wi‑Fi',
+      name: 'disable_wifi',
+      desc: '设备信息栏 Wi‑Fi 快捷操作停用提示',
+      args: [],
+    );
+  }
+
+  /// `开启蓝牙`
+  String get enable_bluetooth {
+    return Intl.message(
+      '开启蓝牙',
+      name: 'enable_bluetooth',
+      desc: '设备信息栏蓝牙快捷操作启用提示',
+      args: [],
+    );
+  }
+
+  /// `关闭蓝牙`
+  String get disable_bluetooth {
+    return Intl.message(
+      '关闭蓝牙',
+      name: 'disable_bluetooth',
+      desc: '设备信息栏蓝牙快捷操作停用提示',
+      args: [],
+    );
   }
 
   /// `复制截屏`
@@ -809,31 +844,6 @@ class L10n {
     );
   }
 
-  /// `设备截图`
-  String get device_screenshot {
-    return Intl.message('设备截图', name: 'device_screenshot', desc: '', args: []);
-  }
-
-  /// `复制截屏到系统图片剪贴板`
-  String get screenshot_copy_tooltip {
-    return Intl.message(
-      '复制截屏到系统图片剪贴板',
-      name: 'screenshot_copy_tooltip',
-      desc: '',
-      args: [],
-    );
-  }
-
-  /// `截取当前设备画面并复制到粘贴板，不保存桌面文件。`
-  String get screenshot_status {
-    return Intl.message(
-      '截取当前设备画面并复制到粘贴板，不保存桌面文件。',
-      name: 'screenshot_status',
-      desc: '',
-      args: [],
-    );
-  }
-
   /// `设备设置`
   String get device_settings {
     return Intl.message('设备设置', name: 'device_settings', desc: '', args: []);
@@ -852,16 +862,6 @@ class L10n {
   /// `响铃`
   String get ring {
     return Intl.message('响铃', name: 'ring', desc: '', args: []);
-  }
-
-  /// `Wi‑Fi`
-  String get wifi {
-    return Intl.message('Wi‑Fi', name: 'wifi', desc: '', args: []);
-  }
-
-  /// `蓝牙`
-  String get bluetooth {
-    return Intl.message('蓝牙', name: 'bluetooth', desc: '', args: []);
   }
 
   /// `清理蓝牙配对设备`

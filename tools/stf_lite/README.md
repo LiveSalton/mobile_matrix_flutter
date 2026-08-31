@@ -66,3 +66,44 @@ projection uses
 the physical display size, while the fallback `adb input` driver converts the
 same normalized coordinates to the device's logical input frame. It never
 uses the rendered Flutter widget size as a device input size.
+
+Raw keyboard input uses the Web STF key contract rather than passing Flutter
+key names directly to `adb`:
+
+```json
+{
+  "type": "key",
+  "id": "flutter-key-serial-1",
+  "action": "down",
+  "key": "a",
+  "modifiers": {
+    "shift": false,
+    "ctrl": false,
+    "alt": false,
+    "meta": false,
+    "sym": false,
+    "function": false,
+    "capsLock": false,
+    "scrollLock": false,
+    "numLock": false
+  }
+}
+```
+
+`action` is `down`, `up`, or `press`. The sidecar resolves letters, numbers,
+editing keys, punctuation, arrows, function keys, numpad keys, modifiers, and
+Web STF compatibility aliases to Android KeyCodes. It returns a key response
+with the same `id`, `serial`, canonical `key`, `action`, `transport`,
+`acknowledged`, `elapsedMs`, and `success` fields. Unknown keys and invalid
+actions are rejected without issuing a device command.
+
+The transport order is: the persistent `StfInputBridge` KeyEvent injector,
+the STFService `stfagent` protobuf channel, and finally ADB shell `input
+keyevent` only for explicit one-shot `press` actions. Raw `down`/`up` events
+never fall back to discrete shell commands. High-frequency touch commands
+remain one-way and keep their existing protocol.
+
+Unicode text remains a separate path: STFService writes the device clipboard,
+waits for it to settle, then sends the native paste key event. Keyboard logs
+record serial, request id, canonical key, action, transport, result, timing,
+and failure stage, but never text content.

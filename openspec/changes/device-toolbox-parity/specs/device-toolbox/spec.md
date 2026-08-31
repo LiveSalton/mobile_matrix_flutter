@@ -2,9 +2,9 @@
 
 ## ADDED Requirements
 
-### Requirement: 七组设备工具入口
+### Requirement: 六组设备工具入口
 
-设备工具箱 SHALL 提供 Dashboard、Logs、Screenshots、Automation、File Explorer、Advanced、Info 七组入口，并且同一时间只在内容区展示当前工具。
+设备工具箱 SHALL 提供 Dashboard、Logs、Automation、File Explorer、Advanced、Info 六组入口，并且同一时间只在内容区展示当前工具。
 
 #### Scenario: 切换设备工具
 
@@ -39,13 +39,13 @@ Dashboard 的 Real-time System Monitor SHALL 默认关闭，并在用户主动�
 - **WHEN** 用户打开 Real-time System Monitor 开关
 - **THEN** 控件立即读取一次设备数据，随后每 5 秒更新一次；用户关闭开关、切换设备或离开页面后，采样定时器停止且不产生未处理异常
 
-### Requirement: 日志和截图工具
+### Requirement: 日志工具
 
-Logs SHALL 支持启动/停止 logcat、关键词/级别过滤、清空显示和复制日志文本；Screenshots SHALL 复用 ADB 截屏并直接复制 PNG 到系统图片剪贴板，不创建桌面截图文件或视频录制任务。
+Logs SHALL 支持启动/停止 logcat、关键词/级别过滤、清空显示和复制日志文本；设备信息栏中的截图图标 SHALL 复用 ADB 截屏并直接复制 PNG 到系统图片剪贴板，不创建桌面截图文件或视频录制任务。
 
-#### Scenario: 复制设备截图
+#### Scenario: 从设备信息栏复制设备截图
 
-- **WHEN** 用户点击 Screenshots 的截屏按钮且设备在线
+- **WHEN** 用户点击设备信息栏中的复制截屏图标且设备在线
 - **THEN** 当前设备 PNG 被写入系统图片剪贴板，并显示成功状态
 
 #### Scenario: 停止日志进程
@@ -55,7 +55,7 @@ Logs SHALL 支持启动/停止 logcat、关键词/级别过滤、清空显示和
 
 ### Requirement: 自动化和文件管理
 
-Automation SHALL 支持铃声模式、Wi‑Fi、蓝牙、清理蓝牙配对和打开应用商店；File Explorer SHALL 支持目录浏览、返回上级、查看文件详情和将文件拉取到用户指定的本地路径。
+Automation SHALL 支持铃声模式、清理蓝牙配对和打开应用商店；设备信息栏提供 Wi‑Fi 与蓝牙快捷开关；File Explorer SHALL 支持目录浏览、返回上级、查看文件详情和将文件拉取到用户指定的本地路径。
 
 #### Scenario: 浏览目录并拉取文件
 
@@ -73,7 +73,7 @@ Advanced SHALL 提供 Web 端已有的特殊键、方向键、端口转发和设
 
 ### Requirement: 设备信息
 
-Info SHALL 读取并展示电池、显示、网络、SIM、硬件、平台、CPU 和内存信息；读取失败的单个字段 SHALL 显示未知，不得使整个设备工具箱崩溃。
+Info SHALL 读取并展示电池、显示、网络、SIM、硬件、平台、CPU 和内存信息；设备信息栏 SHALL 提供横屏、Wi‑Fi、蓝牙、显隐和复制截屏快捷操作；读取失败的单个字段 SHALL 显示未知，不得使整个设备工具箱崩溃。
 
 #### Scenario: 刷新设备信息
 
@@ -86,7 +86,7 @@ Info SHALL 读取并展示电池、显示、网络、SIM、硬件、平台、CPU
 
 #### Scenario: 在最小窗口使用工具箱
 
-- **WHEN** 用户将窗口缩小到允许的最小尺寸并切换七组工具
+- **WHEN** 用户将窗口缩小到允许的最小尺寸并切换六组工具
 - **THEN** 导航、标题、主要操作仍可见，长内容纵向滚动，日志、文件列表和信息卡片不越界
 
 ### Requirement: 手机舞台与设备工具分栏
@@ -106,7 +106,7 @@ Info SHALL 读取并展示电池、显示、网络、SIM、硬件、平台、CPU
 #### Scenario: 使用设备信息栏快捷操作
 
 - **WHEN** 用户查看设备信息栏或点击其中的屏幕操作
-- **THEN** 左侧信息按设备型号、分辨率、FPS 排列；横屏、屏幕显隐和复制截屏按钮在右侧相邻分组，且实时 FPS 和监控开关状态不得改变卡片或信息栏尺寸
+- **THEN** 左侧信息按设备型号、分辨率、FPS 排列；横屏、Wi‑Fi、蓝牙、屏幕显隐和复制截屏按钮在右侧相邻分组，且实时 FPS 和监控开关状态不得改变卡片或信息栏尺寸
 
 #### Scenario: 切换手机屏幕方向
 

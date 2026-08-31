@@ -63,11 +63,6 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
     ),
     _ToolEntry(DeviceToolKind.logs, strings.logs, Icons.article_outlined),
     _ToolEntry(
-      DeviceToolKind.screenshots,
-      strings.screenshots,
-      Icons.screenshot_monitor_outlined,
-    ),
-    _ToolEntry(
       DeviceToolKind.automation,
       strings.automation,
       Icons.tune_rounded,
@@ -123,7 +118,6 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   DeviceInfoSnapshot? _info;
   String _explorerMessage = '';
   String _portMessage = '';
-  String _screenshotMessage = '';
   bool _isExecutingShell = false;
   bool _isLoading = false;
   bool _isLogcatRunning = false;
@@ -131,6 +125,8 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   bool _isCopyingScreenshot = false;
   bool _wifiEnabled = true;
   bool _bluetoothEnabled = true;
+  bool _isWifiUpdating = false;
+  bool _isBluetoothUpdating = false;
   bool _isMonitorEnabled = false;
   bool _isMonitorLoading = false;
   bool _isDiscoveringRemoteDebug = false;
@@ -474,16 +470,14 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
       debugPrint(
         '[SCREEN-CAPTURE] button completed serial=${widget.device.serial}',
       );
-      if (mounted) {
-        setState(() => _screenshotMessage = _strings.screenshot_copied);
-      }
+      if (mounted) _showMessage(_strings.screenshot_copied);
     } catch (error, stackTrace) {
       debugPrint(
         '[SCREEN-CAPTURE] button failed '
         'serial=${widget.device.serial} error=$error',
       );
       debugPrintStack(label: '[SCREEN-CAPTURE] stack', stackTrace: stackTrace);
-      if (mounted) setState(() => _screenshotMessage = '$error');
+      if (mounted) _showMessage('$error');
     } finally {
       if (mounted) setState(() => _isCopyingScreenshot = false);
     }
@@ -494,15 +488,29 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
   }
 
   Future<void> _handleWifi(bool enabled) async {
-    final result = await widget.toolsService.setWifiEnabled(enabled);
-    if (result.success && mounted) setState(() => _wifiEnabled = enabled);
-    _showResult(result);
+    if (_isWifiUpdating) return;
+    setState(() => _isWifiUpdating = true);
+    try {
+      final result = await widget.toolsService.setWifiEnabled(enabled);
+      if (result.success && mounted) setState(() => _wifiEnabled = enabled);
+      _showResult(result);
+    } finally {
+      if (mounted) setState(() => _isWifiUpdating = false);
+    }
   }
 
   Future<void> _handleBluetooth(bool enabled) async {
-    final result = await widget.toolsService.setBluetoothEnabled(enabled);
-    if (result.success && mounted) setState(() => _bluetoothEnabled = enabled);
-    _showResult(result);
+    if (_isBluetoothUpdating) return;
+    setState(() => _isBluetoothUpdating = true);
+    try {
+      final result = await widget.toolsService.setBluetoothEnabled(enabled);
+      if (result.success && mounted) {
+        setState(() => _bluetoothEnabled = enabled);
+      }
+      _showResult(result);
+    } finally {
+      if (mounted) setState(() => _isBluetoothUpdating = false);
+    }
   }
 
   Future<void> _handleAccountCheck() async {
@@ -758,6 +766,32 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
                   onPressed: widget.onToggleRotation,
                 ),
                 _buildInfoActionButton(
+                  tooltip: _wifiEnabled
+                      ? strings.disable_wifi
+                      : strings.enable_wifi,
+                  icon: _wifiEnabled
+                      ? Icons.wifi_rounded
+                      : Icons.wifi_off_rounded,
+                  color: _wifiEnabled ? tokens.primary : tokens.textSecondary,
+                  onPressed: _isWifiUpdating
+                      ? null
+                      : () => _handleWifi(!_wifiEnabled),
+                ),
+                _buildInfoActionButton(
+                  tooltip: _bluetoothEnabled
+                      ? strings.disable_bluetooth
+                      : strings.enable_bluetooth,
+                  icon: _bluetoothEnabled
+                      ? Icons.bluetooth_rounded
+                      : Icons.bluetooth_disabled_rounded,
+                  color: _bluetoothEnabled
+                      ? tokens.primary
+                      : tokens.textSecondary,
+                  onPressed: _isBluetoothUpdating
+                      ? null
+                      : () => _handleBluetooth(!_bluetoothEnabled),
+                ),
+                _buildInfoActionButton(
                   tooltip: widget.isScreenVisible
                       ? strings.hide_screen
                       : strings.show_screen,
@@ -923,7 +957,6 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
     return switch (_selectedTool) {
       DeviceToolKind.dashboard => _buildDashboard(context),
       DeviceToolKind.logs => _buildLogs(context),
-      DeviceToolKind.screenshots => _buildScreenshots(context),
       DeviceToolKind.automation => _buildAutomation(context),
       DeviceToolKind.explorer => _buildExplorer(context),
       DeviceToolKind.advanced => _buildAdvanced(context),
@@ -1694,38 +1727,6 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
     ]);
   }
 
-  Widget _buildScreenshots(BuildContext context) {
-    final tokens = context.tokens;
-    final strings = L10n.of(context);
-    return _toolScroll(context, [
-      _buildCard(
-        context,
-        strings.device_screenshot,
-        Icons.screenshot_monitor_outlined,
-        Row(
-          children: [
-            Tooltip(
-              message: strings.screenshot_copy_tooltip,
-              child: IconButton.filledTonal(
-                onPressed: _handleCopyScreenshot,
-                icon: const Icon(Icons.content_copy_rounded),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                _screenshotMessage.isEmpty
-                    ? strings.screenshot_status
-                    : _screenshotMessage,
-                style: TextStyle(color: tokens.textSecondary, fontSize: 12),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ]);
-  }
-
   Widget _buildAutomation(BuildContext context) {
     final strings = L10n.of(context);
     return _toolScroll(context, [
@@ -1760,18 +1761,6 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
               ],
             ),
             const SizedBox(height: 8),
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              title: Text(strings.wifi),
-              value: _wifiEnabled,
-              onChanged: _handleWifi,
-            ),
-            SwitchListTile.adaptive(
-              contentPadding: EdgeInsets.zero,
-              title: Text(strings.bluetooth),
-              value: _bluetoothEnabled,
-              onChanged: _handleBluetooth,
-            ),
             _buildCompactButton(
               context,
               strings.clear_bluetooth_bonds,

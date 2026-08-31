@@ -1,10 +1,13 @@
 import android.os.SystemClock;
 import android.view.InputDevice;
+import android.view.KeyEvent;
 import android.view.MotionEvent;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Minimal persistent shell-side touch injector for devices where minitouch
@@ -18,6 +21,7 @@ public final class StfInputBridge {
 
   private final Method injectInputEvent;
   private final Object inputManager;
+  private final Map<Integer, Long> keyDownTimes = new HashMap<>();
   private long downTime;
   private boolean gestureActive;
 
@@ -37,12 +41,80 @@ public final class StfInputBridge {
     String line;
     while ((line = input.readLine()) != null) {
       String[] parts = line.trim().split("\\s+");
-      if (parts.length < 3) continue;
+      if (parts.length == 0 || parts[0].isEmpty()) continue;
       String actionName = parts[0].toUpperCase();
+      if ("KEY".equals(actionName)) {
+        bridge.handleKeyCommand(parts);
+        continue;
+      }
+      if (parts.length < 3) continue;
       float x = Float.parseFloat(parts[1]);
       float y = Float.parseFloat(parts[2]);
       bridge.inject(actionName, x, y);
     }
+  }
+
+  private void handleKeyCommand(String[] parts) {
+    String requestId = parts.length > 1 ? parts[1] : "-";
+    try {
+      if (parts.length < 5) throw new IllegalArgumentException("malformed_key_command");
+      String actionName = parts[2].toUpperCase();
+      int keyCode = Integer.parseInt(parts[3]);
+      int metaState = Integer.parseInt(parts[4]);
+      int repeatCount = parts.length > 5 ? Integer.parseInt(parts[5]) : 0;
+      boolean result = injectKey(actionName, keyCode, metaState, repeatCount);
+      writeKeyResult(requestId, result, result ? null : "inject_rejected");
+    } catch (Exception error) {
+      writeKeyResult(requestId, false, error.getMessage() == null ? "key_inject_failed" : error.getMessage());
+    }
+  }
+
+  private boolean injectKey(String actionName, int keyCode, int metaState, int repeatCount) {
+    switch (actionName) {
+      case "DOWN":
+        long downAt = SystemClock.uptimeMillis();
+        keyDownTimes.put(keyCode, downAt);
+        return injectKeyEvent(KeyEvent.ACTION_DOWN, downAt, keyCode, repeatCount, metaState);
+      case "UP":
+        long storedDownAt = keyDownTimes.containsKey(keyCode)
+            ? keyDownTimes.remove(keyCode)
+            : SystemClock.uptimeMillis();
+        return injectKeyEvent(KeyEvent.ACTION_UP, storedDownAt, keyCode, 0, metaState);
+      case "PRESS":
+        long pressDownAt = SystemClock.uptimeMillis();
+        boolean downResult = injectKeyEvent(KeyEvent.ACTION_DOWN, pressDownAt, keyCode, 0, metaState);
+        boolean upResult = injectKeyEvent(KeyEvent.ACTION_UP, pressDownAt, keyCode, 0, metaState);
+        return downResult && upResult;
+      default:
+        throw new IllegalArgumentException("unsupported_key_action");
+    }
+  }
+
+  private boolean injectKeyEvent(int action, long downTime, int keyCode, int repeatCount, int metaState) {
+    long eventTime = SystemClock.uptimeMillis();
+    KeyEvent event = new KeyEvent(
+        downTime,
+        eventTime,
+        action,
+        keyCode,
+        repeatCount,
+        metaState,
+        -1,
+        0,
+        0,
+        InputDevice.SOURCE_KEYBOARD);
+    try {
+      Object result = injectInputEvent.invoke(inputManager, event, 2);
+      return Boolean.TRUE.equals(result);
+    } catch (Exception error) {
+      return false;
+    }
+  }
+
+  private void writeKeyResult(String requestId, boolean result, String error) {
+    System.out.println("KEY_RESULT " + requestId + " " + result
+        + (error == null ? "" : " " + error.replaceAll("\\s+", "_")));
+    System.out.flush();
   }
 
   private void inject(String actionName, float x, float y) throws Exception {
