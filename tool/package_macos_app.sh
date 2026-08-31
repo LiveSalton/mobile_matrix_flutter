@@ -4,7 +4,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-APP_PATH="${1:-$PROJECT_ROOT/build/macos/Build/Products/Release/mobile_matrix.app}"
+APP_PATH="${1:-$PROJECT_ROOT/build/macos/Build/Products/Release/Mobile Matrix.app}"
 REFERENCE_ROOT="${MOBILE_MATRIX_STF_REFERENCE:-$PROJECT_ROOT/../mobile-matrix/vendor/devicefarmer-stf}"
 
 if [[ ! -d "$APP_PATH" ]]; then

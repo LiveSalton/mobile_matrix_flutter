@@ -4,7 +4,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-APP_PATH="$PROJECT_ROOT/build/macos/Build/Products/Release/mobile_matrix.app"
+APP_PATH="$PROJECT_ROOT/build/macos/Build/Products/Release/Mobile Matrix.app"
 RELEASE_DIR="$PROJECT_ROOT/build/releases"
 MACOS_ARCH="${MOBILE_MATRIX_MACOS_ARCH:-arm64}"
 ZIP_PATH="$RELEASE_DIR/mobile_matrix-macos-${MACOS_ARCH}.zip"

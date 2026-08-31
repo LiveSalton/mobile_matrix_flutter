@@ -1,4 +1,4 @@
-# mobile_matrix
+# Mobile Matrix
 
 A new Flutter project.
 
