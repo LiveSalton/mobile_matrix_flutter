@@ -3,6 +3,7 @@
 ## Documentation
 
 - [x] Rewrite the README with product positioning, real capabilities, download links, requirements, platform status, development notes, and Chinese documentation.
+- [x] Split the documentation into `README.md` and the linked `README-ZH.md` language-specific versions.
 - [x] Add `docs/seo/github-discovery.md` with keyword clusters, placement rules, release naming, measurement, and claim boundaries.
 
 ## Repository metadata

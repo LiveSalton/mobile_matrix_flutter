@@ -10,9 +10,9 @@ The product is a macOS desktop control console for Android devices. The current 
 
 The repository description and README opening use the same concise positioning: Flutter desktop workspace, Android device control, macOS, ADB, screen mirroring, input, clipboard, screenshots, and STF Lite. This gives search engines and readers a consistent topic signal.
 
-### 2. English-first, Chinese-second README
+### 2. Separate English and Chinese README files
 
-The first screen uses English because the repository is public and the target search vocabulary is primarily represented by English technical terms. A Chinese section follows with equivalent meaning for the existing user base. Both sections link to the same macOS release.
+`README.md` remains the default English entry because the repository is public and the target search vocabulary is primarily represented by English technical terms. `README-ZH.md` contains the complete Chinese version. Both files link to each other and to the same macOS release, so each language can remain readable without making one page unnecessarily long.
 
 ### 3. Evidence-bounded platform language
 

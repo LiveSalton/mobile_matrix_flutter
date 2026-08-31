@@ -12,6 +12,16 @@ The repository README MUST describe Mobile Matrix as a Flutter desktop workspace
 - **THEN** the first section identifies the product category, macOS host platform, Android/ADB domain, and key control capabilities
 - **AND** the visitor can reach the current macOS arm64 release from the README
 
+### Requirement: English and Chinese documentation must be separate linked pages
+
+The repository MUST provide `README.md` as the English default entry and `README-ZH.md` as the complete Chinese version. Each file MUST provide a visible link to the other language version.
+
+#### Scenario: A reader selects a preferred language
+
+- **WHEN** a reader opens either README file
+- **THEN** the reader can switch to the other language from a link near the top of the page
+- **AND** the selected page contains the same product scope, release information, and platform boundaries in that language
+
 ### Requirement: Public documentation must use evidence-bounded feature language
 
 The README and discoverability guide MUST use only capabilities currently implemented in the repository, and MUST explicitly distinguish the desktop host, the controlled Android device, and unvalidated platform scaffolding.

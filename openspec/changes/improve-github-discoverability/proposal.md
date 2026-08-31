@@ -6,7 +6,8 @@ The repository is public and already has a macOS arm64 release, but its README s
 
 ## What Changes
 
-- Replace the template README with an English-first product overview, feature list, download instructions, requirements, platform status, development notes, and Chinese explanation.
+- Replace the template README with an English product overview, feature list, download instructions, requirements, platform status, development notes, and a link to a separate Chinese README.
+- Add `README-ZH.md` as the complete Chinese version, linked from both README files.
 - Add a maintainable GitHub discoverability guide with keyword clusters, metadata recommendations, release naming, measurement guidance, and claim boundaries.
 - Set a concise GitHub repository description and relevant Topics based only on implemented capabilities.
 
@@ -19,6 +20,6 @@ The repository is public and already has a macOS arm64 release, but its README s
 
 ## Impact
 
-- Documentation: `README.md`, `docs/seo/github-discovery.md`
+- Documentation: `README.md`, `README-ZH.md`, `docs/seo/github-discovery.md`
 - Change governance: this OpenSpec change
 - GitHub metadata: repository description and Topics

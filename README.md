@@ -2,7 +2,7 @@
 
 Mobile Matrix is a Flutter desktop workspace for controlling Android devices from macOS. It brings ADB device management, real-time Android screen mirroring, keyboard and touch input, clipboard sync, screenshots, device tools, and an embedded STF Lite runtime into one local control console.
 
-[Download the latest macOS release](https://github.com/LiveSalton/mobile_matrix_flutter/releases/latest) · [View releases](https://github.com/LiveSalton/mobile_matrix_flutter/releases)
+[简体中文](README-ZH.md) · [Download the latest macOS release](https://github.com/LiveSalton/mobile_matrix_flutter/releases/latest) · [View releases](https://github.com/LiveSalton/mobile_matrix_flutter/releases)
 
 ## Features
 
@@ -63,19 +63,11 @@ To inspect the project on other desktop targets, use the corresponding Flutter d
 
 The desktop UI communicates with Android through ADB. Screen streaming and input are provided by the local STF Lite integration and its bundled runtime resources. Platform-specific code remains behind the Flutter desktop application boundary so that unsupported platform capabilities are not presented as working features.
 
-## 中文说明
-
-Mobile Matrix 是一个基于 Flutter 的 macOS 桌面端 Android 设备控制工作台。它将 ADB 设备管理、实时投屏、键盘与触摸操作、剪贴板同步、截屏复制、设备工具和 STF Lite 运行时整合到一个控制台中。
-
-当前 GitHub 发布包为 Apple Silicon（arm64）版本，下载地址：
-
-- [下载 Mobile-Matrix-macos-arm64.zip](https://github.com/LiveSalton/mobile_matrix_flutter/releases/download/v1.0.0/Mobile-Matrix-macos-arm64.zip)
-
-使用前请在 Android 设备上开启开发者选项和 USB 调试，并在首次连接时允许 ADB 调试授权。Windows、Linux 目前没有经过发布验证的官方安装包；本项目也不是 Android 手机端应用。
-
 ## Project status
 
 The macOS arm64 release is available on GitHub. Feature behavior still depends on the Android device, ADB authorization, and the local STF Lite runtime. Bug reports and reproducible device-specific cases are welcome in [GitHub Issues](https://github.com/LiveSalton/mobile_matrix_flutter/issues).
+
+For the Chinese version, see [README-ZH.md](README-ZH.md).
 
 ## License
 

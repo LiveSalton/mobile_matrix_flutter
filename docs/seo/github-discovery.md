@@ -10,7 +10,7 @@ The project currently publishes a macOS Apple Silicon desktop release. Android i
 
 > Mobile Matrix is a Flutter desktop workspace for controlling Android devices from macOS with ADB, real-time screen mirroring, keyboard and touch input, clipboard sync, screenshots, device tools, and STF Lite.
 
-Use this message as the source of truth for the repository description, README opening, release notes, and future documentation. Keep the product name as **Mobile Matrix** and retain the repository URL `LiveSalton/mobile_matrix_flutter` to avoid breaking existing links.
+Use this message as the source of truth for the repository description, both README openings, release notes, and future documentation. Keep the product name as **Mobile Matrix** and retain the repository URL `LiveSalton/mobile_matrix_flutter` to avoid breaking existing links.
 
 ## Keyword clusters
 
@@ -33,8 +33,9 @@ Use these terms where they describe the surrounding content naturally. Do not re
 3. Use feature-specific headings and short explanations instead of a keyword-only block.
 4. Mention the downloadable artifact with its exact platform and architecture.
 5. Repeat important terms only when the surrounding explanation adds information.
-6. Keep Chinese explanations after the English overview so both audiences can scan the page quickly.
-7. Link to releases, issues, and setup details so search visitors can take a useful next step.
+6. Keep the English README as the default entry and place a visible link to `README-ZH.md` near the top.
+7. Keep Chinese content in `README-ZH.md` instead of mixing two full languages into one page.
+8. Link to releases, issues, and setup details so search visitors can take a useful next step.
 
 ## Repository metadata
 
