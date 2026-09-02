@@ -2,7 +2,7 @@
 
 Mobile Matrix 是一个基于 Flutter 的 macOS 桌面端 Android 设备控制工作台。它将 ADB 设备管理、实时投屏、键盘与触摸操作、剪贴板同步、截屏复制、设备工具和 STF Lite 运行时整合到一个控制台中。
 
-[English README](README.md) · [下载最新 macOS 版本](https://github.com/LiveSalton/mobile_matrix_flutter/releases/latest) · [查看所有版本](https://github.com/LiveSalton/mobile_matrix_flutter/releases)
+[English README](README.md) · [项目官网](https://www.salton123.com/mobile-matrix/) · [下载最新 macOS 版本](https://github.com/LiveSalton/mobile_matrix_flutter/releases/latest) · [查看所有版本](https://github.com/LiveSalton/mobile_matrix_flutter/releases)
 
 ## 功能
 

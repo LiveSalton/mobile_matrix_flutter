@@ -2,7 +2,7 @@
 
 Mobile Matrix is a Flutter desktop workspace for controlling Android devices from macOS. It brings ADB device management, real-time Android screen mirroring, keyboard and touch input, clipboard sync, screenshots, device tools, and an embedded STF Lite runtime into one local control console.
 
-[简体中文](README-ZH.md) · [Download the latest macOS release](https://github.com/LiveSalton/mobile_matrix_flutter/releases/latest) · [View releases](https://github.com/LiveSalton/mobile_matrix_flutter/releases)
+[简体中文](README-ZH.md) · [Official website](https://www.salton123.com/mobile-matrix/) · [Download the latest macOS release](https://github.com/LiveSalton/mobile_matrix_flutter/releases/latest) · [View releases](https://github.com/LiveSalton/mobile_matrix_flutter/releases)
 
 ## Features
 
