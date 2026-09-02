@@ -533,10 +533,13 @@ class StfLiteRuntimeService extends ChangeNotifier {
   Future<String?> _resolveSidecarPath() async {
     final configured =
         sidecarPath ?? Platform.environment['MOBILE_MATRIX_STF_LITE_SIDECAR'];
+    final developmentRoot = _findDevelopmentProjectRoot();
     final candidates = <String>[
       if (configured != null && configured.trim().isNotEmpty) configured,
       _bundlePath('stf-lite/src/main.js'),
       '${Directory.current.path}/tools/stf_lite/src/main.js',
+      if (developmentRoot != null)
+        '${developmentRoot.path}/tools/stf_lite/src/main.js',
     ];
     for (final candidate in candidates) {
       final absolute = File(candidate).absolute.path;
@@ -552,6 +555,12 @@ class StfLiteRuntimeService extends ChangeNotifier {
     }
     final bundled = _bundlePath('stf-lite/bin/node');
     if (await File(bundled).exists()) return bundled;
+    for (final candidate in const [
+      '/opt/homebrew/bin/node',
+      '/usr/local/bin/node',
+    ]) {
+      if (await File(candidate).exists()) return candidate;
+    }
     return 'node';
   }
 
@@ -576,11 +585,41 @@ class StfLiteRuntimeService extends ChangeNotifier {
     final bundled = _bundlePath('stf-lite/resources');
     if (await Directory(bundled).exists()) return bundled;
     // Development-only fallback to the documented sibling reference checkout.
-    // A packaged app must provide its own Resources/stf-lite directory.
-    final reference = Directory(
-      '${Directory.current.path}${Platform.pathSeparator}..${Platform.pathSeparator}mobile-matrix${Platform.pathSeparator}vendor${Platform.pathSeparator}devicefarmer-stf',
-    );
-    if (await reference.exists()) return reference.absolute.path;
+    // Finder-launched debug apps do not inherit the project as cwd, so locate
+    // the checkout from the executable's ancestor directories as well.
+    final developmentRoot = _findDevelopmentProjectRoot();
+    final referenceCandidates = <Directory>[
+      Directory(
+        '${Directory.current.path}${Platform.pathSeparator}..${Platform.pathSeparator}mobile-matrix${Platform.pathSeparator}vendor${Platform.pathSeparator}devicefarmer-stf',
+      ),
+      if (developmentRoot != null)
+        Directory(
+          '${developmentRoot.parent.path}${Platform.pathSeparator}mobile-matrix${Platform.pathSeparator}vendor${Platform.pathSeparator}devicefarmer-stf',
+        ),
+    ];
+    for (final reference in referenceCandidates) {
+      if (await reference.exists()) return reference.absolute.path;
+    }
+    return null;
+  }
+
+  Directory? _findDevelopmentProjectRoot() {
+    final starts = <Directory>[
+      Directory.current,
+      File(Platform.resolvedExecutable).parent,
+    ];
+    for (final start in starts) {
+      var current = start.absolute;
+      while (true) {
+        final marker = Directory(
+          '${current.path}${Platform.pathSeparator}tools${Platform.pathSeparator}stf_lite',
+        );
+        if (marker.existsSync()) return current;
+        final parent = current.parent;
+        if (parent.path == current.path) break;
+        current = parent;
+      }
+    }
     return null;
   }
 

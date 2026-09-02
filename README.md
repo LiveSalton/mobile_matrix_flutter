@@ -21,7 +21,7 @@ Mobile Matrix is a Flutter desktop workspace for controlling Android devices fro
 
 The current published package targets **Apple Silicon (arm64)**:
 
-- [Mobile-Matrix-macos-arm64.zip](https://github.com/LiveSalton/mobile_matrix_flutter/releases/download/v1.0.0/Mobile-Matrix-macos-arm64.zip)
+- [Mobile-Matrix-macos-arm64.zip](https://github.com/LiveSalton/mobile_matrix_flutter/releases/download/v1.0.1/Mobile-Matrix-macos-arm64.zip)
 
 The archive contains `Mobile Matrix.app` and the bundled STF Lite runtime. The current release is distributed with ad hoc signing. macOS may show a security prompt the first time it is opened; use the system privacy settings to explicitly allow the app when appropriate.
 

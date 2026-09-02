@@ -14,12 +14,16 @@ The application MUST open on a `Device Overview` page that lists all ADB-availab
 
 ### Requirement: The overview grid must be responsive and overflow-safe
 
-The overview MUST use four columns on a wide window and reduce to three, two, and one column as the available width decreases. The grid MUST preserve a minimum card width and MUST NOT produce horizontal overflow, zero-size render rectangles, or negative layout constraints.
+The overview MUST use four columns from a 1024px logical window width and reduce to three, two, and one column as the available width decreases. The grid MUST preserve a minimum card width and MUST NOT produce horizontal overflow, zero-size render rectangles, or negative layout constraints.
 
 #### Scenario: The user resizes the application
 
 - **WHEN** the application width crosses the overview breakpoints
 - **THEN** the grid changes its column count without stretching a device image
+- **AND** cards in the same row share the same compact outer height and width
+- **AND** each live preview uses a shared compact width target within the card
+  without changing its native aspect ratio, with the preview and reduced-height
+  bottom navigation aligned to the bottom
 - **AND** the page remains vertically scrollable and free of layout overflow errors
 
 ### Requirement: Each device preview must have isolated live control
@@ -31,6 +35,12 @@ Every preview card MUST own or reference a session identified by the device seri
 - **WHEN** the user taps, swipes, or presses a bottom navigation action on device A's card
 - **THEN** only device A receives the corresponding control event
 - **AND** devices B and C continue their own streams without receiving the event
+
+#### Scenario: The user types into one preview card
+
+- **WHEN** the user presses the screen of device A's card and then types on the computer keyboard
+- **THEN** only device A receives the raw keyboard events
+- **AND** the keyboard bridge remains local to the focused card without creating a global input surface
 
 ### Requirement: Overview and detail views must reuse device sessions
 

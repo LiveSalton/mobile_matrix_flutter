@@ -21,7 +21,7 @@ Mobile Matrix 是一个基于 Flutter 的 macOS 桌面端 Android 设备控制�
 
 当前已发布版本支持 **Apple Silicon（arm64）**：
 
-- [下载 Mobile-Matrix-macos-arm64.zip](https://github.com/LiveSalton/mobile_matrix_flutter/releases/download/v1.0.0/Mobile-Matrix-macos-arm64.zip)
+- [下载 Mobile-Matrix-macos-arm64.zip](https://github.com/LiveSalton/mobile_matrix_flutter/releases/download/v1.0.1/Mobile-Matrix-macos-arm64.zip)
 
 压缩包内包含 `Mobile Matrix.app` 和内置的 STF Lite 运行时。当前版本使用 ad hoc 签名。首次打开时 macOS 可能显示安全提示，请根据系统提示在确认来源可信后允许打开。
 

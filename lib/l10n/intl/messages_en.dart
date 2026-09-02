@@ -24,24 +24,26 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m1(text) => "Commit text: \"${text}\"";
 
-  static String m2(count) => "${count} items";
+  static String m2(count) => "${count} connected devices";
 
-  static String m3(destination) => "File pulled to ${destination}";
+  static String m3(count) => "${count} items";
 
-  static String m4(size) => "${size} B";
+  static String m4(destination) => "File pulled to ${destination}";
 
-  static String m5(phrase) => "Injected phrase: \"${phrase}\"";
+  static String m5(size) => "${size} B";
 
-  static String m6(text) => "Pasted from computer clipboard: \"${text}\"";
+  static String m6(phrase) => "Injected phrase: \"${phrase}\"";
 
-  static String m7(count, device, endpoint) =>
+  static String m7(text) => "Pasted from computer clipboard: \"${text}\"";
+
+  static String m8(count, device, endpoint) =>
       "Found ${count} devices; configured ${device} with ${endpoint}";
 
-  static String m8(error) => "Failed to read local devices: ${error}";
+  static String m9(error) => "Failed to read local devices: ${error}";
 
-  static String m9(error) => "STF Lite runtime failed to start: ${error}";
+  static String m10(error) => "STF Lite runtime failed to start: ${error}";
 
-  static String m10(count) => "Loaded ${count} third-party apps";
+  static String m11(count) => "Loaded ${count} third-party apps";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -70,6 +72,9 @@ class MessageLookup extends MessageLookupByLibrary {
     "apps": MessageLookupByLibrary.simpleMessage("Apps"),
     "automation": MessageLookupByLibrary.simpleMessage("Automation"),
     "back": MessageLookupByLibrary.simpleMessage("Back"),
+    "back_to_overview": MessageLookupByLibrary.simpleMessage(
+      "Back to device overview",
+    ),
     "battery": MessageLookupByLibrary.simpleMessage("Battery"),
     "battery_level": MessageLookupByLibrary.simpleMessage("Battery level"),
     "battery_status": MessageLookupByLibrary.simpleMessage("Status"),
@@ -106,6 +111,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "The computer clipboard is empty",
     ),
     "connect": MessageLookupByLibrary.simpleMessage("Connect"),
+    "connected_devices": m2,
     "copy": MessageLookupByLibrary.simpleMessage("Copy"),
     "copy_screenshot": MessageLookupByLibrary.simpleMessage("Copy screenshot"),
     "core_count": MessageLookupByLibrary.simpleMessage("Core count"),
@@ -131,6 +137,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "device_maintenance": MessageLookupByLibrary.simpleMessage(
       "Device Maintenance",
     ),
+    "device_overview": MessageLookupByLibrary.simpleMessage("Device Overview"),
     "device_path": MessageLookupByLibrary.simpleMessage("Device path"),
     "device_path_hint": MessageLookupByLibrary.simpleMessage(
       "Enter /sdcard or another device path",
@@ -152,12 +159,13 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "enable_wifi": MessageLookupByLibrary.simpleMessage("Enable Wi‑Fi"),
     "enter": MessageLookupByLibrary.simpleMessage("Enter"),
+    "enter_console": MessageLookupByLibrary.simpleMessage("Open console"),
     "execute": MessageLookupByLibrary.simpleMessage("Execute"),
     "file_browser": MessageLookupByLibrary.simpleMessage("File Browser"),
-    "file_count": m2,
+    "file_count": m3,
     "file_management": MessageLookupByLibrary.simpleMessage("File Management"),
-    "file_pulled": m3,
-    "file_size_bytes": m4,
+    "file_pulled": m4,
+    "file_size_bytes": m5,
     "filter_keywords": MessageLookupByLibrary.simpleMessage("Filter keywords"),
     "hardware": MessageLookupByLibrary.simpleMessage("Hardware"),
     "hardware_controls": MessageLookupByLibrary.simpleMessage(
@@ -165,7 +173,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "hide_screen": MessageLookupByLibrary.simpleMessage("Hide screen"),
     "imei": MessageLookupByLibrary.simpleMessage("IMEI"),
-    "injected_phrase_log": m5,
+    "injected_phrase_log": m6,
     "install_apk": MessageLookupByLibrary.simpleMessage("Install APK"),
     "ip": MessageLookupByLibrary.simpleMessage("IP"),
     "local_destination_required": MessageLookupByLibrary.simpleMessage(
@@ -222,7 +230,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "paste_computer_clipboard": MessageLookupByLibrary.simpleMessage(
       "Paste computer clipboard",
     ),
-    "pasted_clipboard_log": m6,
+    "pasted_clipboard_log": m7,
     "platform": MessageLookupByLibrary.simpleMessage("Platform"),
     "play_pause": MessageLookupByLibrary.simpleMessage("Play/Pause"),
     "port_forwarding": MessageLookupByLibrary.simpleMessage("Port Forwarding"),
@@ -246,11 +254,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "remote_address_hint": MessageLookupByLibrary.simpleMessage(
       "Device address, e.g. 192.168.1.8:36997",
     ),
-    "remote_debug_discovered": m7,
+    "remote_debug_discovered": m8,
     "remote_debug_hint": MessageLookupByLibrary.simpleMessage(
       "Read local devices to detect the wireless ADB port; connect to use it in the device selector.",
     ),
-    "remote_debug_read_failed": m8,
+    "remote_debug_read_failed": m9,
     "remote_debug_subtitle": MessageLookupByLibrary.simpleMessage(
       "Configure a TCP/IP port for wireless screen control",
     ),
@@ -300,7 +308,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "stf_lite_runtime_not_ready": MessageLookupByLibrary.simpleMessage(
       "STF Lite runtime is not ready",
     ),
-    "stf_lite_runtime_start_failed": m9,
+    "stf_lite_runtime_start_failed": m10,
     "stf_lite_runtime_unavailable": MessageLookupByLibrary.simpleMessage(
       "STF Lite runtime resources are not configured; set the sidecar and resource directory",
     ),
@@ -360,7 +368,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "system_settings": MessageLookupByLibrary.simpleMessage("System Settings"),
     "system_version": MessageLookupByLibrary.simpleMessage("System Version"),
     "temperature": MessageLookupByLibrary.simpleMessage("Temperature"),
-    "third_party_apps_loaded": m10,
+    "third_party_apps_loaded": m11,
     "toggle_theme": MessageLookupByLibrary.simpleMessage(
       "Switch theme (Liquid Blue / Rose Glow)",
     ),

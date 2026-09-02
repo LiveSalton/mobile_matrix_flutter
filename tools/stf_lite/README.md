@@ -39,7 +39,7 @@ builds may still use the documented sibling reference checkout as a fallback.
 ## Local protocol
 
 The sidecar prints `STF_LITE_READY <port>` after binding its loopback HTTP
-server. It exposes:
+server and completing the initial ADB device poll. It exposes:
 
 - `GET /health`
 - `GET /v1/sessions`
@@ -92,7 +92,10 @@ key names directly to `adb`:
 
 `action` is `down`, `up`, or `press`. The sidecar resolves letters, numbers,
 editing keys, punctuation, arrows, function keys, numpad keys, modifiers, and
-Web STF compatibility aliases to Android KeyCodes. It returns a key response
+Web STF compatibility aliases to Android KeyCodes. A numeric JSON string such
+as `"9"` means the character key `9` and maps to Android KeyCode `16`; a
+numeric JSON value such as `9` remains an explicit raw Android KeyCode for
+protocol compatibility. It returns a key response
 with the same `id`, `serial`, canonical `key`, `action`, `transport`,
 `acknowledged`, `elapsedMs`, and `success` fields. Unknown keys and invalid
 actions are rejected without issuing a device command.

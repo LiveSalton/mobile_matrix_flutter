@@ -59,6 +59,31 @@ class L10n {
     return Intl.message('Mobile Matrix', name: 'app_name', desc: '', args: []);
   }
 
+  /// `设备总览`
+  String get device_overview {
+    return Intl.message('设备总览', name: 'device_overview', desc: '', args: []);
+  }
+
+  /// `已连接 {count} 台设备`
+  String connected_devices(Object count) {
+    return Intl.message(
+      '已连接 $count 台设备',
+      name: 'connected_devices',
+      desc: '',
+      args: [count],
+    );
+  }
+
+  /// `进入控制台`
+  String get enter_console {
+    return Intl.message('进入控制台', name: 'enter_console', desc: '', args: []);
+  }
+
+  /// `返回设备总览`
+  String get back_to_overview {
+    return Intl.message('返回设备总览', name: 'back_to_overview', desc: '', args: []);
+  }
+
   /// `仪表盘`
   String get dashboard {
     return Intl.message('仪表盘', name: 'dashboard', desc: '', args: []);

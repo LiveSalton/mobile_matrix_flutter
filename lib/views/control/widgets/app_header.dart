@@ -12,6 +12,7 @@ class AppHeader extends StatelessWidget {
   final ValueChanged<DeviceModel> onDeviceSelected;
   final VoidCallback onRefreshDevices;
   final VoidCallback onToggleTheme;
+  final VoidCallback? onBackToOverview;
   final bool isScanning;
   final AppHeaderMode mode;
 
@@ -23,6 +24,7 @@ class AppHeader extends StatelessWidget {
     required this.onDeviceSelected,
     required this.onRefreshDevices,
     required this.onToggleTheme,
+    this.onBackToOverview,
     this.isScanning = false,
     this.mode = AppHeaderMode.full,
   });
@@ -76,6 +78,20 @@ class AppHeader extends StatelessWidget {
 
     return Row(
       children: [
+        if (onBackToOverview != null) ...[
+          IconButton(
+            key: const ValueKey('back-to-overview'),
+            style: _iconButtonStyle(tokens),
+            tooltip: strings.back_to_overview,
+            icon: Icon(
+              Icons.arrow_back_rounded,
+              size: 20,
+              color: tokens.textSecondary,
+            ),
+            onPressed: onBackToOverview,
+          ),
+          const SizedBox(width: 4),
+        ],
         if (showBrand)
           Container(
             width: 32,
@@ -259,6 +275,20 @@ class AppHeader extends StatelessWidget {
 
           return Row(
             children: [
+              if (onBackToOverview != null) ...[
+                IconButton(
+                  key: const ValueKey('back-to-overview'),
+                  style: _iconButtonStyle(tokens),
+                  tooltip: strings.back_to_overview,
+                  icon: Icon(
+                    Icons.arrow_back_rounded,
+                    size: 20,
+                    color: tokens.textSecondary,
+                  ),
+                  onPressed: onBackToOverview,
+                ),
+                const SizedBox(width: 8),
+              ],
               if (showBrand) ...[
                 // 品牌 Logo & 名称
                 Row(

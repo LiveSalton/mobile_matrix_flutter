@@ -5,6 +5,8 @@ import 'adb_service.dart';
 
 enum StreamState { connecting, streaming, paused, error, disconnected }
 
+enum ScreenStreamQuality { preview, full }
+
 enum ScreenStreamErrorCode {
   sessionMissing,
   connectionError,
@@ -51,6 +53,7 @@ ScreenProjection calculateStfScreenProjection({
   required ScreenViewport viewport,
   required int realWidth,
   required int realHeight,
+  int? maxLongestEdge,
 }) {
   var logicalWidth = viewport.logicalWidth;
   var logicalHeight = viewport.logicalHeight;
@@ -85,6 +88,15 @@ ScreenProjection calculateStfScreenProjection({
     height *= scale;
   }
 
+  if (maxLongestEdge != null && maxLongestEdge > 0) {
+    final longestEdge = width > height ? width : height;
+    if (longestEdge > maxLongestEdge) {
+      final scale = maxLongestEdge / longestEdge;
+      width *= scale;
+      height *= scale;
+    }
+  }
+
   return ScreenProjection(width.ceil(), height.ceil());
 }
 
@@ -98,6 +110,7 @@ abstract class IScreenStreamService extends ChangeNotifier {
   void setStreamEnabled(bool enabled);
   void requestResolution(int width, int height);
   void updateViewport(ScreenViewport viewport) {}
+  void setQuality(ScreenStreamQuality quality) {}
   void triggerImmediateRefresh();
 }
 
@@ -122,6 +135,8 @@ class StfMinicapStreamService extends IScreenStreamService {
   int? _lastSentWidth;
   int? _lastSentHeight;
   Timer? _reconnectTimer;
+  ScreenStreamQuality _quality = ScreenStreamQuality.full;
+  ScreenViewport? _lastViewport;
 
   StfMinicapStreamService({
     required this.wsUrl,
@@ -294,12 +309,22 @@ class StfMinicapStreamService extends IScreenStreamService {
 
   @override
   void updateViewport(ScreenViewport viewport) {
+    _lastViewport = viewport;
     final projection = calculateStfScreenProjection(
       viewport: viewport,
       realWidth: realWidth,
       realHeight: realHeight,
+      maxLongestEdge: _quality == ScreenStreamQuality.preview ? 720 : null,
     );
     requestResolution(projection.width, projection.height);
+  }
+
+  @override
+  void setQuality(ScreenStreamQuality quality) {
+    if (_quality == quality) return;
+    _quality = quality;
+    final viewport = _lastViewport;
+    if (viewport != null) updateViewport(viewport);
   }
 
   @override
@@ -352,6 +377,7 @@ class SmartScreenStreamService extends IScreenStreamService {
   bool _isDisposed = false;
   bool _isStarted = true;
   bool _recoveryScheduled = false;
+  ScreenStreamQuality _quality = ScreenStreamQuality.full;
 
   SmartScreenStreamService({
     required this.serial,
@@ -435,6 +461,7 @@ class SmartScreenStreamService extends IScreenStreamService {
     _activeService?.dispose();
     _activeService = service;
     service.addListener(_handleActiveStateChanged);
+    service.setQuality(_quality);
     final viewport = _lastViewport;
     if (viewport != null) service.updateViewport(viewport);
 
@@ -533,6 +560,15 @@ class SmartScreenStreamService extends IScreenStreamService {
   void updateViewport(ScreenViewport viewport) {
     _lastViewport = viewport;
     _activeService?.updateViewport(viewport);
+  }
+
+  @override
+  void setQuality(ScreenStreamQuality quality) {
+    if (_quality == quality) return;
+    _quality = quality;
+    _activeService?.setQuality(quality);
+    final viewport = _lastViewport;
+    if (viewport != null) _activeService?.updateViewport(viewport);
   }
 
   @override

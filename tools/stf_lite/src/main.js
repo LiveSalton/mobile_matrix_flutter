@@ -420,13 +420,13 @@ function resolveKey(key) {
   if (typeof key === 'number' && Number.isInteger(key) && key > 0 && key <= 300) {
     return {canonicalKey: String(key), keyCode: key}
   }
+  const canonicalKey = normalizeKeyName(key)
+  if (canonicalKey) return {canonicalKey, keyCode: CANONICAL_KEY_CODES[canonicalKey]}
   if (typeof key === 'string' && /^\d+$/.test(key.trim())) {
     const numeric = Number(key.trim())
     if (numeric > 0 && numeric <= 300) return {canonicalKey: String(numeric), keyCode: numeric}
   }
-  const canonicalKey = normalizeKeyName(key)
-  if (!canonicalKey) return null
-  return {canonicalKey, keyCode: CANONICAL_KEY_CODES[canonicalKey]}
+  return null
 }
 
 function normalizeKeyAction(action) {
@@ -1934,8 +1934,10 @@ class Runtime {
   async start() {
     await listen(this.server, this.host, this.port)
     this.port = this.server.address().port
-    process.stdout.write(`STF_LITE_READY ${this.port}\n`)
     await this.poll()
+    // Publish readiness after the initial ADB poll so the first
+    // /v1/sessions request already contains the connected device session.
+    process.stdout.write(`STF_LITE_READY ${this.port}\n`)
     this.pollTimer = setInterval(() => this.poll(), this.pollMs)
   }
 
@@ -2080,7 +2082,11 @@ async function main() {
   await runtime.start()
 }
 
-main().catch(error => {
-  log('error', 'runtime failed to start', {error: error.message})
-  process.exitCode = 1
-})
+if (require.main === module) {
+  main().catch(error => {
+    log('error', 'runtime failed to start', {error: error.message})
+    process.exitCode = 1
+  })
+}
+
+module.exports = {normalizeKeyName, resolveKey}

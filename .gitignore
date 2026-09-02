@@ -37,5 +37,6 @@ dist/
 .env
 .env.*.local
 .runtime/
+.loopx/
+.codex/goals/
 openspec/changes/mobile-matrix-stf-foundation/evidence/*.md
-

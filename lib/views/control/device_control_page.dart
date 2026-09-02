@@ -1,11 +1,12 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../models/device_model.dart';
-import '../../services/adb_service.dart';
 import '../../services/device_control_service.dart';
-import '../../services/device_tools_service.dart';
+import '../../services/device_session_manager.dart';
+import '../../services/device_session.dart';
 import '../../services/screen_stream_service.dart';
 import '../../services/stf_lite_runtime_service.dart';
 import '../../theme/app_theme.dart';
@@ -13,12 +14,18 @@ import '../../l10n/l10n.dart';
 import 'widgets/app_header.dart';
 import 'widgets/device_screen_stage.dart';
 import 'widgets/device_workspace.dart';
-import 'widgets/fast_screen_renderer.dart';
 
 class DeviceControlPage extends StatefulWidget {
   final ThemeController themeController;
+  final DeviceSessionManager sessionManager;
+  final String initialSerial;
 
-  const DeviceControlPage({super.key, required this.themeController});
+  const DeviceControlPage({
+    super.key,
+    required this.themeController,
+    required this.sessionManager,
+    required this.initialSerial,
+  });
 
   @override
   State<DeviceControlPage> createState() => _DeviceControlPageState();
@@ -26,183 +33,109 @@ class DeviceControlPage extends StatefulWidget {
 
 class _DeviceControlPageState extends State<DeviceControlPage> {
   final FocusNode _keyboardFocusNode = FocusNode();
-  final ValueNotifier<ScreenFpsStats> _fpsStatsNotifier = ValueNotifier(
-    ScreenFpsStats.empty,
-  );
   bool _isScreenVisible = true;
-  bool _isScanning = false;
-  String _adbPathInfo = '';
-  String? _scanErrorInfo;
-
-  List<DeviceModel> _devices = [];
-  DeviceModel? _currentDevice;
-  IDeviceControlService? _controlService;
-  DeviceToolsService? _toolsService;
-  IScreenStreamService? _streamService;
-  final StfLiteRuntimeService _stfLiteRuntime = StfLiteRuntimeService();
+  late String _selectedSerial;
 
   @override
   void initState() {
     super.initState();
-    _stfLiteRuntime.addListener(_handleRuntimeChanged);
-    _scanAdbDevices();
+    _selectedSerial = widget.initialSerial;
+    widget.sessionManager.addListener(_handleSessionsChanged);
+    widget.sessionManager
+        .sessionFor(_selectedSerial)
+        ?.setStreamQuality(ScreenStreamQuality.full);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) unawaited(widget.sessionManager.start());
+    });
   }
 
-  void _handleRuntimeChanged() {
+  void _handleSessionsChanged() {
     if (mounted) setState(() {});
   }
 
-  Future<void> _scanAdbDevices() async {
-    setState(() {
-      _isScanning = true;
-      _scanErrorInfo = null;
-    });
+  List<DeviceModel> get _devices => widget.sessionManager.sessions
+      .map((session) => session.device)
+      .toList(growable: false);
 
-    try {
-      final adbPath = await AdbService.resolveAdbPath();
-      final runtimeStarted = await _stfLiteRuntime.start();
-      final stfSessions = runtimeStarted
-          ? await _stfLiteRuntime.getSessions()
-          : const <StfLiteSessionInfo>[];
-      final realDevices = await AdbService.getConnectedDevices();
-      final sessionsBySerial = <String, StfLiteSessionInfo>{
-        for (final session in stfSessions) session.serial: session,
-      };
-      final devices = realDevices
-          .map((device) {
-            final session = sessionsBySerial[device.serial];
-            if (session == null) return device;
-            final display = device.display.copyWith(
-              width: session.width > 0 ? session.width : null,
-              height: session.height > 0 ? session.height : null,
-              rotation: session.rotation,
-              streamUrl: session.screenUrl,
-            );
-            return device.copyWith(display: display);
-          })
-          .toList(growable: false);
-
-      if (mounted) {
-        setState(() {
-          _adbPathInfo = adbPath;
-          _devices = devices;
-          _scanErrorInfo =
-              AdbService.lastError ??
-              (runtimeStarted ? null : _localizedRuntimeError(context));
-
-          if (devices.isNotEmpty) {
-            final match = devices.firstWhere(
-              (d) => d.serial == _currentDevice?.serial,
-              orElse: () => devices.first,
-            );
-            _setupDeviceServices(match);
-          } else {
-            _controlService?.dispose();
-            _controlService = null;
-            _toolsService?.dispose();
-            _toolsService = null;
-            _streamService?.stopStream();
-            _streamService?.dispose();
-            _streamService = null;
-            _currentDevice = null;
-          }
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _scanErrorInfo = '${L10n.of(context).remote_debug_read_failed}: $e';
-        });
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isScanning = false;
-        });
-      }
-    }
+  DeviceSession? get _currentSession {
+    final selected = widget.sessionManager.sessionFor(_selectedSerial);
+    if (selected != null) return selected;
+    final sessions = widget.sessionManager.sessions;
+    return sessions.isEmpty ? null : sessions.first;
   }
 
-  void _setupDeviceServices(DeviceModel device) {
-    _streamService?.stopStream();
-    _streamService?.dispose();
-    _controlService?.dispose();
-    _toolsService?.dispose();
+  DeviceModel? get _currentDevice => _currentSession?.device;
 
-    _currentDevice = device;
-    _controlService = StfLiteDeviceControlService(
-      serial: device.serial,
-      runtime: _stfLiteRuntime,
-    );
-    _toolsService = DeviceToolsService(serial: device.serial);
+  Future<void> _scanAdbDevices() => widget.sessionManager.refresh();
 
-    // 与 Web 控制台共用 STF 设备屏幕 WebSocket，不启动另一套 minicap。
-    _streamService = SmartScreenStreamService(
-      serial: device.serial,
-      realWidth: device.display.width,
-      realHeight: device.display.height,
-      initialStreamUrl: device.display.streamUrl,
-    );
+  void _returnToOverview() {
+    if (!mounted) return;
+    unawaited(Navigator.of(context).maybePop());
   }
 
-  String? _localizedRuntimeError(BuildContext context) {
+  String? get _scanErrorInfo => widget.sessionManager.errorMessage;
+  bool get _isScanning => widget.sessionManager.isScanning;
+
+  String _localizedRuntimeError(BuildContext context) {
     final strings = L10n.of(context);
-    return switch (_stfLiteRuntime.errorCode) {
+    return switch (widget.sessionManager.runtime.errorCode) {
       StfLiteRuntimeErrorCode.resourcesUnavailable =>
         strings.stf_lite_runtime_unavailable,
       StfLiteRuntimeErrorCode.startupFailed =>
         strings.stf_lite_runtime_start_failed(
-          _stfLiteRuntime.errorMessage ?? strings.stf_lite_runtime_not_ready,
+          widget.sessionManager.runtime.errorMessage ??
+              strings.stf_lite_runtime_not_ready,
         ),
       StfLiteRuntimeErrorCode.runtimeNotReady =>
         strings.stf_lite_runtime_not_ready,
       StfLiteRuntimeErrorCode.sidecarExited => strings.stf_lite_sidecar_exited,
-      null => _stfLiteRuntime.errorMessage,
+      null => widget.sessionManager.runtime.errorMessage ?? '',
     };
   }
 
   @override
   void dispose() {
     _keyboardFocusNode.dispose();
-    _fpsStatsNotifier.dispose();
-    _controlService?.dispose();
-    _toolsService?.dispose();
-    _streamService?.dispose();
-    _stfLiteRuntime.removeListener(_handleRuntimeChanged);
-    _stfLiteRuntime.dispose();
+    widget.sessionManager.removeListener(_handleSessionsChanged);
+    widget.sessionManager
+        .sessionFor(_selectedSerial)
+        ?.setStreamQuality(ScreenStreamQuality.preview);
     super.dispose();
   }
 
   void _handleDeviceChanged(DeviceModel newDevice) {
     if (newDevice.serial == _currentDevice?.serial) return;
-    setState(() {
-      _setupDeviceServices(newDevice);
-    });
+    _currentSession?.setStreamQuality(ScreenStreamQuality.preview);
+    setState(() => _selectedSerial = newDevice.serial);
+    widget.sessionManager
+        .sessionFor(newDevice.serial)
+        ?.setStreamQuality(ScreenStreamQuality.full);
   }
 
   void _handleToggleRotation() {
-    if (_currentDevice == null) return;
-    final currentRotation = _currentDevice!.display.rotation;
+    final session = _currentSession;
+    if (session == null) return;
+    final currentRotation = session.device.display.rotation;
     final nextRotation = (currentRotation == 0) ? 90 : 0;
-    setState(() {
-      _currentDevice = _currentDevice!.copyWith(
-        display: _currentDevice!.display.copyWith(rotation: nextRotation),
-      );
-    });
-    _controlService?.setRotation(nextRotation);
+    session.updateDevice(
+      session.device.copyWith(
+        display: session.device.display.copyWith(rotation: nextRotation),
+      ),
+    );
+    session.controlService.setRotation(nextRotation);
   }
 
   void _handleToggleScreenVisibility() {
     setState(() {
       _isScreenVisible = !_isScreenVisible;
     });
-    _streamService?.setStreamEnabled(_isScreenVisible);
+    _currentSession?.streamService.setStreamEnabled(_isScreenVisible);
   }
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
     if (event is KeyDownEvent) {
       if (event.logicalKey == LogicalKeyboardKey.escape) {
-        _controlService?.keyPress(DeviceKeyAction.back);
+        _currentSession?.controlService.keyPress(DeviceKeyAction.back);
         return KeyEventResult.handled;
       }
     }
@@ -212,12 +145,10 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
+    final activeSession = _currentSession;
+    final currentDevice = activeSession?.device;
     final hasReadyDevice =
-        _stfLiteRuntime.isAvailable &&
-        _currentDevice != null &&
-        _controlService != null &&
-        _streamService != null &&
-        _toolsService != null;
+        widget.sessionManager.isRuntimeAvailable && activeSession != null;
 
     return Focus(
       focusNode: _keyboardFocusNode,
@@ -230,12 +161,13 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
             children: [
               if (!hasReadyDevice)
                 AppHeader(
-                  currentDevice: _currentDevice,
+                  currentDevice: currentDevice,
                   currentTheme: widget.themeController.currentTheme,
                   availableDevices: _devices,
                   onDeviceSelected: _handleDeviceChanged,
                   onRefreshDevices: _scanAdbDevices,
                   onToggleTheme: widget.themeController.toggleTheme,
+                  onBackToOverview: _returnToOverview,
                   isScanning: _isScanning,
                 ),
 
@@ -254,10 +186,10 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
                               )
                               .toDouble();
                           final deviceAspectRatio =
-                              _currentDevice!.display.width /
-                              _currentDevice!.display.height;
+                              currentDevice!.display.width /
+                              currentDevice.display.height;
                           final screenAspectRatio =
-                              _currentDevice!.display.isLandscape
+                              currentDevice.display.isLandscape
                               ? 1.0 / deviceAspectRatio
                               : deviceAspectRatio;
                           final aspectFittedWidth =
@@ -281,10 +213,10 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
                               SizedBox(
                                 width: leftStageWidth,
                                 child: DeviceScreenStage(
-                                  device: _currentDevice!,
-                                  controlService: _controlService!,
-                                  streamService: _streamService!,
-                                  fpsStatsNotifier: _fpsStatsNotifier,
+                                  device: currentDevice,
+                                  controlService: activeSession.controlService,
+                                  streamService: activeSession.streamService,
+                                  fpsStatsNotifier: activeSession.fpsStats,
                                   isVisible: _isScreenVisible,
                                 ),
                               ),
@@ -294,7 +226,7 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
                                 child: Column(
                                   children: [
                                     AppHeader(
-                                      currentDevice: _currentDevice,
+                                      currentDevice: currentDevice,
                                       currentTheme:
                                           widget.themeController.currentTheme,
                                       availableDevices: _devices,
@@ -302,15 +234,19 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
                                       onRefreshDevices: _scanAdbDevices,
                                       onToggleTheme:
                                           widget.themeController.toggleTheme,
+                                      onBackToOverview: _returnToOverview,
                                       isScanning: _isScanning,
                                     ),
                                     Expanded(
                                       child: DeviceWorkspace(
-                                        device: _currentDevice!,
-                                        controlService: _controlService!,
-                                        toolsService: _toolsService!,
-                                        streamService: _streamService!,
-                                        fpsStats: _fpsStatsNotifier,
+                                        device: currentDevice,
+                                        controlService:
+                                            activeSession.controlService,
+                                        toolsService:
+                                            activeSession.toolsService,
+                                        streamService:
+                                            activeSession.streamService,
+                                        fpsStats: activeSession.fpsStats,
                                         onToggleRotation: _handleToggleRotation,
                                         onToggleScreenVisibility:
                                             _handleToggleScreenVisibility,
@@ -350,16 +286,15 @@ class _DeviceControlPageState extends State<DeviceControlPage> {
                                 fontSize: 12,
                               ),
                             ),
-                            if (_adbPathInfo.isNotEmpty) ...[
+                            if (_localizedRuntimeError(context).isNotEmpty) ...[
                               const SizedBox(height: 8),
                               Text(
-                                'ADB 探测路径: $_adbPathInfo',
+                                _localizedRuntimeError(context),
                                 style: TextStyle(
                                   color: tokens.textSecondary.withValues(
                                     alpha: 0.6,
                                   ),
                                   fontSize: 11,
-                                  fontFamily: 'monospace',
                                 ),
                               ),
                             ],

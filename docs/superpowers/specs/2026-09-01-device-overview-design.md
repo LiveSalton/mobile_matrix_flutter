@@ -67,8 +67,8 @@ The console button is outside the pointer listener for the screen area. A failed
 
 Use a layout builder or sliver grid with a minimum card width and fixed gaps. The target column counts are:
 
-- `>= 1280px`: 4 columns.
-- `960px – 1279px`: 3 columns.
+- `>= 1024px`: 4 columns.
+- `960px – 1023px`: 3 columns.
 - `640px – 959px`: 2 columns.
 - `< 640px`: 1 column.
 
@@ -136,7 +136,7 @@ FPS state is per session. The overview may show FPS in the card header only if t
 - The existing `ScalingCoordinator` remains responsible for mapping the displayed rectangle to device coordinates.
 - The device's rotation is passed into both projection and coordinate mapping.
 - The four bottom navigation buttons call the same device-specific key actions as the current single-device stage.
-- Overview cards do not install a global raw keyboard bridge. Computer keyboard text input remains exclusive to the single-device control workspace.
+- Overview cards do not install a global raw keyboard bridge. Each card may focus its own invisible raw keyboard bridge after the user presses that card's phone screen, so computer keyboard input is routed only to the selected device.
 - `进入控制台` is a normal page action and cannot be interpreted as a screen gesture.
 
 ## State and error handling

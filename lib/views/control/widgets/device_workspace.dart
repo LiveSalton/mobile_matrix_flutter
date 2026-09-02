@@ -8,13 +8,13 @@ import 'package:flutter/services.dart';
 import '../../../l10n/l10n.dart';
 import '../../../models/device_model.dart';
 import '../../../models/device_tool_models.dart';
+import '../../../models/screen_fps_stats.dart';
 import '../../../services/device_control_service.dart';
 import '../../../services/device_tool_parsers.dart';
 import '../../../services/device_tools_service.dart';
 import '../../../services/screen_capture_service.dart';
 import '../../../services/screen_stream_service.dart';
 import '../../../theme/app_theme.dart';
-import 'fast_screen_renderer.dart';
 
 class DeviceWorkspace extends StatefulWidget {
   final DeviceModel device;
@@ -692,27 +692,38 @@ class _DeviceWorkspaceState extends State<DeviceWorkspace> {
       child: Row(
         children: [
           // 设备型号药丸徽标
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: tokens.primary.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: tokens.primary.withValues(alpha: 0.35)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.smartphone_rounded, size: 14, color: tokens.primary),
-                const SizedBox(width: 6),
-                Text(
-                  widget.device.displayName,
-                  style: TextStyle(
-                    color: tokens.textPrimary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: tokens.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: tokens.primary.withValues(alpha: 0.35),
                 ),
-              ],
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.smartphone_rounded,
+                    size: 14,
+                    color: tokens.primary,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      widget.device.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: tokens.textPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 8),

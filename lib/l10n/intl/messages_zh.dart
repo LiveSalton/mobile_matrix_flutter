@@ -24,24 +24,26 @@ class MessageLookup extends MessageLookupByLibrary {
 
   static String m1(text) => "提交文本：\"${text}\"";
 
-  static String m2(count) => "${count} 个项目";
+  static String m2(count) => "已连接 ${count} 台设备";
 
-  static String m3(destination) => "文件已拉取到 ${destination}";
+  static String m3(count) => "${count} 个项目";
 
-  static String m4(size) => "${size} B";
+  static String m4(destination) => "文件已拉取到 ${destination}";
 
-  static String m5(phrase) => "注入短语：\"${phrase}\"";
+  static String m5(size) => "${size} B";
 
-  static String m6(text) => "从电脑剪贴板粘贴：\"${text}\"";
+  static String m6(phrase) => "注入短语：\"${phrase}\"";
 
-  static String m7(count, device, endpoint) =>
+  static String m7(text) => "从电脑剪贴板粘贴：\"${text}\"";
+
+  static String m8(count, device, endpoint) =>
       "已发现 ${count} 台设备，已为 ${device} 配置 ${endpoint}";
 
-  static String m8(error) => "读取本机设备失败：${error}";
+  static String m9(error) => "读取本机设备失败：${error}";
 
-  static String m9(error) => "STF Lite 运行时启动失败：${error}";
+  static String m10(error) => "STF Lite 运行时启动失败：${error}";
 
-  static String m10(count) => "已读取 ${count} 个第三方应用";
+  static String m11(count) => "已读取 ${count} 个第三方应用";
 
   final messages = _notInlinedMessages(_notInlinedMessages);
   static Map<String, Function> _notInlinedMessages(_) => <String, Function>{
@@ -68,6 +70,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "apps": MessageLookupByLibrary.simpleMessage("应用"),
     "automation": MessageLookupByLibrary.simpleMessage("自动化"),
     "back": MessageLookupByLibrary.simpleMessage("后退"),
+    "back_to_overview": MessageLookupByLibrary.simpleMessage("返回设备总览"),
     "battery": MessageLookupByLibrary.simpleMessage("电池"),
     "battery_level": MessageLookupByLibrary.simpleMessage("电量"),
     "battery_status": MessageLookupByLibrary.simpleMessage("状态"),
@@ -94,6 +97,7 @@ class MessageLookup extends MessageLookupByLibrary {
       "电脑剪贴板当前为空",
     ),
     "connect": MessageLookupByLibrary.simpleMessage("连接"),
+    "connected_devices": m2,
     "copy": MessageLookupByLibrary.simpleMessage("复制"),
     "copy_screenshot": MessageLookupByLibrary.simpleMessage("复制截屏"),
     "core_count": MessageLookupByLibrary.simpleMessage("核心数"),
@@ -111,6 +115,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "device_disconnected": MessageLookupByLibrary.simpleMessage("连接已断开"),
     "device_info": MessageLookupByLibrary.simpleMessage("设备信息"),
     "device_maintenance": MessageLookupByLibrary.simpleMessage("设备维护"),
+    "device_overview": MessageLookupByLibrary.simpleMessage("设备总览"),
     "device_path": MessageLookupByLibrary.simpleMessage("设备路径"),
     "device_path_hint": MessageLookupByLibrary.simpleMessage(
       "输入 /sdcard 或其他设备路径",
@@ -128,18 +133,19 @@ class MessageLookup extends MessageLookupByLibrary {
     "enable_bluetooth": MessageLookupByLibrary.simpleMessage("开启蓝牙"),
     "enable_wifi": MessageLookupByLibrary.simpleMessage("开启 Wi‑Fi"),
     "enter": MessageLookupByLibrary.simpleMessage("进入"),
+    "enter_console": MessageLookupByLibrary.simpleMessage("进入控制台"),
     "execute": MessageLookupByLibrary.simpleMessage("执行"),
     "file_browser": MessageLookupByLibrary.simpleMessage("文件浏览器"),
-    "file_count": m2,
+    "file_count": m3,
     "file_management": MessageLookupByLibrary.simpleMessage("文件管理"),
-    "file_pulled": m3,
-    "file_size_bytes": m4,
+    "file_pulled": m4,
+    "file_size_bytes": m5,
     "filter_keywords": MessageLookupByLibrary.simpleMessage("过滤关键词"),
     "hardware": MessageLookupByLibrary.simpleMessage("硬件"),
     "hardware_controls": MessageLookupByLibrary.simpleMessage("硬件按键与屏幕操作"),
     "hide_screen": MessageLookupByLibrary.simpleMessage("隐藏屏幕"),
     "imei": MessageLookupByLibrary.simpleMessage("IMEI"),
-    "injected_phrase_log": m5,
+    "injected_phrase_log": m6,
     "install_apk": MessageLookupByLibrary.simpleMessage("安装 APK"),
     "ip": MessageLookupByLibrary.simpleMessage("IP"),
     "local_destination_required": MessageLookupByLibrary.simpleMessage(
@@ -182,7 +188,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "package_name_hint": MessageLookupByLibrary.simpleMessage("应用包名"),
     "parent_directory": MessageLookupByLibrary.simpleMessage("上级目录"),
     "paste_computer_clipboard": MessageLookupByLibrary.simpleMessage("粘贴电脑剪贴板"),
-    "pasted_clipboard_log": m6,
+    "pasted_clipboard_log": m7,
     "platform": MessageLookupByLibrary.simpleMessage("平台"),
     "play_pause": MessageLookupByLibrary.simpleMessage("播放/暂停"),
     "port_forwarding": MessageLookupByLibrary.simpleMessage("端口转发"),
@@ -200,11 +206,11 @@ class MessageLookup extends MessageLookupByLibrary {
     "remote_address_hint": MessageLookupByLibrary.simpleMessage(
       "设备地址，例如 192.168.1.8:36997",
     ),
-    "remote_debug_discovered": m7,
+    "remote_debug_discovered": m8,
     "remote_debug_hint": MessageLookupByLibrary.simpleMessage(
       "读取本机设备后自动识别无线 ADB 连接端口；连接后可在设备选择器中使用。",
     ),
-    "remote_debug_read_failed": m8,
+    "remote_debug_read_failed": m9,
     "remote_debug_subtitle": MessageLookupByLibrary.simpleMessage(
       "配置 TCP/IP 端口，支持免 USB 无线投屏控制",
     ),
@@ -244,7 +250,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "stf_lite_runtime_not_ready": MessageLookupByLibrary.simpleMessage(
       "STF Lite 运行时尚未就绪",
     ),
-    "stf_lite_runtime_start_failed": m9,
+    "stf_lite_runtime_start_failed": m10,
     "stf_lite_runtime_unavailable": MessageLookupByLibrary.simpleMessage(
       "STF Lite 运行时资源未配置，请配置 sidecar 与资源目录",
     ),
@@ -296,7 +302,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "system_settings": MessageLookupByLibrary.simpleMessage("系统设置"),
     "system_version": MessageLookupByLibrary.simpleMessage("系统版本"),
     "temperature": MessageLookupByLibrary.simpleMessage("温度"),
-    "third_party_apps_loaded": m10,
+    "third_party_apps_loaded": m11,
     "toggle_theme": MessageLookupByLibrary.simpleMessage("切换流光主题 (液态蓝 / 玫瑰流光)"),
     "uninstall": MessageLookupByLibrary.simpleMessage("卸载"),
     "unknown": MessageLookupByLibrary.simpleMessage("未知"),

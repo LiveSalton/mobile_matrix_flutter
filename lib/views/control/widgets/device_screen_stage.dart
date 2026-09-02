@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../models/device_model.dart';
 import '../../../models/device_key_event.dart';
+import '../../../models/screen_fps_stats.dart';
 import '../../../services/android_keyboard_mapper.dart';
 import '../../../services/device_control_service.dart';
 import '../../../services/scaling_coordinator.dart';
@@ -13,11 +14,18 @@ import '../../../l10n/l10n.dart';
 import 'fast_screen_renderer.dart';
 
 class DeviceScreenStage extends StatefulWidget {
+  static const double bottomNavigationHeight = 48.0;
+
   final DeviceModel device;
   final IDeviceControlService controlService;
   final IScreenStreamService streamService;
   final ValueNotifier<ScreenFpsStats> fpsStatsNotifier;
   final bool isVisible;
+  final bool keyboardEnabled;
+  final bool showBottomNavigation;
+  final Alignment screenAlignment;
+  final double? maxScreenWidth;
+  final double navigationBarHeight;
 
   const DeviceScreenStage({
     super.key,
@@ -26,6 +34,11 @@ class DeviceScreenStage extends StatefulWidget {
     required this.streamService,
     required this.fpsStatsNotifier,
     this.isVisible = true,
+    this.keyboardEnabled = true,
+    this.showBottomNavigation = true,
+    this.screenAlignment = Alignment.center,
+    this.maxScreenWidth,
+    this.navigationBarHeight = bottomNavigationHeight,
   });
 
   @override
@@ -133,7 +146,7 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
 
     // Mirror STF Web: clicking the device screen activates the raw keyboard
     // bridge, while the phone's own IME remains responsible for composition.
-    if (!_rawKeyboardFocusNode.hasFocus) {
+    if (widget.keyboardEnabled && !_rawKeyboardFocusNode.hasFocus) {
       _rawKeyboardFocusNode.requestFocus();
     }
     final relX = event.localPosition.dx - renderRect.left;
@@ -366,6 +379,34 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
     return KeyEventResult.ignored;
   }
 
+  Rect _calculateRenderRect(Size stageSize) {
+    final renderRect = _coordinator.calculateRenderRect(
+      stageSize,
+      widget.device.display.rotation,
+    );
+    final maxWidth = widget.maxScreenWidth;
+    if (maxWidth == null || maxWidth <= 0 || renderRect.width <= maxWidth) {
+      return renderRect;
+    }
+
+    final targetAspect = widget.device.display.isLandscape
+        ? 1.0 / _coordinator.realRatio
+        : _coordinator.realRatio;
+    final width = maxWidth.clamp(1.0, stageSize.width).toDouble();
+    final height = width / targetAspect;
+    final remainingWidth = stageSize.width - width;
+    final remainingHeight = stageSize.height - height;
+    final horizontalFactor = (widget.screenAlignment.x + 1) / 2;
+    final verticalFactor = (widget.screenAlignment.y + 1) / 2;
+
+    return Rect.fromLTWH(
+      remainingWidth * horizontalFactor,
+      remainingHeight * verticalFactor,
+      width,
+      height,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final tokens = context.tokens;
@@ -386,10 +427,7 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
                         constraints.maxWidth,
                         constraints.maxHeight,
                       );
-                      final renderRect = _coordinator.calculateRenderRect(
-                        stageSize,
-                        widget.device.display.rotation,
-                      );
+                      final renderRect = _calculateRenderRect(stageSize);
                       _updateViewportAfterLayout(renderRect);
 
                       return Listener(
@@ -403,7 +441,8 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
                             Positioned.fill(
                               child: Container(
                                 color: tokens.bg,
-                                child: Center(
+                                child: Align(
+                                  alignment: widget.screenAlignment,
                                   child: Container(
                                     width: renderRect.width,
                                     height: renderRect.height,
@@ -473,19 +512,20 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
                               ),
                             ),
 
-                            Positioned(
-                              left: renderRect.left,
-                              top: renderRect.top,
-                              width: renderRect.width,
-                              height: renderRect.height,
-                              // The raw keyboard bridge is focused
-                              // programmatically after a screen pointer down.
-                              // It must not participate in hit testing, so it
-                              // cannot retarget or cancel the touch gesture.
-                              child: IgnorePointer(
-                                child: _buildRawKeyboardBridge(),
+                            if (widget.keyboardEnabled)
+                              Positioned(
+                                left: renderRect.left,
+                                top: renderRect.top,
+                                width: renderRect.width,
+                                height: renderRect.height,
+                                // The raw keyboard bridge is focused
+                                // programmatically after a screen pointer down.
+                                // It must not participate in hit testing, so it
+                                // cannot retarget or cancel the touch gesture.
+                                child: IgnorePointer(
+                                  child: _buildRawKeyboardBridge(),
+                                ),
                               ),
-                            ),
 
                             // 触控指示光标 Feedback (包含长按脉冲特效)
                             if (_isPointerDown && _touchPosition != null)
@@ -573,7 +613,7 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
           ),
 
           // 底部虚拟按键栏
-          _buildNavigationBar(context),
+          if (widget.showBottomNavigation) _buildNavigationBar(context),
         ],
       ),
     );
@@ -736,7 +776,7 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
     final tokens = context.tokens;
 
     return Container(
-      height: 48,
+      height: widget.navigationBarHeight,
       decoration: BoxDecoration(
         color: tokens.bgSecondary,
         border: Border(top: BorderSide(color: tokens.outline, width: 1)),
@@ -796,7 +836,7 @@ class _DeviceScreenStageState extends State<DeviceScreenStage> {
         child: Tooltip(
           message: tooltip,
           child: Center(
-            child: Icon(icon, size: 20, color: tokens.textSecondary),
+            child: Icon(icon, size: 18, color: tokens.textSecondary),
           ),
         ),
       ),

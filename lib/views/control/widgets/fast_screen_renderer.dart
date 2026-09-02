@@ -3,22 +3,7 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-
-class ScreenFpsStats {
-  final int received;
-  final int rendered;
-  final int dropped;
-  final double lastDecodeMs;
-
-  const ScreenFpsStats({
-    this.received = 0,
-    this.rendered = 0,
-    this.dropped = 0,
-    this.lastDecodeMs = 0,
-  });
-
-  static const empty = ScreenFpsStats();
-}
+import '../../../models/screen_fps_stats.dart';
 
 class FastScreenRenderer extends StatefulWidget {
   final Stream<Uint8List> frameStream;

@@ -1,6 +1,10 @@
 {
   "@@locale": "en",
   "app_name": "Mobile Matrix",
+  "device_overview": "Device Overview",
+  "connected_devices": "{count} connected devices",
+  "enter_console": "Open console",
+  "back_to_overview": "Back to device overview",
   "dashboard": "Dashboard",
   "logs": "Logs",
   "automation": "Automation",

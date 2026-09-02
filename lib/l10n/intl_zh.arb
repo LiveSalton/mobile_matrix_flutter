@@ -1,6 +1,10 @@
 {
   "@@locale": "zh",
   "app_name": "Mobile Matrix",
+  "device_overview": "设备总览",
+  "connected_devices": "已连接 {count} 台设备",
+  "enter_console": "进入控制台",
+  "back_to_overview": "返回设备总览",
   "dashboard": "仪表盘",
   "logs": "日志",
   "automation": "自动化",
